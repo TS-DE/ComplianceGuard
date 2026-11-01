@@ -13,7 +13,10 @@
 sc query MySQL82
 
 # 2) 建库建表 + 种子数据
-python -m scripts.init_db
+#    init_db 默认只打印 DDL 预览（铁律：结构性变更先预览），加 --apply 才执行
+python -m scripts.init_db            # 预览
+python -m scripts.init_db --apply    # 建库建表（幂等，可重复跑）
+python -m scripts.show_tables        # 核对表结构与索引
 python -m scripts.seed_cases
 
 # 3) 构建向量库（Chroma）
@@ -53,7 +56,8 @@ cd frontend && npm run dev
 | 现象 | 根因 | 处理 |
 |---|---|---|
 | `import chromadb` 抛 `Descriptors cannot be created directly` | opentelemetry-proto 落后于 protobuf 7.x | 升级 opentelemetry-proto（见 `SKILL.md` S0） |
-| 连不上 MySQL | 服务未启动 / 库不存在 | `sc query MySQL82`；跑 `init_db` 自建库 |
+| 连不上 MySQL | 服务未启动 / 库不存在 | `sc query MySQL82`；跑 `scripts.init_db --apply` 自建库 |
+| 插入 audits 报 `Check constraint 'ck_audits_score' is violated` | score 不在 -1..2 | 这是护栏生效，检查分数来源；未完成判定用 -1 |
 | 模型 429 / 超时 | 限流或网络 | 系统自动降级为**纯规则判定**，结果标 `incomplete`，不许当合规 |
 | 前端跨域 | CORS 未开 | 后端已放行 `localhost:5173`，新端口需补 |
 | 中文乱码 | GBK 控制台 | 代码不打印 emoji；文件显式 UTF-8 |
@@ -71,3 +75,4 @@ cd frontend && npm run dev
 | 日期 | 变更 | 原因 |
 |---|---|---|
 | 2026-11-01 | 建立启动顺序、回滚三级、故障表 | 项目启动 |
+| 2026-11-01 | 启动命令改 `init_db --apply`，补 show_tables 与 CHECK 故障项 | D1 建库落地：预览与执行分离 |

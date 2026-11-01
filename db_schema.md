@@ -1,6 +1,6 @@
 # db_schema.md — 数据契约
 
-> **状态：生效（稳定契约，改动必须走迁移）** ｜ 最后更新：2026-11-01 ｜ 维护：统筹方
+> **状态：生效（稳定契约，改动必须走迁移）** ｜ 最后更新：2026-11-01 ｜ 维护：统筹方 + Claude
 >
 > 本文件是 MySQL 表结构与 Chroma collection 的**唯一真相**。
 > 改这里之前先想清楚：**表结构错了，后面所有代码都要返工。**
@@ -18,9 +18,9 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 | id | BIGINT | PK, AI | |
 | username | VARCHAR(50) | UNIQUE, NOT NULL | 登录名 |
 | password_hash | VARCHAR(255) | NOT NULL | bcrypt，**禁止存明文** |
-| role | ENUM('admin','operator') | DEFAULT 'operator' | |
-| is_active | TINYINT(1) | DEFAULT 1 | 停用即不能登录 |
-| created_at | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| role | ENUM('admin','operator') | NOT NULL, DEFAULT 'operator' | |
+| is_active | TINYINT(1) | NOT NULL, DEFAULT 1 | 停用即不能登录 |
+| created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
 
 ### 1.2 `clients` — 机构（CRUD 1）
 
@@ -28,10 +28,10 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 |---|---|---|---|
 | id | BIGINT | PK, AI | |
 | name | VARCHAR(100) | NOT NULL | 机构名 |
-| industry | VARCHAR(50) | DEFAULT 'medical_beauty' | 行业，为多切片预留 |
+| industry | VARCHAR(50) | NOT NULL, DEFAULT 'medical_beauty' | 行业，为多切片预留 |
 | contact | VARCHAR(100) | NULL | 联系人/电话 |
-| plan | VARCHAR(30) | DEFAULT 'free' | 套餐（演示用） |
-| created_at | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| plan | VARCHAR(30) | NOT NULL, DEFAULT 'free' | 套餐（演示用） |
+| created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
 
 ### 1.3 `scripts` — 话术（CRUD 2）
 
@@ -41,8 +41,8 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 | client_id | BIGINT | FK→clients.id, NOT NULL, INDEX | 归属机构 |
 | scene | VARCHAR(50) | NULL | 场景：双眼皮/热玛吉/美白/祛斑/植发 |
 | content | TEXT | NOT NULL | 待审话术原文 |
-| status | ENUM('pending','audited','archived') | DEFAULT 'pending' | |
-| created_at | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| status | ENUM('pending','audited','archived') | NOT NULL, DEFAULT 'pending' | |
+| created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
 
 ### 1.4 `audits` — 审查记录（CRUD 3，Agent 落库目标）
 
@@ -50,33 +50,34 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 |---|---|---|---|
 | id | BIGINT | PK, AI | |
 | script_id | BIGINT | FK→scripts.id, NOT NULL, INDEX | |
-| score | TINYINT | NOT NULL | **2 合规 / 1 轻微 / 0 违规 / -1 未完成** |
-| hit_count | INT | DEFAULT 0 | 命中条数（列表页快速展示） |
+| score | TINYINT | NOT NULL, **CHECK `ck_audits_score`: score BETWEEN -1 AND 2** | **2 合规 / 1 轻微 / 0 违规 / -1 未完成**，取值域由数据库强制 |
+| hit_count | INT | NOT NULL, DEFAULT 0 | 命中条数（列表页快速展示） |
 | hits_json | JSON | NULL | 每条：`{axis, pattern, level, quote, law_article, reason}` |
 | law_refs_json | JSON | NULL | 引用的法条：`[{code:"广告法第16条", text:"...", source_id:"..."}]` |
 | rewritten_text | TEXT | NULL | Agent2 改写稿 |
 | rewrite_passed | TINYINT(1) | NULL | 改写稿二次审查是否通过（NULL=未做） |
 | model | VARCHAR(50) | NULL | 判定模型名 |
-| prompt_tokens | INT | DEFAULT 0 | 成本计量 |
-| completion_tokens | INT | DEFAULT 0 | |
-| cost | DECIMAL(10,6) | DEFAULT 0 | 估算元 |
-| latency_ms | INT | DEFAULT 0 | 端到端耗时 |
-| incomplete | TINYINT(1) | DEFAULT 0 | 1=有轴调用失败，**不许当合规** |
-| created_at | DATETIME | DEFAULT CURRENT_TIMESTAMP, INDEX | 报告按时间窗聚合 |
+| prompt_tokens | INT | NOT NULL, DEFAULT 0 | 成本计量 |
+| completion_tokens | INT | NOT NULL, DEFAULT 0 | |
+| cost | DECIMAL(10,6) | NOT NULL, DEFAULT 0 | 估算元 |
+| latency_ms | INT | NOT NULL, DEFAULT 0 | 端到端耗时 |
+| incomplete | TINYINT(1) | NOT NULL, DEFAULT 0 | 1=有轴调用失败，**不许当合规** |
+| created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP, INDEX `ix_audits_created_at` | 报告按时间窗聚合 |
 
 ### 1.5 `rules` — 规则库（CRUD 4，Agent 工具读取）
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
 | id | BIGINT | PK, AI | |
-| axis | VARCHAR(40) | NOT NULL, INDEX | 规则轴枚举（见 §3） |
+| axis | VARCHAR(40) | NOT NULL, INDEX `ix_rules_axis` | 规则轴枚举（见 §3） |
 | law_article | VARCHAR(80) | NOT NULL | 如 `广告法第16条` |
 | pattern | VARCHAR(200) | NOT NULL | 违规模式描述 |
 | level | ENUM('hard','soft') | NOT NULL | hard=一票否决 |
 | example_bad | TEXT | NULL | 反例原文 |
-| version | INT | DEFAULT 1 | **改规则必须 +1** |
-| enabled | TINYINT(1) | DEFAULT 1 | |
-| created_at / updated_at | DATETIME | | |
+| version | INT | NOT NULL, DEFAULT 1 | **改规则必须 +1** |
+| enabled | TINYINT(1) | NOT NULL, DEFAULT 1 | |
+| created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
+| updated_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP **ON UPDATE CURRENT_TIMESTAMP** | 库侧自动刷新，绕过 ORM 直改表也生效 |
 
 ### 1.6 关系与外键策略
 ```
@@ -85,6 +86,9 @@ rules（独立字典表，被 Agent 读取）
 users（独立，仅鉴权）
 ```
 - 外键**建立**但 `ON DELETE RESTRICT`（禁止级联删业务数据）
+- **带 DEFAULT 的列一律 NOT NULL**（D1 落地决策）：杜绝"有默认值却写了 NULL"的第三种状态
+- 建表脚本 `scripts/init_db.py` 生成 `CREATE TABLE IF NOT EXISTS`，可重复执行
+- 分数取值域由 `CHECK` 约束在库侧强制（Harness ⑤ 约束自动化）
 - 所有表 `ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
 
 ---
@@ -144,3 +148,4 @@ users（独立，仅鉴权）
 | 日期 | 变更 | 原因 |
 |---|---|---|
 | 2026-11-01 | 建立 5 表 + 2 collection + 8 轴枚举 | 项目启动，D1 建库依据 |
+| 2026-11-01 | 补全 NOT NULL、`ck_audits_score` CHECK、`updated_at` ON UPDATE、索引名 | D1 建库落地，代码与文档对齐 |
