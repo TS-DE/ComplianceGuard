@@ -1,0 +1,39 @@
+# 密钥：绝不入库
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# 前端依赖与产物
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+
+# 向量库与数据（可重建 / 体积大）
+data/chroma/
+data/raw/
+*.db
+*.sqlite
+*.sqlite3
+
+# 日志与系统文件
+*.log
+.DS_Store
+Thumbs.db
+
+# 统筹方（DeepSeek 侧）私有材料：不参与开发、不入库
+_agent_docs/
+agent_docs/
+
+# Hermes 本地会话/记忆（若落在项目内）
+.hermes/
