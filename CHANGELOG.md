@@ -48,8 +48,56 @@ mysql> SELECT COUNT(*) ...  -> clients 0 / scripts 0 / audits 0（探针已回�
 
 **验证证据**：`git diff --stat` 见对应 docs commit。
 
+### C · JWT 注册登录与鉴权依赖（commit 190f9f7）
+**做了什么**：`security.py`（bcrypt 哈希 + HS256 JWT）、`deps.py`（`get_current_user`，401 带
+`WWW-Authenticate`）、`/api/v1/auth/register|login|me`；登录失败统一提示防枚举。
+
+**验证证据**（uvicorn :8765 实跑，`curl.exe`）：
+```
+GET  /health                         -> [HTTP 200] {"code":200,"msg":"ok","data":{"status":"ok","version":"0.1.0"},"total":null}
+POST /api/v1/auth/register           -> [HTTP 200] {"code":200,...,"data":{"id":4,"username":"curl_demo","role":"operator"}}
+POST /api/v1/auth/login (错密码)     -> [HTTP 401] {"code":401,"msg":"用户名或密码错误","data":null,"total":null}
+POST /api/v1/auth/login (正确)       -> token len: 176
+GET  /api/v1/clients (无 token)      -> [HTTP 401] {"code":401,"msg":"缺少 Authorization: Bearer ***",...}
+GET  /api/v1/auth/me (Bearer)        -> [HTTP 200] {"data":{"id":4,"username":"curl_demo","role":"operator","created_at":"2026-11-01T17:01:01"}}
+```
+
+### D · 四套 CRUD（commit 137fe05）
+**做了什么**：clients/scripts/audits/rules 各 schemas+crud+service+api；分页 `page/page_size`
+返回 `{code,msg,data,total}`；scripts/audits 支持 `client_id`；不存在 id -> 404；
+外键约束删除 -> 409；script 指向不存在的 client -> 422；rules axis 越界 -> 422；
+rules 改内容 -> 新行 version+1、旧行 enabled=0 保留（铁律 7）。
+
+**验证证据**：
+```
+POST /api/v1/clients                 -> [HTTP 200] {"data":{"name":"curl-demo-clinic","industry":"medical_beauty","plan":"free","id":3,...}}
+GET  /api/v1/clients?page=1&page_size=20 -> [HTTP 200] {"code":200,"msg":"ok","data":[{...id:3...}],"total":1}
+GET  /api/v1/clients/999999          -> [HTTP 404] {"code":404,"msg":"client 999999 不存在","data":null,"total":null}
+```
+curl 产生的探针数据已删除：业务库 users/clients/scripts/audits/rules 均为 0 行。
+
+### E · 种子与测试（commit 4f0a875）
+**做了什么**：`data/cases/` 2 条真实罚单（case_001 即 db_schema §2.2 契约示例；case_002 取自
+市场监管总局 2025-07-09 公布的典型案例，成都成华韩后医美，罚 40.98 万）；`seed_cases.py`
+做结构校验；pytest 用独立库 `compliance_guard_test`。
+
+**验证证据**：
+```
+$ python -m scripts.seed_cases
+有效案例: 2 条 / 目标 30 条
+  - samr_2025_002 | 2024 | 罚款 613700 元 | 上海市市场监管局 | 功效/安全性断言
+  - samr_2025_hou | 2025 | 罚款 409800 元 | 四川省成都市成华区市场监管局 | 功效断言/虚假广告
+EXIT 0
+$ python -m pytest tests -q
+44 passed in 3.28s
+EXIT 0
+mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务库）
+自检：print( 0 处 / 裸 except 0 处 / .query( 0 处 / 已跟踪文件中密钥 0 处 / 函数 >60 行 0 个 / 最大文件 166 行
+```
+
 **遗留问题**
-- （C/D/E 完成后补）
+- seed_cases 在 D1 只做校验，未写 Chroma（入库属 D2 `build_index.py`）。
+- case_001 处罚决定书编号待人工核对；锚点集 2/30。
 
 **规则 / 评测集变动**
 - 无（rules 表为空；锚点集尚未入 Chroma）
