@@ -84,6 +84,19 @@ def test_rewrite_always_rechecks_and_never_passes_incomplete(score,hits,incomple
     assert r['rewritten_text'] == '修订稿'
 
 
+def test_judge_prompt_requires_exact_retrieved_code_not_rule_subitem():
+    from backend.agents.base import LLMJudgeDetector, Rule
+    class Capture(ResponseModel):
+        def complete(self, messages):
+            assert '逐字复制' in messages[0]['content']
+            payload = json.loads(messages[1]['content'])
+            assert 'law_article' not in payload
+            return super().complete(messages)
+    detector = LLMJudgeDetector(Capture({'hits':[]}))
+    assert detector.detect('保证有效', Rule(law_article='广告法第16条(一)',
+        law_refs=[dict(code='广告法第16条')])) == []
+
+
 def test_soft_sentence_aggregation_and_failed_axis():
     from backend.agents.compliance import _score
     assert _score([dict(severity='soft',sentence_id=0),dict(severity='soft',sentence_id=0)]) == 1
@@ -118,6 +131,20 @@ def test_cheap_rule_item_maps_only_to_retrieved_parent_code():
         lambda q: [dict(code='广告法第9条')], None).review('顶级机构')
     assert r['score'] == 0
     assert r['hits'][0]['law_article'] == '广告法第9条'
+
+
+def test_transient_chat_transport_retries_without_fabricating_usage():
+    from backend.tools.audit_tool import UrllibChatModel
+    from backend.rag.embedding import EmbeddingError
+    calls = []
+    def transport(path, payload):
+        calls.append(path)
+        if len(calls) == 1: raise EmbeddingError('temporary')
+        return dict(choices=[dict(message=dict(content='{"hits":[]}'))],
+                    usage=dict(prompt_tokens=4, completion_tokens=2))
+    result = UrllibChatModel(transport).complete([])
+    assert len(calls) == 2
+    assert result['prompt_tokens'] == 4
 
 
 def test_normalization_maps_expansion_whitespace_and_zero_width():
