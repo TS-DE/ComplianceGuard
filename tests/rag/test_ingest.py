@@ -92,7 +92,7 @@ def test_cases_are_single_complete_chunks_with_primitive_metadata():
         meta = row["metadata"]
         assert meta["doc_type"] == "case"
         assert meta["relevance"] == "decision"
-        assert meta["source"] == case["source"]
+        assert meta["source"] == (case.get("source") or case["source_url"])
         assert meta["parent_text"] == row["text"]
         assert meta["penalty_amount"] == case["penalty_amount"]
         assert all(type(v) in (str, int, float, bool) for v in meta.values())

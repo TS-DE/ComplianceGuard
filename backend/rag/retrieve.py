@@ -2,6 +2,7 @@
 import json
 import logging
 import math
+import re
 from pathlib import Path
 from abc import ABC, abstractmethod
 from collections import Counter
@@ -133,11 +134,16 @@ class HybridRetriever(Retriever):
             raise EmbeddingError('向量索引不可用')
         return self.vector.query(name, q, k, where)
 
-    def _ranks(self, queries, name, doc_type):
+    def _ranks(self, queries, name, doc_type, domains):
         rows = self.groups[name]
         allowed = {r['id'] for r in rows if r['metadata'].get('relevance') == 'decision'
-                   and (doc_type is None or r['metadata']['doc_type'] == doc_type)}
+                   and (doc_type is None or r['metadata']['doc_type'] == doc_type)
+                   and (name != 'law_articles' or r['metadata'].get('domain', 'general') in domains)}
         where = {'relevance': 'decision'}
+        if name == 'law_articles':
+            self.status['filtered_codes'] = sorted({r['metadata']['code'] for r in rows
+                if r['metadata'].get('domain', 'general') not in domains})
+            where = {'$and': [where, {'domain': {'$in': list(domains)}}]}
         if doc_type:
             where = {'$and': [where, {'doc_type': doc_type}]}
         ranks, routes = [], {}
@@ -160,8 +166,8 @@ class HybridRetriever(Retriever):
                 logger.warning('vector_unavailable: 已降级 BM25')
         return ranks, routes
 
-    def _search_group(self, queries, name, top_k, doc_type, law_articles):
-        ranks, routes = self._ranks(queries, name, doc_type)
+    def _search_group(self, queries, name, top_k, doc_type, law_articles, domains=()):
+        ranks, routes = self._ranks(queries, name, doc_type, domains)
         scores = rrf_fuse(ranks)
         indexed = {row['id']: row for row in self.groups[name]}
         candidates = sorted(scores, key=lambda key: -scores[key])[:CANDIDATE_K]
@@ -174,6 +180,11 @@ class HybridRetriever(Retriever):
             bonus += 3 * (meta['code'] in law_articles)
             bonus -= int(len(content) > 300)
             bonus += int('不适用' in content or '不构成广告' in content)
+            # 数字/规模是检索线索，不是违法判定；仅提升已召回的28条(二)，不注入候选。
+            if (name == 'law_articles' and meta['code'] == '广告法第28条'
+                    and '与实际情况不符' in content
+                    and re.search(r'\d|[一二三四五六七八九十百千万亿]+(?:多|个|家|年|月|人|次)', queries[0])):
+                bonus += 3
             route = '+'.join(sorted(routes.get(key, [])))
             if self.status.get('lexicon'):
                 route += '+lexicon'
@@ -193,7 +204,7 @@ class HybridRetriever(Retriever):
             unique.setdefault(hit.code, hit)
         return list(unique.values())[:top_k]
 
-    def search(self, text, top_k=3, doc_type=None, law_articles=()):
+    def search(self, text, top_k=3, doc_type=None, law_articles=(), axis=None):
         """返回法律依据；case_hits 独立暴露；故障状态不等于合规。"""
         if not 1 <= top_k <= CANDIDATE_K:
             raise ValueError('top_k 必须为 1..10')
@@ -208,7 +219,8 @@ class HybridRetriever(Retriever):
             self.status['lexicon'] = bool(expanded)
             self.status['rewrite'] = any(q != text for q in queries)
             queries = list(dict.fromkeys([text, *expanded, *queries]))
-            laws = self._search_group(queries, 'law_articles', top_k, doc_type, law_articles)
+            domains = ('medical', 'general', 'realestate_edu') if axis == 'endorsement' else ('medical', 'general')
+            laws = self._search_group(queries, 'law_articles', top_k, doc_type, law_articles, domains)
             self.case_hits = self._search_group(queries, 'case_fines', top_k, None, ())
             return laws
         except Exception:
@@ -231,5 +243,5 @@ def default_retriever():
     return HybridRetriever(laws, load_cases(), store)
 
 
-def search(text, top_k=3, doc_type=None):
-    return default_retriever().search(text, top_k, doc_type)
+def search(text, top_k=3, doc_type=None, axis=None):
+    return default_retriever().search(text, top_k, doc_type, axis=axis)

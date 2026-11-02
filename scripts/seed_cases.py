@@ -44,6 +44,10 @@ def load_cases(directory: Path) -> tuple[list[CaseRecord], list[str]]:
     for path in sorted(directory.glob("*.json")):
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
+            # 新归档使用多轴 violation_type；适配旧展示字段，不改罚单原文。
+            if 'category' not in raw:
+                raw['category'] = ' / '.join(raw.get('violation_type', [])) or raw['official_ruling']
+            raw.setdefault('source', raw.get('source_url'))
             cases.append(CaseRecord.model_validate(raw))
         except (OSError, json.JSONDecodeError, ValidationError) as exc:
             errors.append(f"{path.name}: {exc}")

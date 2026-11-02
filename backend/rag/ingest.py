@@ -10,6 +10,18 @@ LAW_DIR = DATA_DIR / "law"
 CASE_DIR = DATA_DIR / "cases"
 HTML_TAG = re.compile(r"</?[A-Za-z][^>]*>")
 NUMBER = r"[一二三四五六七八九十百]+|\d+"
+DOMAIN_TERMS = (
+    ('medical', ('医疗', '药品', '医疗器械', '保健食品', '医美', '医疗广告', '诊疗')),
+    ('agriculture', ('农药', '兽药', '饲料', '种子', '种畜禽', '水产苗种')),
+    ('tobacco_alcohol', ('烟草', '酒类')),
+    ('realestate_edu', ('房地产', '教育培训', '招商', '投资回报')),
+    ('minor_media', ('未成年人', '母乳', '中小学校', '幼儿园')),
+)
+
+
+def classify_domain(text: str) -> str:
+    """按固定优先级判定完整条款行业；子块继承，避免列表项丢失行业上下文。"""
+    return next((name for name, terms in DOMAIN_TERMS if any(t in text for t in terms)), 'general')
 
 
 def _footer_labels(text: str) -> dict[int, str]:
@@ -112,7 +124,7 @@ def load_laws() -> tuple[list[dict], int]:
             code = f"{title}第{number}条"
             metadata = dict(code=code, doc_type=doc_type, relevance=relevance,
                             source=path.name, article_no=number, parent_text=parent,
-                            relevance_reason=reason)
+                            relevance_reason=reason, domain=classify_domain(parent))
             split = (len(parent) + len(code) + 1 > 400
                      or (title, number) in {("医疗广告认定指南", 5), ("医疗广告监管工作指南", 11)})
             for index, (child, item) in enumerate(_children(parent, split), start=1):
@@ -138,7 +150,8 @@ def load_cases() -> list[dict]:
         metadata = {key: value for key, value in case.items()
                     if value is not None and type(value) in (str, int, float, bool)}
         metadata.update(code=case["case_id"], doc_type="case", relevance="decision",
-                        source=case["source"], parent_text=text, article_no=0,
-                        source_file=path.name, law_articles="；".join(case.get("law_articles", [])))
+                        source=case.get("source") or case["source_url"], parent_text=text, article_no=0,
+                        source_file=path.name, domain=classify_domain(text),
+                        law_articles="；".join(case.get("law_articles", [])))
         records.append(dict(id=case["case_id"], text=text, metadata=metadata))
     return records
