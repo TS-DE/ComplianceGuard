@@ -1,158 +1,137 @@
 [
   {
     "id": "retrieval_01",
-    "query": "这个能保证你做完之后能往上走1—3个色度",
-    "source_case_id": "samr_2025_002",
-    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
-    "expected_codes": [
-      "广告法第16条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "最权威、最专业；亚洲顶尖；顶级机构",
+    "expected_codes": ["广告法第9条"],
+    "violation_type": "absolute_terms",
+    "source_case_id": "samr_2025_001",
+    "industry": "medical",
+    "expected_basis": "第9条第（三）项禁止最高级、最佳等用语；本查询只评绝对化用语，不附带该案虚假信息条款。"
   },
   {
     "id": "retrieval_02",
-    "query": "保证你做完之后能往上走1—3个色度",
-    "source_case_id": "samr_2025_002",
-    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
-    "expected_codes": [
-      "广告法第16条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "销售第一，全国全网",
+    "expected_codes": ["广告法第9条"],
+    "violation_type": "absolute_terms",
+    "source_case_id": "samr_2025_009",
+    "industry": "cosmetics",
+    "expected_basis": "第9条第（三）项禁止最高级、最佳等用语；本案裁定该销售排名表述属于绝对化用语。"
   },
   {
     "id": "retrieval_03",
-    "query": "做完之后能往上走1—3个色度",
+    "query": "这个能保证你做完之后能往上走1—3个色度",
+    "expected_codes": ["广告法第16条"],
+    "violation_type": "efficacy_claim",
     "source_case_id": "samr_2025_002",
-    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
-    "expected_codes": [
-      "广告法第16条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "industry": "medical",
+    "expected_basis": "医疗服务功效保证对应第16条第（一）项；不是仅因出现数字就标为虚假广告。"
   },
   {
     "id": "retrieval_04",
-    "query": "能保证你做完之后",
-    "source_case_id": "samr_2025_002",
-    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
-    "expected_codes": [
-      "广告法第16条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "能够解决肌肤20多种问题",
+    "expected_codes": ["广告法第16条"],
+    "violation_type": "efficacy_claim",
+    "source_case_id": "samr_2025_011",
+    "industry": "medical",
+    "expected_basis": "医疗美容功效断言对应第16条第（一）项；本题不继承同案第28条标签。"
   },
   {
     "id": "retrieval_05",
-    "query": "非常的安全，而且非常的高效",
+    "query": "所以这个是非常的安全",
+    "expected_codes": ["广告法第16条"],
+    "violation_type": "safety_guarantee",
     "source_case_id": "samr_2025_002",
-    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
-    "expected_codes": [
-      "广告法第16条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "industry": "medical",
+    "expected_basis": "医疗服务安全性断言对应第16条第（一）项。"
   },
   {
     "id": "retrieval_06",
-    "query": "所以这个是非常的安全",
-    "source_case_id": "samr_2025_002",
-    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
-    "expected_codes": [
-      "广告法第16条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "没有任何的副作用",
+    "expected_codes": ["广告法第18条"],
+    "violation_type": "safety_guarantee",
+    "source_case_id": "samr_2025_006",
+    "industry": "health_food",
+    "expected_basis": "保健食品安全性保证适用第18条第（一）项，不是医疗广告第16条；不混入该案其他虚假信息。"
   },
   {
     "id": "retrieval_07",
-    "query": "非常的安全",
-    "source_case_id": "samr_2025_002",
-    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
-    "expected_codes": [
-      "广告法第16条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "保健食品“沙棘晶粹粉”“红景天”等具有疾病治疗功能",
+    "expected_codes": ["广告法第18条"],
+    "violation_type": "disease_treatment",
+    "source_case_id": "samr_2025_004",
+    "industry": "health_food",
+    "expected_basis": "保健食品疾病治疗功能对应第18条第（二）项的行业专门禁令；本题不包含冒充专家的虚假权威行为。"
   },
   {
     "id": "retrieval_08",
-    "query": "非常的高效",
-    "source_case_id": "samr_2025_002",
-    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
-    "expected_codes": [
-      "广告法第16条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "溶解血栓、疏通血管、降低血液粘稠",
+    "expected_codes": ["广告法第17条"],
+    "violation_type": "disease_treatment",
+    "source_case_id": "samr_2025_005",
+    "industry": "ordinary_food",
+    "expected_basis": "普通食品涉及疾病治疗功能，对应第17条非医疗广告禁令，不适用保健食品专条。"
   },
   {
     "id": "retrieval_09",
-    "query": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
-    "source_case_id": "samr_2025_002",
-    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
-    "expected_codes": [
-      "广告法第16条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "治疗更年期综合症、预防癌症，预防治疗心脑血管疾病、治疗贫血",
+    "expected_codes": ["广告法第17条"],
+    "violation_type": "disease_treatment",
+    "source_case_id": "samr_2025_007",
+    "industry": "ordinary_food",
+    "expected_basis": "普通食品宣称治疗疾病对应第17条，不是医疗服务的功效保证或治愈率。"
   },
   {
     "id": "retrieval_10",
-    "query": "单次我们的续航能力是9—12个月",
-    "source_case_id": "samr_2025_hou",
-    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
-    "expected_codes": [
-      "广告法第16条",
-      "广告法第28条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "抗癌、杀死癌细胞、阻止癌细胞转移、消炎、降血糖",
+    "expected_codes": ["广告法第17条"],
+    "violation_type": "disease_treatment",
+    "source_case_id": "samr_2025_008",
+    "industry": "ordinary_food",
+    "expected_basis": "普通食品宣称抗癌等疾病治疗功能对应第17条；不能由农业企业名称推断适用农药广告条款。"
   },
   {
     "id": "retrieval_11",
-    "query": "我们的续航能力是9—12个月",
-    "source_case_id": "samr_2025_hou",
-    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
-    "expected_codes": [
-      "广告法第16条",
-      "广告法第28条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "由广告演员伪装成“专家”",
+    "expected_codes": ["广告法第28条"],
+    "violation_type": "false_authority",
+    "source_case_id": "samr_2025_004",
+    "industry": "health_food",
+    "expected_basis": "冒充专家是第28条总则所指虚假、引人误解的内容；仅凭演员身份不能等同于第28条第（三）项伪造科研资料，也不把疾病治疗条款继承进本题。"
   },
   {
     "id": "retrieval_12",
-    "query": "续航能力是9—12个月",
-    "source_case_id": "samr_2025_hou",
-    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
-    "expected_codes": [
-      "广告法第16条",
-      "广告法第28条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "以受益者名义作推荐、证明",
+    "expected_codes": ["广告法第24条"],
+    "violation_type": "endorsement",
+    "source_case_id": "samr_2025_010",
+    "industry": "education",
+    "expected_basis": "明确标注教育培训跨行业参考；受益者推荐证明适用第24条第（三）项，不误标医美第16条。"
   },
   {
     "id": "retrieval_13",
-    "query": "能够解决肌肤20多种问题",
-    "source_case_id": "samr_2025_hou",
-    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
-    "expected_codes": [
-      "广告法第16条",
-      "广告法第28条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "在全国拥有11家助孕机构",
+    "expected_codes": ["广告法第28条"],
+    "violation_type": "false_quantify",
+    "source_case_id": "samr_2025_001",
+    "industry": "medical",
+    "expected_basis": "以该案宣称内容与事实不符的裁定为事实前提，服务规模虚假信息对应第28条第（二）项；数字本身不构成违法。"
   },
   {
     "id": "retrieval_14",
-    "query": "解决肌肤20多种问题",
-    "source_case_id": "samr_2025_hou",
-    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
-    "expected_codes": [
-      "广告法第16条",
-      "广告法第28条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "多年来我们成功为数千多个不孕不育家庭实现求子梦想",
+    "expected_codes": ["广告法第28条"],
+    "violation_type": "false_quantify",
+    "source_case_id": "samr_2025_001",
+    "industry": "medical",
+    "expected_basis": "以裁定宣称内容与事实不符为事实前提，服务业绩虚假信息对应第28条第（二）项；没有分母，不按治愈率分类。"
   },
   {
     "id": "retrieval_15",
-    "query": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
-    "source_case_id": "samr_2025_hou",
-    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
-    "expected_codes": [
-      "广告法第16条",
-      "广告法第28条"
-    ],
-    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+    "query": "单次我们的续航能力是9—12个月",
+    "expected_codes": ["广告法第28条"],
+    "violation_type": "false_quantify",
+    "source_case_id": "samr_2025_011",
+    "industry": "medical",
+    "expected_basis": "以裁定治疗功效与实际不符为事实前提，持续时间虚假信息对应第28条第（二）项；本题只评虚假量化，不继承同案第16条。"
   }
 ]
