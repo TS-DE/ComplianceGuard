@@ -12,7 +12,7 @@ from backend.core.config import DEFAULT_RULE_VERSION, RuleAxis
 from backend.core.errors import BusinessValidationError
 from backend.crud import rules as crud
 from backend.db.models import Rule
-from backend.schemas.rules import RuleCreate, RuleUpdate
+from backend.schemas.business import RuleCreate, RuleUpdate
 from backend.services.common import get_or_404, update_fields
 
 RESOURCE = "rule"

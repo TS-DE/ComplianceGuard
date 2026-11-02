@@ -6,7 +6,7 @@ from backend.core.errors import BusinessValidationError
 from backend.crud import audits as crud
 from backend.crud import scripts as scripts_crud
 from backend.db.models import Audit
-from backend.schemas.audits import AuditCreate, AuditUpdate
+from backend.schemas.business import AuditCreate, AuditUpdate
 from backend.services.common import get_or_404, update_fields
 
 RESOURCE = "audit"

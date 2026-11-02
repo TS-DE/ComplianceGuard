@@ -6,7 +6,7 @@ from backend.core.errors import ConflictError
 from backend.crud import clients as crud
 from backend.crud import scripts as scripts_crud
 from backend.db.models import Client
-from backend.schemas.clients import ClientCreate, ClientUpdate
+from backend.schemas.business import ClientCreate, ClientUpdate
 from backend.services.common import get_or_404, update_fields
 
 RESOURCE = "client"

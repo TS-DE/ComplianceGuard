@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from backend.api.v1.common import Page
 from backend.core.security import DbSession, get_current_user
 from backend.schemas.common import ok
-from backend.schemas.clients import ClientCreate, ClientOut, ClientUpdate
+from backend.schemas.business import ClientCreate, ClientOut, ClientUpdate
 from backend.services import clients as service
 
 # 整组路由挂鉴权依赖：漏写单个接口也不会绕过 JWT

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from backend.api.v1.common import Page
 from backend.core.security import DbSession, get_current_user
 from backend.schemas.common import ok
-from backend.schemas.scripts import ScriptCreate, ScriptOut, ScriptUpdate
+from backend.schemas.business import ScriptCreate, ScriptOut, ScriptUpdate
 from backend.services import scripts as service
 
 # 整组路由挂鉴权依赖：漏写单个接口也不会绕过 JWT
