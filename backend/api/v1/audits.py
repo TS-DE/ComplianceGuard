@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from backend.api.v1.common import Page
-from backend.core.deps import DbSession, get_current_user
+from backend.core.security import DbSession, get_current_user
 from backend.schemas.common import ok
 from backend.schemas.audits import AuditCreate, AuditOut, AuditUpdate
 from backend.services import audits as service

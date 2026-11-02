@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import BigInteger, DateTime, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.core.constants import DEFAULT_INDUSTRY, DEFAULT_PLAN
+from backend.core.config import DEFAULT_INDUSTRY, DEFAULT_PLAN
 from backend.db.base import Base, MYSQL_TABLE_ARGS
 
 if TYPE_CHECKING:  # 仅类型检查时导入，避免与 scripts 模型循环引用

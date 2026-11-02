@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import BigInteger, Boolean, DateTime, Enum, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.core.constants import UserRole
+from backend.core.config import UserRole
 from backend.db.base import Base, MYSQL_TABLE_ARGS
 
 

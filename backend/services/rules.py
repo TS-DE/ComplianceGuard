@@ -8,7 +8,7 @@
 
 from sqlalchemy.orm import Session
 
-from backend.core.constants import DEFAULT_RULE_VERSION, RuleAxis
+from backend.core.config import DEFAULT_RULE_VERSION, RuleAxis
 from backend.core.errors import BusinessValidationError
 from backend.crud import rules as crud
 from backend.models.rules import Rule

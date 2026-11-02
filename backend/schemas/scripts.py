@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend.core.constants import ScriptStatus
+from backend.core.config import ScriptStatus
 
 
 class ScriptBase(BaseModel):

@@ -5,9 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.v1.router import api_router
 from backend.core.config import settings
-from backend.core.constants import DISCLAIMER_TEXT
+from backend.core.config import DISCLAIMER_TEXT
 from backend.core.errors import register_exception_handlers
-from backend.core.logging import setup_logging
+from backend.core.config import setup_logging
 from backend.schemas.common import ok
 
 

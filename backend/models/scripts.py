@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.core.constants import ScriptStatus
+from backend.core.config import ScriptStatus
 from backend.db.base import Base, MYSQL_TABLE_ARGS
 
 if TYPE_CHECKING:

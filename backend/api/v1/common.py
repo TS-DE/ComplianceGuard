@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, Query
 
-from backend.core.constants import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from backend.core.config import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from backend.schemas.common import PageParams
 
 

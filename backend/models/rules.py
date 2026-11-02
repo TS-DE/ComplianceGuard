@@ -15,7 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.core.constants import DEFAULT_RULE_VERSION, RuleLevel
+from backend.core.config import DEFAULT_RULE_VERSION, RuleLevel
 from backend.db.base import Base, MYSQL_TABLE_ARGS
 
 

@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from backend.core.constants import VALID_SCORES
+from backend.core.config import VALID_SCORES
 
 
 class AuditBase(BaseModel):

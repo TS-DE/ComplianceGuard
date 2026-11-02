@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend.core.constants import RuleLevel
+from backend.core.config import RuleLevel
 
 
 class RuleBase(BaseModel):

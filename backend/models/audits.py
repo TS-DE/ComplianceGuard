@@ -21,7 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.mysql import TINYINT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.core.constants import SCORE_COMPLIANT, SCORE_INCOMPLETE
+from backend.core.config import SCORE_COMPLIANT, SCORE_INCOMPLETE
 from backend.db.base import Base, MYSQL_TABLE_ARGS
 
 if TYPE_CHECKING:
