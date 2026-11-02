@@ -87,6 +87,35 @@ D:\ComplianceGuard\
 5. 依赖单向：`api → services → agents/tools → crud → models → core`。
    **禁止** api 直接调 crud 跳过 service（除纯查询）、禁止 crud 反向 import services。
 
+### 3.1 目录规模上限（硬约束）
+
+> **一个目录内的 `.py` 文件数 ≤ 3**（`__init__.py` 不计）。超过 3 个必须二选一：
+> **① 合并**——同类小文件合成一个（如 5 张表的 ORM 合成 `db/models.py`）；
+> **② 建子包**——按业务域分（如 `agents/compliance/`、`agents/redteam/`）。
+
+**它和"单文件 ≤300 行"必然打架，冲突时按此优先级**：
+先按职责拆（宁可多一个文件）→ 再按行数拆（`xxx_base.py`/`xxx_impl.py`）→
+最后才允许放宽行数，**且必须在 CHANGELOG 写理由**。
+**永远不允许靠"堆文件"绕过 300 行，也不允许靠"塞一个文件"绕过 3 文件上限。**
+
+**目标结构（每层 ≤3 文件）**：
+```
+backend/
+├── main.py
+├── core/        config.py · security.py · errors.py      （deps 并入 security）
+├── db/          session.py · models.py                   （5 张表合一个文件）
+├── schemas/     common.py · auth.py · business.py        （4 套资源 schema 合一）
+├── crud/        base.py · special.py                     （泛型 Repository + 特例）
+├── api/v1/      auth.py · resources.py · ai.py           （4 套 CRUD 用 router 工厂）
+├── services/    compliance.py · redteam.py · report.py
+├── agents/      base.py · compliance.py · redteam.py     （A1+A2 / A3+A4+A5）
+├── rag/         ingest.py · embedding.py · retrieve.py
+└── mcp_server/  server.py
+```
+
+> **不是"文件越少越好"**：合并的必须是**同类**（5 张表、4 套 CRUD），不是把不相干的塞一起。
+> 判断标准是"**它们的变化原因是否相同**"（SRP，见 §6.1）。
+
 ## 4. Harness 六大组件 → 本项目落点（必须可指认）
 
 | # | 组件 | 本项目落点 | 证据文件 |
@@ -119,6 +148,38 @@ D:\ComplianceGuard\
 
 ## 6. 编码规范
 
+### 6.1 面向对象七大原则（硬约束，每个新模块都要能对应上）
+
+| # | 原则 | 本项目落点（必须可指认） |
+|---|---|---|
+| 1 | **SRP 单一职责** | `api` 只做参数校验与返回；`services` 只做编排；`crud` 只碰数据库；`agents` 只做判定/生成。**一个类只有一个"变化原因"** |
+| 2 | **OCP 开闭** | 新增一条规则**不改代码**（写 `rules` 表）；新增一种检测手段**不改判定器**（往 registry 注册一个 `Detector` 子类） |
+| 3 | **LSP 里氏替换** | `ChatModel` 抽象可换 urllib / langchain；`Detector` 抽象可换 keyword / regex / llm_judge——**换实现不改变调用方语义** |
+| 4 | **ISP 接口隔离** | 工具是 6 个独立 MCP 工具，**不做** `ToolService` 这种大而全接口；Agent 只依赖自己用到的那几个 |
+| 5 | **DIP 依赖倒置** | `services` / `agents` 依赖 `ChatModel`、`Retriever`、`Repository` **抽象**，**禁止直接 import `chromadb` / `openai` / SQLAlchemy Session 到业务层** |
+| 6 | **LKP 迪米特（最少知道）** | `api` 不许链式穿透 ORM 关系（`client.scripts[0].audits`）；要数据就调 service |
+| 7 | **CRP 合成复用** | Agent **组合** `Retriever` + `RulesRepo`，**不要**继承一个"万能 BaseAgent"（继承层级 >2 层即视为违反） |
+
+**具体的落地接口（D2/D3 必须照此实现）**：
+
+```python
+# backend/agents/detectors.py —— OCP + LSP + DIP 的落点
+class Detector(ABC):
+    @abstractmethod
+    def detect(self, text: str, rule: Rule) -> list[Hit]: ...
+
+class KeywordDetector(Detector): ...   # 对应 rules.detector = 'keyword'
+class RegexDetector(Detector): ...     # 'regex'
+class LLMJudgeDetector(Detector): ...  # 'llm_judge'
+
+DETECTORS: dict[str, Detector] = {...}  # 注册表：新增手段 = 加一行，不改判定器
+```
+
+> **为什么写进硬约束**：`rules.detector` 这一列如果不用多态实现，就会退化成一串 `if detector == 'regex': ... elif ...`——
+> 那就是典型违反 OCP。**有注册表，才叫"可扩展"；没有注册表，只是"多了个字段"。**
+
+### 6.2 基础规范
+
 - 注释中文，写清**为什么**；函数 docstring 含入参、返回、异常场景。
 - 命名：文件/函数 `snake_case`；类 `PascalCase`；常量 `UPPER_SNAKE`。
 - Pydantic V2 语法（`model_config`、`field_validator`），**禁止 V1 写法**。
@@ -135,6 +196,12 @@ D:\ComplianceGuard\
 4. 跑多命令时**逐个检查退出码**，不要用 `cmd1; cmd2 | Out-Null`（会掩盖前面失败）。
 5. 每个开发日结束：更新 `CHANGELOG.md`（四段式）+ git 提交（小步、语义化 commit message）。
 6. 遇到需求歧义**先问**，不要自行扩大范围。
+7. **阶段验收通过后必须合并 `main` 并打 tag**（`git checkout main && git merge --no-ff <分支> && git tag -a vX.Y.Z`）。
+   **理由**：`main` 是唯一可展示的状态。长期只在 feature 分支上开发，会导致 GitHub 首页看不到任何代码
+   （2026-11-02 实际踩过：main 停在初始化，代码全在分支上，老师/作者都以为"没上传"）。
+8. **每次汇报必须贴 `git log --oneline -n 5 origin/main`**，证明代码确实到了远端主分支。
+9. 汇报必须含「**目录规模自检**」：列出 `backend/` 下每个目录的 `.py` 文件数，
+   超过 3 个的要说明合并/分子包方案。
 
 ## 8. 禁止行为
 

@@ -1,0 +1,743 @@
+{
+  "recall_at_3": 0.6,
+  "recalled": 9,
+  "queries": 15,
+  "by_type": {
+    "absolute_terms": {
+      "queries": 2,
+      "recalled": 2,
+      "top1": 0,
+      "coverage": "ok",
+      "note": ""
+    },
+    "disease_treatment": {
+      "queries": 4,
+      "recalled": 3,
+      "top1": 3,
+      "coverage": "ok",
+      "note": ""
+    },
+    "efficacy_claim": {
+      "queries": 2,
+      "recalled": 2,
+      "top1": 0,
+      "coverage": "ok",
+      "note": ""
+    },
+    "endorsement": {
+      "queries": 1,
+      "recalled": 0,
+      "top1": 0,
+      "coverage": "insufficient",
+      "note": "该类词表不足，检索结论不可用"
+    },
+    "false_authority": {
+      "queries": 1,
+      "recalled": 0,
+      "top1": 0,
+      "coverage": "insufficient",
+      "note": "该类词表不足，检索结论不可用"
+    },
+    "false_quantify": {
+      "queries": 3,
+      "recalled": 0,
+      "top1": 0,
+      "coverage": "ok",
+      "note": ""
+    },
+    "safety_guarantee": {
+      "queries": 2,
+      "recalled": 2,
+      "top1": 1,
+      "coverage": "insufficient",
+      "note": "该类词表不足，检索结论不可用"
+    }
+  },
+  "uncovered": [
+    "cure_rate",
+    "derogatory_compare",
+    "inducement",
+    "before_after"
+  ],
+  "article_accuracy": 0.2,
+  "correct_returned": 9,
+  "returned": 45,
+  "top1_accuracy": 0.26666666666666666,
+  "details": [
+    {
+      "id": "retrieval_01",
+      "query": "最权威、最专业；亚洲顶尖；顶级机构",
+      "codes": [
+        "广告绝对化用语执法指南第2条",
+        "广告法第9条",
+        "广告绝对化用语执法指南第6条"
+      ],
+      "expected_codes": [
+        "广告法第9条"
+      ],
+      "violation_type": "absolute_terms",
+      "source_case_id": "samr_2025_001",
+      "hit": true,
+      "top1": false,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.06314426076226826,
+        0.04918032786885246,
+        0.04640914640914641
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_02",
+      "query": "销售第一，全国全网",
+      "codes": [
+        "广告绝对化用语执法指南第2条",
+        "广告绝对化用语执法指南第11条",
+        "广告法第9条"
+      ],
+      "expected_codes": [
+        "广告法第9条"
+      ],
+      "violation_type": "absolute_terms",
+      "source_case_id": "samr_2025_009",
+      "hit": true,
+      "top1": false,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.06314426076226826,
+        0.05915032679738562,
+        0.04918032786885246
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_03",
+      "query": "这个能保证你做完之后能往上走1—3个色度",
+      "codes": [
+        "医疗美容广告执法指南第5条",
+        "广告法第16条",
+        "广告法第18条"
+      ],
+      "expected_codes": [
+        "广告法第16条"
+      ],
+      "violation_type": "efficacy_claim",
+      "source_case_id": "samr_2025_002",
+      "hit": true,
+      "top1": false,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.12655214776116416,
+        0.1114548588933835,
+        0.11095514980926632
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_04",
+      "query": "能够解决肌肤20多种问题",
+      "codes": [
+        "医疗广告监管工作指南第11条",
+        "广告法第16条",
+        "医疗美容广告执法指南第5条"
+      ],
+      "expected_codes": [
+        "广告法第16条"
+      ],
+      "violation_type": "efficacy_claim",
+      "source_case_id": "samr_2025_011",
+      "hit": true,
+      "top1": false,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.12227573021962844,
+        0.11058905802758262,
+        0.10877844288838588
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_05",
+      "query": "所以这个是非常的安全",
+      "codes": [
+        "广告法第16条",
+        "广告法第18条",
+        "医疗美容广告执法指南第5条"
+      ],
+      "expected_codes": [
+        "广告法第16条"
+      ],
+      "violation_type": "safety_guarantee",
+      "source_case_id": "samr_2025_002",
+      "hit": true,
+      "top1": true,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.15960233377439884,
+        0.15930585055552005,
+        0.10835254591600933
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_06",
+      "query": "没有任何的副作用",
+      "codes": [
+        "广告法第16条",
+        "广告法第18条",
+        "医疗广告监管工作指南第11条"
+      ],
+      "expected_codes": [
+        "广告法第18条"
+      ],
+      "violation_type": "safety_guarantee",
+      "source_case_id": "samr_2025_006",
+      "hit": true,
+      "top1": false,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.14277367465066265,
+        0.1418135068336681,
+        0.10759837295831595
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_07",
+      "query": "保健食品“沙棘晶粹粉”“红景天”等具有疾病治疗功能",
+      "codes": [
+        "广告法第17条",
+        "广告法第15条",
+        "广告法第19条"
+      ],
+      "expected_codes": [
+        "广告法第18条"
+      ],
+      "violation_type": "disease_treatment",
+      "source_case_id": "samr_2025_004",
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.11009917868722734,
+        0.061816677945710205,
+        0.06154574592074592
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_08",
+      "query": "溶解血栓、疏通血管、降低血液粘稠",
+      "codes": [
+        "广告法第17条",
+        "医疗广告认定指南第2条",
+        "广告法第19条"
+      ],
+      "expected_codes": [
+        "广告法第17条"
+      ],
+      "violation_type": "disease_treatment",
+      "source_case_id": "samr_2025_005",
+      "hit": true,
+      "top1": true,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.08118237599993285,
+        0.06216674365571889,
+        0.06154574592074592
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_09",
+      "query": "治疗更年期综合症、预防癌症，预防治疗心脑血管疾病、治疗贫血",
+      "codes": [
+        "广告法第17条",
+        "医疗广告认定指南第2条",
+        "广告法第15条"
+      ],
+      "expected_codes": [
+        "广告法第17条"
+      ],
+      "violation_type": "disease_treatment",
+      "source_case_id": "samr_2025_007",
+      "hit": true,
+      "top1": true,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.09680737599993286,
+        0.07709211679004725,
+        0.06204977817881044
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_10",
+      "query": "抗癌、杀死癌细胞、阻止癌细胞转移、消炎、降血糖",
+      "codes": [
+        "广告法第17条",
+        "医疗广告认定指南第2条",
+        "广告法第19条"
+      ],
+      "expected_codes": [
+        "广告法第17条"
+      ],
+      "violation_type": "disease_treatment",
+      "source_case_id": "samr_2025_008",
+      "hit": true,
+      "top1": true,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.08118237599993285,
+        0.06216674365571889,
+        0.06154574592074592
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_11",
+      "query": "由广告演员伪装成“专家”",
+      "codes": [
+        "广告法第4条",
+        "广告法第56条",
+        "医疗广告监管工作指南第11条"
+      ],
+      "expected_codes": [
+        "广告法第28条"
+      ],
+      "violation_type": "false_authority",
+      "source_case_id": "samr_2025_004",
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.06095087707990934,
+        0.07890759554066006,
+        0.07598940221891042
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_12",
+      "query": "以受益者名义作推荐、证明",
+      "codes": [
+        "医疗广告监管工作指南第10条",
+        "广告法第16条",
+        "广告法第25条"
+      ],
+      "expected_codes": [
+        "广告法第24条"
+      ],
+      "violation_type": "endorsement",
+      "source_case_id": "samr_2025_010",
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.13466863605214371,
+        0.12684710553563014,
+        0.12617231876983448
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_13",
+      "query": "在全国拥有11家助孕机构",
+      "codes": [
+        "医疗广告监管工作指南第11条",
+        "医疗广告监管工作指南第12条",
+        "广告法第56条"
+      ],
+      "expected_codes": [
+        "广告法第28条"
+      ],
+      "violation_type": "false_quantify",
+      "source_case_id": "samr_2025_001",
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.09172535708530007,
+        0.06250763125763126,
+        0.06231203665002413
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_14",
+      "query": "多年来我们成功为数千多个不孕不育家庭实现求子梦想",
+      "codes": [
+        "医疗广告监管工作指南第11条",
+        "医疗美容广告执法指南第5条",
+        "广告法第16条"
+      ],
+      "expected_codes": [
+        "广告法第28条"
+      ],
+      "violation_type": "false_quantify",
+      "source_case_id": "samr_2025_001",
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.10665073021962843,
+        0.07990990111891752,
+        0.06428490111891752
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    },
+    {
+      "id": "retrieval_15",
+      "query": "单次我们的续航能力是9—12个月",
+      "codes": [
+        "医疗广告监管工作指南第11条",
+        "广告法第16条",
+        "广告法第18条"
+      ],
+      "expected_codes": [
+        "广告法第28条"
+      ],
+      "violation_type": "false_quantify",
+      "source_case_id": "samr_2025_011",
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "lexicon": true,
+        "rewrite": true,
+        "filtered_codes": [
+          "广告法第10条",
+          "广告法第20条",
+          "广告法第21条",
+          "广告法第22条",
+          "广告法第23条",
+          "广告法第25条",
+          "广告法第26条",
+          "广告法第27条",
+          "广告法第38条",
+          "广告法第39条",
+          "广告法第68条"
+        ]
+      },
+      "scores": [
+        0.12227573021962844,
+        0.11243237599993286,
+        0.11165477667493796
+      ],
+      "routes": [
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite",
+        "bm25+vector+lexicon+rewrite"
+      ]
+    }
+  ],
+  "frozen_sha256": "6fefec1673331ba4ebdd31669fa899a0b93d4a8ca2181cf51e113c037dbd37be",
+  "independent_source_cases": 10
+}

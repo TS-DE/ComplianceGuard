@@ -26,3 +26,28 @@ def paginate(
     ).scalar_one()
     rows = db.execute(stmt.offset((page - 1) * page_size).limit(page_size)).scalars().all()
     return list(rows), int(total)
+
+
+class Repository:
+    """组合模型的通用持久化操作；事务提交语义与原 CRUD 一致。"""
+
+    def __init__(self, model):
+        self.model = model
+
+    def create(self, db, data):
+        obj = self.model(**data)
+        db.add(obj)
+        db.commit()
+        db.refresh(obj)
+        return obj
+
+    def update(self, db, obj, data):
+        for field, value in data.items():
+            setattr(obj, field, value)
+        db.commit()
+        db.refresh(obj)
+        return obj
+
+    def delete(self, db, obj):
+        db.delete(obj)
+        db.commit()

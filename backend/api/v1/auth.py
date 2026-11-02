@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, status
 
-from backend.core.deps import CurrentUser, DbSession
+from backend.core.security import CurrentUser, DbSession
 from backend.schemas.auth import (
     LoginRequest,
     RegisterRequest,

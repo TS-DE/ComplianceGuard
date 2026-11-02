@@ -1,12 +1,14 @@
 {
-  "case_id": "samr_2025_hou",
-  "title": "成都成华韩后医疗美容医院有限公司违法广告案",
-  "authority": "四川省成都市成华区市场监管局",
-  "year": 2025,
-  "penalty_amount": 409800,
-  "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
-  "official_ruling": "宣称的治疗功效与实际情况不符，并使用宣传用语为功效作保证",
-  "law_articles": ["广告法第16条", "广告法第28条"],
-  "category": "功效断言/虚假广告",
-  "source": "市场监管总局 2025-07-09 公布十起违法广告典型案例（案例一），2025年1月作出罚款40.98万元处罚"
+  "case_id": "samr_2025_002",
+  "title": "济南泰康拜博贝斯特口腔医院有限公司违法广告案",
+  "authority": "上海市市场监管局",
+  "year": 2024,
+  "penalty_amount": 613700,
+  "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+  "official_ruling": "通过互联网媒介发布未经广告审查机关审查的医疗广告，对医疗服务作出表示功效、安全性的断言或者保证",
+  "law_articles": ["广告法第16条(一)"],
+  "violation_type": ["efficacy_claim", "safety_guarantee"],
+  "source_url": "https://www.samr.gov.cn:8890/xw/zj/art/2025/art_eb7d738d727d4029aefe988cf8c92011.html",
+  "source_note": "市场监管总局 2025-01-16 曝光十起民生领域违法广告典型案例（二）",
+  "note": "本项目核心锚点：整句无任何违禁词，词库工具无法检出；罚款 61.37 万元，广告代理与 MCN 另案处理"
 }

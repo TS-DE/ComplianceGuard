@@ -21,6 +21,7 @@ dist/
 
 # 向量库与数据（可重建 / 体积大）
 data/chroma/
+data/redteam/
 data/raw/
 *.db
 *.sqlite

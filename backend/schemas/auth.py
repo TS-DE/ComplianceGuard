@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from backend.core.constants import UserRole
+from backend.core.config import UserRole
 from backend.core.security import MIN_PASSWORD_LENGTH
 
 Username = Annotated[str, Field(min_length=3, max_length=50)]

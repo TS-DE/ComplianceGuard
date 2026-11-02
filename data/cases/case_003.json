@@ -1,0 +1,13 @@
+{
+  "case_id": "samr_2025_003",
+  "title": "上海新瑞医疗有限公司违法广告案",
+  "authority": "上海市黄浦区市场监管局",
+  "year": 2024,
+  "penalty_amount": 200000,
+  "violation_quote": "通过互联网媒介发布处方药“贝那鲁肽注射液”广告",
+  "official_ruling": "处方药广告只能在国务院卫生行政部门和国务院药品监督管理部门共同指定的医学、药学专业刊物上发布",
+  "law_articles": ["广告法第15条"],
+  "violation_type": [],
+  "source_url": "https://www.samr.gov.cn:8890/xw/zj/art/2025/art_eb7d738d727d4029aefe988cf8c92011.html",
+  "note": "【不进规则轴】违规点是发布渠道而非话术内容 → violation_type 留空，仅作背景案例；罚款 20 万元"
+}

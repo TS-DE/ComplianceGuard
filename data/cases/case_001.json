@@ -1,12 +1,14 @@
 {
-  "case_id": "samr_2025_002",
-  "title": "上海泰康拜博贝斯特口腔医院违法广告案",
-  "authority": "上海市市场监管局",
+  "case_id": "samr_2025_001",
+  "title": "武汉睿贝鑫医疗科技有限公司违法广告案",
+  "authority": "湖北省武汉市东湖新技术开发区市场监管局",
   "year": 2024,
-  "penalty_amount": 613700,
-  "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
-  "official_ruling": "对医疗服务作出表示功效、安全性的断言或者保证",
-  "law_articles": ["广告法第16条"],
-  "category": "功效/安全性断言",
-  "source": "db_schema.md §2.2 契约示例（原始出处：市场监管总局公开罚单，待人工核对处罚决定书编号）"
+  "penalty_amount": 800000,
+  "violation_quote": "在全国拥有11家助孕机构；多年来我们成功为数千多个不孕不育家庭实现求子梦想；最权威、最专业；亚洲顶尖；顶级机构",
+  "official_ruling": "宣称内容与事实不符，且在广告中违法使用了“最权威、最专业”“亚洲顶尖”“顶级机构”等绝对化用语",
+  "law_articles": ["广告法第9条(三)", "广告法第28条(二)"],
+  "violation_type": ["absolute_terms", "false_quantify"],
+  "source_url": "https://www.samr.gov.cn:8890/xw/zj/art/2025/art_eb7d738d727d4029aefe988cf8c92011.html",
+  "source_note": "市场监管总局 2025-01-16 曝光十起民生领域违法广告典型案例（一）",
+  "note": "罚款 80 万元"
 }

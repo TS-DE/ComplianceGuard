@@ -1,0 +1,13 @@
+{
+  "case_id": "samr_2025_004",
+  "title": "河南优沃科技集团有限公司违法广告案",
+  "authority": "四川省自贡市贡井区市场监管局",
+  "year": 2024,
+  "penalty_amount": 1224800,
+  "violation_quote": "由广告演员伪装成“专家”，并宣称其所销售的保健食品“沙棘晶粹粉”“红景天”等具有疾病治疗功能",
+  "official_ruling": "发布视频广告，由广告演员伪装成“专家”，并宣称保健食品具有疾病治疗功能",
+  "law_articles": ["广告法第18条(二)", "广告法第28条(三)"],
+  "violation_type": ["disease_treatment", "false_authority"],
+  "source_url": "https://www.samr.gov.cn:8890/xw/zj/art/2025/art_eb7d738d727d4029aefe988cf8c92011.html",
+  "note": "十起案例中罚款最高的一起（122.48 万元）；“演员伪装专家”是 false_authority 的典型形态"
+}
