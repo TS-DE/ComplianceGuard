@@ -8,7 +8,7 @@ from backend.api.v1.common import Page
 from backend.core.security import DbSession, get_current_user
 from backend.schemas.common import ok
 from backend.schemas.business import AuditCreate, AuditOut, AuditUpdate
-from backend.services import audits as service
+from backend.services.compliance import audits as service
 
 # 整组路由挂鉴权依赖：漏写单个接口也不会绕过 JWT
 router = APIRouter(

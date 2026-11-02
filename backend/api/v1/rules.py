@@ -6,7 +6,7 @@ from backend.api.v1.common import Page
 from backend.core.security import DbSession, get_current_user
 from backend.schemas.common import ok
 from backend.schemas.business import RuleCreate, RuleOut, RuleUpdate
-from backend.services import rules as service
+from backend.services.compliance import rules as service
 
 # 整组路由挂鉴权依赖：漏写单个接口也不会绕过 JWT
 router = APIRouter(
