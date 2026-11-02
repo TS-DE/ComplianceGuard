@@ -84,6 +84,23 @@ def test_rewrite_always_rechecks_and_never_passes_incomplete(score,hits,incomple
     assert r['rewritten_text'] == '修订稿'
 
 
+def test_soft_sentence_aggregation_and_failed_axis():
+    from backend.agents.compliance import _score
+    assert _score([dict(severity='soft',sentence_id=0),dict(severity='soft',sentence_id=0)]) == 1
+    assert _score([dict(severity='soft',sentence_id=0),dict(severity='soft',sentence_id=1)]) == 0
+
+
+def test_scope_constant_applied_only_with_supported_model_evidence():
+    from backend.agents.compliance import ComplianceAuditAgent
+    from backend.core.constants import SCOPE_EXEMPTIONS
+    # 不以“科研”一词机械豁免推广，模型须引用逐字证据并只选现有开关。
+    model = ResponseModel({'scope_exemption': 'scope_01', 'quote': '临床研究招募受试者'})
+    agent = ComplianceAuditAgent(lambda: [dict(axis='efficacy_claim')], lambda q: [], model)
+    r = agent.review('本院临床研究招募受试者')
+    assert r['scope_exempted_by'] == SCOPE_EXEMPTIONS[0]
+    assert r['score'] == 2
+
+
 def test_regex_best_service_reaches_exemption():
     from backend.agents.compliance import ComplianceAuditAgent
     exemption = dict(text='仅表明经营理念、主观愿望的', source='指南第五条(一)')
