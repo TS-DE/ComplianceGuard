@@ -190,6 +190,8 @@ users（独立，仅鉴权）
 
 ### 3.3 `exemptions` 结构与用法
 
+范围豁免 `scope_exemptions` 的四条原文及出处保存在代码常量 `backend/core/constants.py::SCOPE_EXEMPTIONS`，在规则判定前使用，不新增数据库表，也不混入单条规则的 `exemptions`。
+
 **JSON 数组**，每项含 `text`（豁免情形的法条原文或概述）与 `source`（出处，可追溯）：
 
 ```json
