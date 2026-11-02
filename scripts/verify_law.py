@@ -23,9 +23,23 @@ def chinese_number(value: str) -> int:
     return total + digit
 
 
+def body_text(text: str) -> str:
+    """先截到首个说明区标题，不改变正文中的任何文字。"""
+    endings = ("## 入库建议", "## 核验建议", "## ✅ 完整性说明",
+               "## ⚠️ 完整性声明", "## 变更记录")
+    lines = text.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        if line.startswith(endings):
+            return "".join(lines[:index])
+    return text
+
+
 def inspect_text(text: str) -> dict:
-    """按指定正则提取正文条号，返回缺号和连续性；空匹配不算通过。"""
-    articles = sorted({chinese_number(n) for n in ARTICLE_PATTERN.findall(text)})
+    """截正文后选择出现次数较多的编号风格，再检查连续性。"""
+    body = body_text(text)
+    legal, guide = ARTICLE_PATTERN.findall(body), GUIDE_PATTERN.findall(body)
+    numbers = legal if len(legal) >= len(guide) else guide
+    articles = sorted({chinese_number(n) for n in numbers})
     maximum = max(articles, default=0)
     missing = sorted(set(range(1, maximum + 1)) - set(articles))
     return {"articles": articles, "maximum": maximum, "missing": missing,
@@ -48,8 +62,7 @@ def main(argv: list[str] | None = None) -> int:
         print("  缺号: " + json.dumps(result["missing"]))
         print(f"  是否连续: {'是' if result['continuous'] else '否'}")
         if not result["articles"]:
-            guide = sorted({chinese_number(n) for n in GUIDE_PATTERN.findall(text)})
-            print("  格式诊断: 未匹配到第X条；X、格式候选: " + json.dumps(guide))
+            print("  未识别编号风格")
             failed = True
         elif path.name == "01_广告法.md" and result["maximum"] != 74:
             print("  基准错误: 2021 版广告法应为 74 条")
