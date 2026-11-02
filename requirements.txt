@@ -1,0 +1,27 @@
+# 固定版本 = 当前 py312_env 实测可用版本（2026-11-01）
+# 安装：python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# Web
+fastapi==0.141.1
+uvicorn==0.52.4
+python-multipart==0.0.32
+
+# 数据校验 / 配置
+pydantic==2.13.5
+pydantic-settings==2.15.0
+python-dotenv==1.2.3
+
+# 数据库
+SQLAlchemy==2.0.52
+PyMySQL==1.2.0
+
+# 鉴权
+bcrypt==4.0.1
+PyJWT==2.15.1
+
+# 向量库（D2 使用；protobuf 冲突已在环境内修复，勿随意升级）
+chromadb==1.5.9
+
+# 测试
+pytest==9.1.1
+httpx==0.28.1
