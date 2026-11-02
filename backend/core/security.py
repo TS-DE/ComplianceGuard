@@ -96,7 +96,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from backend.core.errors import UnauthorizedError
-from backend.crud import users as users_crud
+from backend.crud.special import users as users_crud
 from backend.db.session import get_db
 from backend.db.models import User
 

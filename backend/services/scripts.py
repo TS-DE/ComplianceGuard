@@ -3,9 +3,9 @@
 from sqlalchemy.orm import Session
 
 from backend.core.errors import BusinessValidationError, ConflictError
-from backend.crud import audits as audits_crud
-from backend.crud import clients as clients_crud
-from backend.crud import scripts as crud
+from backend.crud.special import audits as audits_crud
+from backend.crud.special import clients as clients_crud
+from backend.crud.special import scripts as crud
 from backend.db.models import Script
 from backend.schemas.business import ScriptCreate, ScriptUpdate
 from backend.services.common import get_or_404, update_fields
