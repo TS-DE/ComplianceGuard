@@ -53,11 +53,26 @@ def _create_test_database(dsn: str) -> None:
 def test_dsn() -> str:
     """会话级：确保测试库存在并建表。"""
     dsn = _resolve_test_dsn()
+    from sqlalchemy import inspect
+    from sqlalchemy.engine import make_url
+    from backend.core.config import settings
+    # 必须先拦截误配，再做建库、建表或测试迁移。
+    if make_url(dsn).database == make_url(settings.database_url).database:
+        raise RuntimeError("测试数据库不得与业务数据库相同")
     _create_test_database(dsn)
     engine = create_engine(dsn, future=True)
     from backend.db.models import Base
 
     Base.metadata.create_all(bind=engine)
+    # create_all 不补旧表列；仅迁移独立测试库，不接触生产库。
+    columns = {column["name"] for column in inspect(engine).get_columns("rules")}
+    with engine.begin() as conn:
+        if "detector" not in columns:
+            conn.execute(text("ALTER TABLE rules ADD COLUMN detector "
+                              "ENUM('keyword','regex','semantic','llm_judge') "
+                              "NOT NULL DEFAULT 'llm_judge'"))
+        if "exemptions" not in columns:
+            conn.execute(text("ALTER TABLE rules ADD COLUMN exemptions JSON NULL"))
     engine.dispose()
     yield dsn
 
