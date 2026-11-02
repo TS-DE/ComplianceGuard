@@ -5,7 +5,7 @@ from decimal import Decimal
 from sqlalchemy import select
 
 from backend.agents.base import Rule as AgentRule
-from backend.core.config import ScriptStatus
+from backend.core.config import SCORE_INCOMPLETE, ScriptStatus
 from backend.db.models import Audit, Client, Rule, Script
 
 AUDIT_METADATA = ("score", "hit_count", "model", "prompt_tokens", "completion_tokens",
@@ -46,9 +46,11 @@ class AuditRepository:
         """审计元数据与话术状态同一事务提交；错误回滚。"""
         hits = [dict(hit, status="active") for hit in result["hits"]]
         hits.extend(dict(trace, status=trace.get("status", "trace")) for trace in result.get("traces", []))
+        metadata = {key: result[key] for key in AUDIT_METADATA}
+        if metadata['incomplete']:
+            metadata['score'] = SCORE_INCOMPLETE
         row = Audit(script_id=script_id, hits_json=hits,
-                    law_refs_json=result.get("law_refs", []),
-                    **{key: result[key] for key in AUDIT_METADATA})
+                    law_refs_json=result.get("law_refs", []), **metadata)
         try:
             self.session.add(row)
             self.session.get(Script, script_id).status = ScriptStatus.AUDITED

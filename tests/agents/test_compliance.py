@@ -20,6 +20,33 @@ def audit(text, hits, exemptions=None):
         lambda q: [dict(code='广告法第9条', text='不得最佳')], model).review(text)
 
 
+@pytest.fixture(params=[[], [dict(axis='efficacy_claim', enabled=False)]])
+def empty_rules(request):
+    return request.param
+
+
+def test_no_rules_yields_incomplete(empty_rules):
+    from backend.agents.compliance import ComplianceAuditAgent
+    result = ComplianceAuditAgent(lambda: empty_rules, lambda q: [], None).review('介绍服务')
+    assert result['score'] == -1
+    assert result['incomplete'] is True
+    assert result['reason'] == 'no_rules_loaded'
+
+
+def test_all_detectors_failing_yields_incomplete():
+    from backend.agents.compliance import ComplianceAuditAgent
+
+    class BrokenDetector(Detector):
+        def detect(self, text, rule):
+            raise RuntimeError('offline')
+
+    rules = [dict(axis=axis, detector='broken') for axis in ('efficacy_claim', 'safety_guarantee')]
+    result = ComplianceAuditAgent(lambda: rules, lambda q: [], None,
+                                 {'broken': BrokenDetector()}).review('介绍服务')
+    assert result['score'] == -1 and result['incomplete'] is True
+    assert len([t for t in result['traces'] if t['status'] == 'axis_failed']) == 2
+
+
 def test_fabricated_quote_discarded():
     r = audit('正常介绍', [dict(quote='编造', law_article='广告法第9条', reason='x')])
     assert r['hits'] == []

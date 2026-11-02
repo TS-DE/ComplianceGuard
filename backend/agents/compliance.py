@@ -56,7 +56,7 @@ class ComplianceAuditAgent:
             rules = [r if isinstance(r, Rule) else Rule(**{k: v for k, v in r.items() if k in names})
                      for r in self.rules_loader() if not isinstance(r, dict) or r.get('enabled', True)]
             if not rules:
-                raise ValueError('no enabled rules')
+                result.update(incomplete=True, reason='no_rules_loaded')
         except Exception as exc:
             rules = []
             result['incomplete'] = True

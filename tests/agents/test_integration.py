@@ -5,6 +5,21 @@ from decimal import Decimal
 import pytest
 
 
+def test_incomplete_cannot_persist_compliant_score(db):
+    from backend.crud.audit import AuditRepository
+    from backend.db.models import Client, Script, Audit
+    institution = Client(name='未完成防线')
+    db.add(institution)
+    db.flush()
+    script = Script(client_id=institution.id, content='介绍服务')
+    db.add(script)
+    db.commit()
+    result = dict(score=2, incomplete=True, hit_count=0, hits=[], law_refs=[], model=None,
+                  prompt_tokens=0, completion_tokens=0, cost=0, latency_ms=0)
+    audit_id = AuditRepository(db).save(script.id, result)
+    assert db.get(Audit, audit_id).score == -1
+
+
 def test_chat_adapter_uses_reported_usage_and_decimal_prices(monkeypatch):
     from backend.tools import audit_tool
     monkeypatch.setattr(audit_tool, "llm_config", lambda: {

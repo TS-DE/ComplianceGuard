@@ -5,6 +5,16 @@
 > 每条四段式：做了什么 / 验证证据（命令 + 实际输出）/ 遗留问题 / 规则或评测集变动。
 > **验证证据只写真实跑出来的输出，不写"已完成"。**
 
+## D3 · 空规则 fail-closed 收尾修复
+
+**改动**：空规则或全禁用规则显式返回 reason=no_rules_loaded、incomplete=true、score=-1；审计仓储对 incomplete 强制保存 score=-1，避免上游误传2。全部 detector 抛错的既有 fail-closed 行为新增回归覆盖。
+
+**验证**：空规则测试先因缺少 reason 两次失败；仓储反例先实际写出 score=2 导致测试失败，修复后全量 tests 为 174 passed in 9.97s。前置生产只读检查：rules=11/enabled=11，两列存在；law_articles=164、case_fines=11。
+
+**遗留**：当前未配置输入/输出单价，成本将明确为零单价估算，不能充当供应商账单；真实单次审查尚未执行。
+
+**规则/评测**：未改规则与评测标签；未改表结构。
+
 ## D3 · 规则迁移与审查/改写智能体（2026-11-02）
 
 **改动说明 / 行为变化**：授权补齐 rules.detector 与 exemptions（唯一表结构例外），灌入 JSON 的11条规则；Detector 注册表、A1 N1–N9、A2 逐稿二次审查及 MCP audit_recheck 去桩已接入。增加 JWT 审查/改写 API、原文位置映射、双引文作废轨迹及豁免痕迹。为保持目录≤3，config.py 与 router.py 迁为同名包入口，旧 import 路径不变；未改 D2 检索或法规。无新增依赖。
