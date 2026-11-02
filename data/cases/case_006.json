@@ -1,0 +1,14 @@
+{
+  "case_id": "samr_2025_006",
+  "title": "广州巴兹国际控股有限公司违法广告案",
+  "authority": "广东省广州市番禺区市场监管局",
+  "year": 2024,
+  "penalty_amount": 250000,
+  "violation_quote": "没有任何的副作用；不惧脂肪 不惧热量 嗨吃自由；含有“日本的小麦蛋白粉”",
+  "official_ruling": "对保健食品作出安全性的断言和保证；宣称保健功能且相关宣传内容与事实不符",
+  "law_articles": ["广告法第18条(一)", "广告法第28条(二)"],
+  "violation_type": ["safety_guarantee", "false_quantify"],
+  "source_url": "https://www.samr.gov.cn:8890/xw/zj/art/2025/art_eb7d738d727d4029aefe988cf8c92011.html",
+  "source_note": "市场监管总局 2025-01-16 曝光十起民生领域违法广告典型案例（六）",
+  "note": "罚款 25 万元；“没有任何的副作用”是 safety_guarantee 的标准化形态"
+}

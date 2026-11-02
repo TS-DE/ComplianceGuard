@@ -1,0 +1,14 @@
+{
+  "case_id": "samr_2025_011",
+  "title": "成都成华韩后医疗美容医院有限公司违法广告案",
+  "authority": "四川省成都市成华区市场监管局",
+  "year": 2025,
+  "penalty_amount": 409800,
+  "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
+  "official_ruling": "宣称的治疗功效与实际情况不符，并使用宣传用语为功效作保证",
+  "law_articles": ["广告法第16条(一)", "广告法第28条(二)"],
+  "violation_type": ["efficacy_claim", "false_quantify"],
+  "source_url": "https://www.samr.gov.cn",
+  "source_note": "市场监管总局 2025-07-09 公布十起违法广告典型案例（一）；2025 年 1 月作出处罚，罚款 40.98 万元",
+  "note": "医美行业；“续航能力”“解决20多种问题”是无违禁词的功效表述，与 case_002 同类但表述不同 → 适合做同轴不同皮的泛化检验"
+}
