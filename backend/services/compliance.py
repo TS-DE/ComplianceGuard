@@ -10,6 +10,12 @@ VERSIONED_FIELDS = frozenset({"axis", "law_article", "pattern", "level", "exampl
 VALID_AXES = frozenset(a.value for a in RuleAxis)
 
 
+def audit_operations(db, **kwargs):
+    """服务层组合审查依赖，API 不绕过 service 直接操作持久化。"""
+    from backend.tools.audit_tool import build_audit_tool
+    return build_audit_tool(db, **kwargs)
+
+
 class clients:
     """clients 生命周期编排。"""
 

@@ -1,0 +1,107 @@
+{
+  "invalid_quote": {
+    "hits": [],
+    "traces": [
+      {
+        "pattern": "绝对化",
+        "quote": "编造引文",
+        "severity": "hard",
+        "law_article": "广告法第9条",
+        "detector": "llm_judge",
+        "reason": "测试",
+        "axis": "absolute_terms",
+        "exempted_by": null,
+        "status": "invalid_quote"
+      }
+    ],
+    "law_refs": [
+      {
+        "code": "广告法第9条",
+        "text": "不得最佳"
+      }
+    ],
+    "incomplete": false,
+    "no_reference": false,
+    "prompt_tokens": 5,
+    "completion_tokens": 2,
+    "cost": 0.001,
+    "model": "test",
+    "disclaimer": "本系统输出为合规风险辅助提示，不构成法律意见，也不能替代《医疗广告审查证明》的行政前置审查。",
+    "hit_count": 0,
+    "score": 2,
+    "latency_ms": 0
+  },
+  "invalid_law_ref": {
+    "hits": [],
+    "traces": [
+      {
+        "pattern": "绝对化",
+        "quote": "最佳",
+        "severity": "hard",
+        "law_article": "广告法第999条",
+        "detector": "llm_judge",
+        "reason": "测试",
+        "axis": "absolute_terms",
+        "exempted_by": null,
+        "status": "invalid_law_ref"
+      }
+    ],
+    "law_refs": [
+      {
+        "code": "广告法第9条",
+        "text": "不得最佳"
+      }
+    ],
+    "incomplete": false,
+    "no_reference": false,
+    "prompt_tokens": 5,
+    "completion_tokens": 2,
+    "cost": 0.001,
+    "model": "test",
+    "disclaimer": "本系统输出为合规风险辅助提示，不构成法律意见，也不能替代《医疗广告审查证明》的行政前置审查。",
+    "hit_count": 0,
+    "score": 2,
+    "latency_ms": 0
+  },
+  "exempted": {
+    "hits": [],
+    "traces": [
+      {
+        "pattern": "绝对化",
+        "quote": "最好",
+        "severity": "hard",
+        "law_article": "广告法第9条",
+        "detector": "llm_judge",
+        "reason": "测试",
+        "axis": "absolute_terms",
+        "exempted_by": {
+          "text": "仅表明经营理念、主观愿望的",
+          "source": "指南第五条(一)"
+        },
+        "start": 4,
+        "end": 6,
+        "original_quote": "最好",
+        "normalized_start": 4,
+        "normalized_end": 6,
+        "sentence_id": 0,
+        "status": "exempted"
+      }
+    ],
+    "law_refs": [
+      {
+        "code": "广告法第9条",
+        "text": "不得最佳"
+      }
+    ],
+    "incomplete": false,
+    "no_reference": false,
+    "prompt_tokens": 5,
+    "completion_tokens": 2,
+    "cost": 0.001,
+    "model": "test",
+    "disclaimer": "本系统输出为合规风险辅助提示，不构成法律意见，也不能替代《医疗广告审查证明》的行政前置审查。",
+    "hit_count": 0,
+    "score": 2,
+    "latency_ms": 0
+  }
+}

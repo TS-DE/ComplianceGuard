@@ -82,7 +82,16 @@
 
 ---
 
-## 4. 待实现（D2–D4，只登记，不写细节）
+## 4. D3 审查与改写（已实现；D4 待实现）
+
+审查请求：`POST /api/v1/audit/run`，JWT 鉴权，body `{script_id, client_id}`。
+返回 `audit_id/score/hit_count/hits/traces/law_refs/incomplete/no_reference/model/prompt_tokens/completion_tokens/cost/latency_ms/disclaimer`。
+引文附 `start/end/original_quote`，作废候选保存在 traces；写库时有效及作废痕迹一并进入 hits_json。
+
+改写：`POST /api/v1/audit/{id}/rewrite`，JWT 鉴权，每稿重跑 A1 N1–N8，返回
+`rewritten_text/rewrite_passed/recheck/candidates/status`。未完成审查永远不能通过。
+成本由配置单价估算；单价未配置则标为零估算，不代表供应商免费。
+
 
 | 方法 | 路径 | 阶段 | 作用 |
 |---|---|---|---|

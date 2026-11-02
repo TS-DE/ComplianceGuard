@@ -5,6 +5,16 @@
 > 每条四段式：做了什么 / 验证证据（命令 + 实际输出）/ 遗留问题 / 规则或评测集变动。
 > **验证证据只写真实跑出来的输出，不写"已完成"。**
 
+## D3 · 规则迁移与审查/改写智能体（2026-11-02）
+
+**改动说明 / 行为变化**：授权补齐 rules.detector 与 exemptions（唯一表结构例外），灌入 JSON 的11条规则；Detector 注册表、A1 N1–N9、A2 逐稿二次审查及 MCP audit_recheck 去桩已接入。增加 JWT 审查/改写 API、原文位置映射、双引文作废轨迹及豁免痕迹。为保持目录≤3，config.py 与 router.py 迁为同名包入口，旧 import 路径不变；未改 D2 检索或法规。无新增依赖。
+
+**实际验证**：迁移前 /tmp/rules_before.txt 共11行 JSON证据，rules_count=0，无 detector/exemptions；迁移后真实SHOW CREATE含四值ENUM及JSON，其它表结构签名不变。种子count=11，regex=3、llm_judge=8，SQL非NULL豁免=1、absolute_terms JSON长度9；重跑迁移“两列已存在，跳过”，重跑种子 inserted=0/skipped=11/total=11。pytest tests -q：170 passed in 10.17s。case_002真实模型与向量审查audit_id=4，score=0、两轴有效、同句hit_count=1、incomplete=false；真实改写复审通过，MCP复核score=2。完整返回及落库字段见 tests/agents/d3_live.json；三种注入反例见 d3_counterexamples.json。模型返回子项条号导致严格校验作废，修正提示要求逐字复制检索code，未放松校验。一次网络轴失败真实记score=-1，保留数据库记录，未冒充合规。
+
+**风险 / 遗留**：真实端到端审查耗时220850ms；模型仍有网络波动，适配器有限重试，不完整一律-1。价格未配置，cost=0为零单价估算，不是实际免费或账单金额；失败重试可能产生无法从失败响应计量的费用。经营理念豁免目前仅保守覆盖明确愿景且无疗效保证的情形，其余豁免需进一步语义证据，不声称全覆盖。AGENTS.md流程更新被保护文件写入授权超时阻止，未绕过。范围豁免常量不入表。数据库验收保留标记为D3验收的机构/话术/审查记录（包含失败尝试），无破坏性清理。
+
+**规则 / 评测变动**：既有11条种子原样读取，未改规则内容或冻结评测标签；新增检测器、引文、法条、豁免、重审及持久化测试。分数只由代码算，命中少于原稿可按任务契约通过但不等于score=2，返回完整recheck供调用方区分。
+
 ## v0.2.0 · D2 结案（2026-11-02）
 
 **做了什么**：完成法规结构化入库、BM25 + 向量 + RRF、可追溯术语扩展、domain 过滤及 MCP 六工具；升级 Strict/Relaxed/Partial 评测与 A–E 归因，新增独立 Top50 诊断。定点补词仅来自现有 violation_quote 子串并记录 source_case_id；第28条(二)子块数值加权未改变生产 Top3 结果，如实记录负结果。本轮结案不再修改检索参数。

@@ -173,6 +173,11 @@ class Rule(Base):
         Enum(RuleLevel, values_callable=lambda e: [m.value for m in e]),
         nullable=False,
     )
+    detector: Mapped[str] = mapped_column(
+        Enum("keyword", "regex", "semantic", "llm_judge"),
+        nullable=False, server_default=text("'llm_judge'"),
+    )
+    exemptions: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
     example_bad: Mapped[str | None] = mapped_column(Text, nullable=True)
     version: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default=text(str(DEFAULT_RULE_VERSION))
