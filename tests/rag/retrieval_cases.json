@@ -1,0 +1,158 @@
+[
+  {
+    "id": "retrieval_01",
+    "query": "这个能保证你做完之后能往上走1—3个色度",
+    "source_case_id": "samr_2025_002",
+    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+    "expected_codes": [
+      "广告法第16条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_02",
+    "query": "保证你做完之后能往上走1—3个色度",
+    "source_case_id": "samr_2025_002",
+    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+    "expected_codes": [
+      "广告法第16条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_03",
+    "query": "做完之后能往上走1—3个色度",
+    "source_case_id": "samr_2025_002",
+    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+    "expected_codes": [
+      "广告法第16条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_04",
+    "query": "能保证你做完之后",
+    "source_case_id": "samr_2025_002",
+    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+    "expected_codes": [
+      "广告法第16条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_05",
+    "query": "非常的安全，而且非常的高效",
+    "source_case_id": "samr_2025_002",
+    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+    "expected_codes": [
+      "广告法第16条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_06",
+    "query": "所以这个是非常的安全",
+    "source_case_id": "samr_2025_002",
+    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+    "expected_codes": [
+      "广告法第16条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_07",
+    "query": "非常的安全",
+    "source_case_id": "samr_2025_002",
+    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+    "expected_codes": [
+      "广告法第16条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_08",
+    "query": "非常的高效",
+    "source_case_id": "samr_2025_002",
+    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+    "expected_codes": [
+      "广告法第16条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_09",
+    "query": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+    "source_case_id": "samr_2025_002",
+    "violation_quote": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+    "expected_codes": [
+      "广告法第16条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_10",
+    "query": "单次我们的续航能力是9—12个月",
+    "source_case_id": "samr_2025_hou",
+    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
+    "expected_codes": [
+      "广告法第16条",
+      "广告法第28条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_11",
+    "query": "我们的续航能力是9—12个月",
+    "source_case_id": "samr_2025_hou",
+    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
+    "expected_codes": [
+      "广告法第16条",
+      "广告法第28条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_12",
+    "query": "续航能力是9—12个月",
+    "source_case_id": "samr_2025_hou",
+    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
+    "expected_codes": [
+      "广告法第16条",
+      "广告法第28条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_13",
+    "query": "能够解决肌肤20多种问题",
+    "source_case_id": "samr_2025_hou",
+    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
+    "expected_codes": [
+      "广告法第16条",
+      "广告法第28条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_14",
+    "query": "解决肌肤20多种问题",
+    "source_case_id": "samr_2025_hou",
+    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
+    "expected_codes": [
+      "广告法第16条",
+      "广告法第28条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  },
+  {
+    "id": "retrieval_15",
+    "query": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
+    "source_case_id": "samr_2025_hou",
+    "violation_quote": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
+    "expected_codes": [
+      "广告法第16条",
+      "广告法第28条"
+    ],
+    "construction": "罚单原话的连续子串；继承原案例法条标签，非独立案例"
+  }
+]

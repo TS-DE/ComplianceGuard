@@ -1,0 +1,400 @@
+{
+  "recall_at_3": 0.26666666666666666,
+  "recalled": 4,
+  "queries": 15,
+  "article_accuracy": 0.09090909090909091,
+  "correct_returned": 4,
+  "returned": 44,
+  "top1_accuracy": 0.0,
+  "details": [
+    {
+      "id": "retrieval_01",
+      "query": "这个能保证你做完之后能往上走1—3个色度",
+      "codes": [
+        "医疗广告认定指南第3条",
+        "医疗美容广告执法指南第5条",
+        "广告法第3条"
+      ],
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.015625,
+        0.01639344262295082,
+        0.015384615384615385
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_02",
+      "query": "保证你做完之后能往上走1—3个色度",
+      "codes": [
+        "医疗广告认定指南第3条",
+        "医疗美容广告执法指南第5条",
+        "广告法第3条"
+      ],
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.015625,
+        0.01639344262295082,
+        0.015384615384615385
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_03",
+      "query": "做完之后能往上走1—3个色度",
+      "codes": [
+        "医疗广告认定指南第3条",
+        "医疗美容广告执法指南第5条",
+        "广告法第3条"
+      ],
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.015873015873015872,
+        0.01639344262295082,
+        0.015384615384615385
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_04",
+      "query": "能保证你做完之后",
+      "codes": [
+        "医疗美容广告执法指南第5条",
+        "广告法第27条",
+        "广告法第16条"
+      ],
+      "hit": true,
+      "top1": false,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.01639344262295082,
+        0.015625,
+        0.015384615384615385
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_05",
+      "query": "非常的安全，而且非常的高效",
+      "codes": [
+        "广告法第42条",
+        "广告法第9条",
+        "广告法第16条"
+      ],
+      "hit": true,
+      "top1": false,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.01639344262295082,
+        0.016129032258064516,
+        0.015873015873015872
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_06",
+      "query": "所以这个是非常的安全",
+      "codes": [
+        "广告法第2条",
+        "医疗美容广告执法指南第2条",
+        "广告法第42条"
+      ],
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.01639344262295082,
+        0.016129032258064516,
+        0.015873015873015872
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_07",
+      "query": "非常的安全",
+      "codes": [
+        "广告法第42条",
+        "广告法第16条",
+        "广告法第18条"
+      ],
+      "hit": true,
+      "top1": false,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.01639344262295082,
+        0.016129032258064516,
+        0.015873015873015872
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_08",
+      "query": "非常的高效",
+      "codes": [
+        "广告法第42条",
+        "医疗广告监管工作指南第8条",
+        "医疗广告认定指南第8条"
+      ],
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.014285714285714285,
+        0.01639344262295082,
+        0.016129032258064516
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_09",
+      "query": "这个能保证你做完之后能往上走1—3个色度；所以这个是非常的安全，而且非常的高效",
+      "codes": [
+        "医疗广告认定指南第3条",
+        "医疗美容广告执法指南第5条",
+        "广告法第16条"
+      ],
+      "hit": true,
+      "top1": false,
+      "correct_returned": 1,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.015384615384615385,
+        0.01639344262295082,
+        0.016129032258064516
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_10",
+      "query": "单次我们的续航能力是9—12个月",
+      "codes": [
+        "广告法第9条",
+        "广告法第33条",
+        "医疗广告认定指南第12条"
+      ],
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.014925373134328358,
+        0.01639344262295082,
+        0.016129032258064516
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_11",
+      "query": "我们的续航能力是9—12个月",
+      "codes": [
+        "广告法第9条",
+        "广告法第33条",
+        "医疗广告认定指南第12条"
+      ],
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.014925373134328358,
+        0.01639344262295082,
+        0.016129032258064516
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_12",
+      "query": "续航能力是9—12个月",
+      "codes": [
+        "广告法第9条",
+        "广告法第33条",
+        "医疗广告认定指南第12条"
+      ],
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.014705882352941176,
+        0.01639344262295082,
+        0.016129032258064516
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_13",
+      "query": "能够解决肌肤20多种问题",
+      "codes": [
+        "广告法第20条",
+        "医疗广告认定指南第2条",
+        "广告法第14条"
+      ],
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.01639344262295082,
+        0.015873015873015872,
+        0.015625
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_14",
+      "query": "解决肌肤20多种问题",
+      "codes": [
+        "广告法第20条",
+        "医疗广告认定指南第2条"
+      ],
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 2,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.01639344262295082,
+        0.016129032258064516
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    },
+    {
+      "id": "retrieval_15",
+      "query": "单次我们的续航能力是9—12个月；能够解决肌肤20多种问题",
+      "codes": [
+        "医疗广告认定指南第2条",
+        "广告法第20条",
+        "广告法第33条"
+      ],
+      "hit": false,
+      "top1": false,
+      "correct_returned": 0,
+      "returned": 3,
+      "status": {
+        "degraded": "vector_unavailable"
+      },
+      "scores": [
+        0.016129032258064516,
+        0.015625,
+        0.01639344262295082
+      ],
+      "routes": [
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable",
+        "bm25;degraded=vector_unavailable"
+      ]
+    }
+  ],
+  "frozen_sha256": "7ac1b879f10866621d793923be4910b4b81bc259e7b052c6f16ef3e2a01215cb",
+  "independent_source_cases": 2
+}

@@ -105,6 +105,28 @@ ddl = str(CreateTable(table, if_not_exists=True).compile(dialect=mysql.dialect()
 - WSL 里用 `cmd &` 起 Windows python 的 uvicorn 会随 shell 退出被杀，必须用 Hermes `terminal(background=true)` 起服务，再 `curl.exe` 打 `127.0.0.1`。
 **验证**：`pytest tests -q` -> `44 passed`；curl 实测见 CHANGELOG v0.1.0 C/D/E。
 
+## S5 · Chroma/DashScope 适配与 RRF 降级（部分验证）
+
+**场景**：仅用远程 text-embedding-v3，禁止隐式下载默认模型。
+**步骤**：显式传入自定义 embedding_function；input 参数名遵循 Chroma 协议；
+批量25条并校验1024维；稳定ID upsert。Retriever组合VectorIndex协议与BM25，
+RRF用1/(60+rank)，不直接相加异量纲分数。
+**关键代码**：见 backend/rag/embedding.py 与 retrieve.py。
+**陷阱**：空collection必须标 vector_unavailable，不可当作正常向量空召回；
+密钥缺失时保留BM25且route标degraded。重排加分不能用于制造低分匹配。
+**验证方式**：分批51条得到25/25/1、坏向量报错、RRF名次融合、断网BM25测试通过；
+实际collection创建通过，但本地缺密钥，真实DashScope入库与混合召回尚未验证。
+**最后验证日期**：2026-11-02（只确认上述离线行为，非端到端验收）。
+
+## S6 · MCP 六工具离线自检（已验证）
+
+**场景**：FastMCP stdio协议工具注册。
+**步骤**：用mcp.tool装饰六个独立工具，selftest调用list_tools读取真实注册表。
+**关键代码**：backend/mcp_server/server.py；RAG工具复用retrieve.search。
+**陷阱**：selftest不调用数据库或LLM；audit_recheck返回pending_d3，不冒充审查完成。
+**验证方式**：--selftest输出六工具和inputSchema；隔离测试24条通过。
+**最后验证日期**：2026-11-02。
+
 ## 变更记录
 | 日期 | 变更 | 原因 |
 |---|---|---|
