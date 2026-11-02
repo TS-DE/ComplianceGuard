@@ -2,6 +2,16 @@
 import importlib
 
 
+def test_embedding_uses_configured_endpoint(monkeypatch):
+    from backend.rag import embedding
+    monkeypatch.setattr(embedding, 'llm_config', lambda: {
+        'JUDGE_API_KEY': 'test', 'JUDGE_BASE_URL': 'https://example.invalid/v1',
+        'EMBEDDING_MODEL': 'text-embedding-v3'})
+    client = embedding.DashScopeEmbeddingFunction()
+    assert client.base_url == 'https://example.invalid/v1'
+    assert client.model == 'text-embedding-v3'
+
+
 def test_batches_are_limited_to_25():
     try:
         module = importlib.import_module('backend.rag.embedding')
@@ -16,7 +26,8 @@ def test_batches_are_limited_to_25():
 
     embedding = module.DashScopeEmbeddingFunction(api_key='test', transport=transport)
     assert len(embedding(['条文'] * 51)) == 51
-    assert calls == [25, 25, 1]
+    assert calls == [10, 10, 10, 10, 10, 1]
+    assert max(calls) <= 25
 
 
 def test_malformed_vectors_raise_explicit_error():

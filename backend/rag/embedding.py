@@ -28,7 +28,15 @@ class DashScopeEmbeddingFunction:
     """自定义 1024 维 embedding；transport 可注入以隔离网络测试。"""
 
     def __init__(self, api_key=None, transport=None):
-        self.api_key = api_key or llm_config().get('JUDGE_API_KEY')
+        config = llm_config()
+        self.api_key = api_key or config.get('JUDGE_API_KEY')
+        self.base_url = config.get('JUDGE_BASE_URL', DASHSCOPE_URL).rstrip('/')
+        self.model = config.get('EMBEDDING_MODEL', EMBED_MODEL)
+        if self.model != EMBED_MODEL:
+            raise EmbeddingError('现有索引仅允许 text-embedding-v3，换模型必须重建')
+        self.batch_size = min(EMBED_BATCH_SIZE, int(config.get('EMBEDDING_BATCH_SIZE', 10)))
+        if self.batch_size < 1:
+            raise EmbeddingError('EMBEDDING_BATCH_SIZE 必须为正整数')
         self.transport = transport or self._request
 
     @staticmethod
@@ -39,7 +47,7 @@ class DashScopeEmbeddingFunction:
         """请求兼容端点；异常只包含状态码，不回显响应或密钥。"""
         if not self.api_key:
             raise EmbeddingError('缺少 JUDGE_API_KEY；请在本地 .env 配置')
-        request = Request(DASHSCOPE_URL + path, data=json.dumps(payload).encode('utf-8'),
+        request = Request(self.base_url + path, data=json.dumps(payload).encode('utf-8'),
                           headers={'Authorization': f'Bearer {self.api_key}',
                                    'Content-Type': 'application/json'})
         try:
@@ -54,8 +62,8 @@ class DashScopeEmbeddingFunction:
         """接受文本列表；input 命名遵循 Chroma 协议，批量不超过 25。"""
         documents = list(input)
         vectors = []
-        for start in range(0, len(documents), EMBED_BATCH_SIZE):
-            batch = documents[start:start + EMBED_BATCH_SIZE]
+        for start in range(0, len(documents), self.batch_size):
+            batch = documents[start:start + self.batch_size]
             response = self.transport('/embeddings', {'model': EMBED_MODEL,
                                       'input': batch, 'dimensions': EMBED_DIMENSIONS})
             try:

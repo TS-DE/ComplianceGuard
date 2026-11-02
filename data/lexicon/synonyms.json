@@ -1,0 +1,99 @@
+{
+  "absolute_terms": {
+    "terms": [],
+    "queries": [
+      "绝对化用语 最高级 最佳"
+    ],
+    "sources": {},
+    "status": "source_terms_insufficient"
+  },
+  "efficacy_claim": {
+    "terms": [
+      "保证",
+      "色度",
+      "往上走",
+      "高效",
+      "续航能力",
+      "解决肌肤"
+    ],
+    "queries": [
+      "医疗广告 功效 断言或者保证",
+      "医疗美容 保证性承诺"
+    ],
+    "sources": {
+      "保证": [
+        "samr_2025_002"
+      ],
+      "色度": [
+        "samr_2025_002"
+      ],
+      "往上走": [
+        "samr_2025_002"
+      ],
+      "高效": [
+        "samr_2025_002"
+      ],
+      "续航能力": [
+        "samr_2025_hou"
+      ],
+      "解决肌肤": [
+        "samr_2025_hou"
+      ]
+    },
+    "status": "complete"
+  },
+  "safety_guarantee": {
+    "terms": [
+      "安全"
+    ],
+    "queries": [
+      "医疗广告 安全性 断言或者保证"
+    ],
+    "sources": {
+      "安全": [
+        "samr_2025_002"
+      ]
+    },
+    "status": "source_terms_insufficient"
+  },
+  "cure_rate": {
+    "terms": [],
+    "queries": [
+      "医疗广告 治愈率 有效率"
+    ],
+    "sources": {},
+    "status": "source_terms_insufficient"
+  },
+  "disease_treatment": {
+    "terms": [],
+    "queries": [
+      "疾病治疗功能 医疗用语"
+    ],
+    "sources": {},
+    "status": "source_terms_insufficient"
+  },
+  "derogatory_compare": {
+    "terms": [],
+    "queries": [
+      "贬低其他生产经营者 商品 服务"
+    ],
+    "sources": {},
+    "status": "source_terms_insufficient"
+  },
+  "endorsement": {
+    "terms": [],
+    "queries": [
+      "广告代言人 推荐 证明"
+    ],
+    "sources": {},
+    "status": "source_terms_insufficient"
+  },
+  "inducement": {
+    "terms": [],
+    "queries": [
+      "容貌焦虑 诱导 医疗美容"
+    ],
+    "sources": {},
+    "status": "source_terms_insufficient"
+  }
+}

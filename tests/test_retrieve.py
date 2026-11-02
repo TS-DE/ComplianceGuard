@@ -9,6 +9,19 @@ def module():
         assert False, 'retrieve 尚未实现'
 
 
+def test_lexicon_expands_and_survives_network_failure():
+    m = module()
+    assert any('功效' in q for q in m.expand_by_lexicon('保证白一个色度'))
+    record = {'id': 'a', 'text': '医疗广告不得对功效作断言或者保证',
+              'metadata': {'code': '广告法第16条', 'parent_text': '全文',
+                           'doc_type': 'law', 'relevance': 'decision'}}
+    def broken(q):
+        raise RuntimeError('LLM offline')
+    retriever = m.HybridRetriever([record], [], None, rewriter=broken)
+    hits = retriever.search('保证白一个色度')
+    assert hits and 'lexicon' in hits[0].route and 'degraded' in hits[0].route
+
+
 def test_rrf_uses_ranks():
     m = module()
     scores = m.rrf_fuse([['a', 'b'], ['b', 'c']])

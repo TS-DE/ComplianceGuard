@@ -2,6 +2,7 @@
 import json
 import logging
 import math
+from pathlib import Path
 from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
@@ -77,6 +78,17 @@ def rrf_fuse(rank_lists, k=RRF_K):
         for rank, key in enumerate(dict.fromkeys(ranks), 1):
             scores[key] += 1 / (k + rank)
     return dict(scores)
+
+
+def expand_by_lexicon(text):
+    """命中可追溯口语词后追加法规术语；不生成原话或法条。"""
+    path = Path(__file__).resolve().parents[2] / 'data/lexicon/synonyms.json'
+    lexicon = json.loads(path.read_text(encoding='utf-8'))
+    queries = []
+    for entry in lexicon.values():
+        if any(term in text for term in entry['terms']):
+            queries.extend(entry['queries'])
+    return list(dict.fromkeys(queries))
 
 
 def rewrite_query(text):
@@ -163,6 +175,10 @@ class HybridRetriever(Retriever):
             bonus -= int(len(content) > 300)
             bonus += int('不适用' in content or '不构成广告' in content)
             route = '+'.join(sorted(routes.get(key, [])))
+            if self.status.get('lexicon'):
+                route += '+lexicon'
+            if self.status.get('rewrite'):
+                route += '+rewrite'
             if self.status.get('degraded'):
                 route += ';degraded=vector_unavailable'
             hit = Hit(meta['code'], content, meta.get('parent_text', content),
@@ -188,6 +204,10 @@ class HybridRetriever(Retriever):
             except Exception:
                 queries = [text]
                 self.status['rewrite_failed'] = True
+            expanded = expand_by_lexicon(text)
+            self.status['lexicon'] = bool(expanded)
+            self.status['rewrite'] = any(q != text for q in queries)
+            queries = list(dict.fromkeys([text, *expanded, *queries]))
             laws = self._search_group(queries, 'law_articles', top_k, doc_type, law_articles)
             self.case_hits = self._search_group(queries, 'case_fines', top_k, None, ())
             return laws
