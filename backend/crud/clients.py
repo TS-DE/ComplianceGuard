@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.crud.base import paginate
-from backend.models.clients import Client
+from backend.db.models import Client
 
 
 def get(db: Session, client_id: int) -> Client | None:

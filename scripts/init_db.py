@@ -19,7 +19,7 @@ from sqlalchemy.dialects import mysql
 from sqlalchemy.schema import CreateIndex, CreateTable
 
 from backend.core.config import settings
-from backend.models import Base
+from backend.db.models import Base
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 

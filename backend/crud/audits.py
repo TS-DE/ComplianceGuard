@@ -6,8 +6,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.crud.base import paginate
-from backend.models.audits import Audit
-from backend.models.scripts import Script
+from backend.db.models import Audit
+from backend.db.models import Script
 
 
 def get(db: Session, audit_id: int) -> Audit | None:

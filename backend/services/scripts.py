@@ -6,7 +6,7 @@ from backend.core.errors import BusinessValidationError, ConflictError
 from backend.crud import audits as audits_crud
 from backend.crud import clients as clients_crud
 from backend.crud import scripts as crud
-from backend.models.scripts import Script
+from backend.db.models import Script
 from backend.schemas.scripts import ScriptCreate, ScriptUpdate
 from backend.services.common import get_or_404, update_fields
 

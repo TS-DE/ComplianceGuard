@@ -55,7 +55,7 @@ def test_dsn() -> str:
     dsn = _resolve_test_dsn()
     _create_test_database(dsn)
     engine = create_engine(dsn, future=True)
-    from backend.models import Base
+    from backend.db.models import Base
 
     Base.metadata.create_all(bind=engine)
     engine.dispose()

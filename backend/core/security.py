@@ -98,7 +98,7 @@ from sqlalchemy.orm import Session
 from backend.core.errors import UnauthorizedError
 from backend.crud import users as users_crud
 from backend.db.session import get_db
-from backend.models.users import User
+from backend.db.models import User
 
 # auto_error=False：缺 Authorization 头时自己抛统一异常，而不是 FastAPI 的裸 403
 bearer_scheme = HTTPBearer(auto_error=False, description="Bearer <access_token>")

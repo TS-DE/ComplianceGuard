@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from backend.core.config import DEFAULT_RULE_VERSION, RuleAxis
 from backend.core.errors import BusinessValidationError
 from backend.crud import rules as crud
-from backend.models.rules import Rule
+from backend.db.models import Rule
 from backend.schemas.rules import RuleCreate, RuleUpdate
 from backend.services.common import get_or_404, update_fields
 

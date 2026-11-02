@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from backend.core.errors import ConflictError, UnauthorizedError
 from backend.core.security import create_access_token, hash_password, verify_password
 from backend.crud import users as users_crud
-from backend.models.users import User
+from backend.db.models import User
 
 logger = logging.getLogger(__name__)
 

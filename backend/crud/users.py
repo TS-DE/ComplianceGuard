@@ -3,7 +3,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models.users import User
+from backend.db.models import User
 
 
 def get_by_id(db: Session, user_id: int) -> User | None:

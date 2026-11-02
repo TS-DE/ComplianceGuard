@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.crud.base import paginate
-from backend.models.rules import Rule
+from backend.db.models import Rule
 
 
 def get(db: Session, rule_id: int) -> Rule | None:
