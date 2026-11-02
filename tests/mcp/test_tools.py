@@ -38,7 +38,7 @@ def test_exact_registration_and_offline_selftest():
     assert all("inputSchema" in t for t in listing)
 
 
-def test_rag_reuses_retriever_and_recheck_is_pending(monkeypatch):
+def test_rag_reuses_retriever_and_recheck_is_real(monkeypatch):
     from dataclasses import make_dataclass
     from types import ModuleType
     from backend.mcp_server import server
@@ -59,7 +59,10 @@ def test_rag_reuses_retriever_and_recheck_is_pending(monkeypatch):
          "route": "bm25;degraded=vector_unavailable", "parent_text": "完整条文", "doc_type": "law"}
     ]
     assert calls == [("安全", 2)]
-    assert server.audit_recheck("原文", 1) == {"ok": False, "reason": "pending_d3"}
+    from backend.tools import audit_tool
+    monkeypatch.setattr(audit_tool, 'recheck', lambda text, client_id:
+                        {'score': 2, 'hits': [], 'law_refs': []})
+    assert server.audit_recheck("原文", 1) == {'score': 2, 'hits': [], 'law_refs': []}
 
 
 @pytest.mark.parametrize("name,args", [

@@ -52,11 +52,12 @@ def db_save_redteam_result(run_id: str, sample: str, judge: dict, category: str)
 
 @mcp.tool()
 def audit_recheck(text: str, client_id: int) -> dict:
-    """D3 尚未实现，返回明确的未完成状态，不提供放行结果。"""
+    """复用 A1 完整复核，返回真实分数、命中与本次检索法条。"""
     from backend.tools.db_tool import require_positive, require_text
     require_text(text, "text")
     require_positive(client_id, "client_id")
-    return {"ok": False, "reason": "pending_d3"}
+    from backend.tools.audit_tool import recheck
+    return recheck(text, client_id)
 
 
 async def selftest() -> None:
