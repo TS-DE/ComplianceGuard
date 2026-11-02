@@ -1,1 +1,10 @@
-"""业务 Agent 集合（D3/D4 实现，D1 仅有包占位）。"""
+"""独立于存储与模型供应商的合规检测器。"""
+
+from .base import (
+    DETECTORS, ChatModel, Detector, KeywordDetector, LLMJudgeDetector, RegexDetector, Rule,
+)
+
+__all__ = [
+    "DETECTORS", "ChatModel", "Detector", "KeywordDetector", "LLMJudgeDetector",
+    "RegexDetector", "Rule",
+]
