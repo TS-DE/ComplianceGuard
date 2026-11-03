@@ -207,7 +207,10 @@ class RedteamRepository:
         ratio=tokens['embedding_tokens']/tokens['judge_tokens'] if tokens['judge_tokens'] else None
         return dict(totals,**tokens,total_cost=total,generation_cost=generation,
                     run_total_cost=add_cost(total,generation),latency_ms=latency,embedding_token_ratio=ratio,
-                    cost_note='全链路估算，非供应商账单；embedding未计价，token占比不等于费用占比')
+                    cost_note=('全链路估算，非供应商账单；embedding未计价，token占比不等于费用占比'
+                        if totals['embedding_cost'] is None else
+                        '全链路估算，非供应商账单；仅 embedding 已计价，其他未知项不计伪合计'
+                        if total is None else '全链路估算，非供应商账单；token占比不等于费用占比'))
 
     def daily(self, day):
         """SQL复算审计总数、完整分数分布、均时、费用；NULL费用独立计数。"""
