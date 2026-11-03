@@ -40,6 +40,8 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 | id | BIGINT | PK, AI | |
 | client_id | BIGINT | FK→clients.id, NOT NULL, INDEX | 归属机构 |
 | scene | VARCHAR(50) | NULL | 场景：双眼皮/热玛吉/美白/祛斑/植发 |
+| source | ENUM('manual','redteam') | NOT NULL, DEFAULT 'manual' | 来源 |
+| redteam_meta | JSON | NULL | run_id、target_axis、strength、strategy、expected_violation；判定后追加verdict/actual_axes/audit_id |
 | content | TEXT | NOT NULL | 待审话术原文 |
 | status | ENUM('pending','audited','archived') | NOT NULL, DEFAULT 'pending' | |
 | created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
