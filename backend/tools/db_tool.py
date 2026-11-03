@@ -94,7 +94,7 @@ def db_save_redteam_result(run_id: str, sample: str, judge: dict, category: str)
         require_text(value, name)
     if not isinstance(judge, dict):
         raise ValueError("judge must be a JSON object")
-    if category not in ('TP','FN','FP','TN','unjudged'):
+    if category not in ('TP','TP_axis','TP_other','FN','FP','TN','unjudged'):
         raise ValueError('invalid verdict')
     from backend.db.session import SessionLocal
     with SessionLocal() as session:
@@ -112,6 +112,12 @@ class RedteamRepository:
     def __init__(self, session):
         self.db = session
 
+    def load_rules(self):
+        """当前Session读取启用规则，避免生成器发明轴定义。"""
+        from backend.db.models import Rule
+        return [dict(axis=r.axis,pattern=r.pattern,law_article=r.law_article,enabled=r.enabled)
+                for r in self.db.scalars(select(Rule).where(Rule.enabled.is_(True)))]
+
     def save_samples(self, run_id, client_id, rows, usage):
         """一次事务写整个生成矩阵，生成失败不写半批。"""
         from backend.db.models import Script, Client
@@ -120,7 +126,7 @@ class RedteamRepository:
         objects = []
         for index,row in enumerate(rows):
             meta = {k:row[k] for k in ('target_axis','strength','strategy','expected_violation')}
-            meta.update(run_id=run_id)
+            meta.update(run_id=run_id,pattern_ref=row.get('pattern_ref'),label_invalid=False)
             if index == 0:
                 meta['generation_usage'] = json.loads(json.dumps(usage,default=str))
             objects.append(Script(client_id=client_id,scene=row['scene'],content=row['content'],
@@ -151,22 +157,30 @@ class RedteamRepository:
         from backend.core.errors import NotFoundError
         rows = self.samples(run_id)
         if not rows: raise NotFoundError('redteam_run',run_id)
-        counts = Counter(row['meta'].get('verdict','unjudged') for row in rows)
-        axes = {}
-        for row in rows:
-            m=row['meta']; bucket=axes.setdefault(m['target_axis'],dict(expected_violations=0,TP=0,FN=0,FP=0,TN=0,unjudged=0))
-            bucket['expected_violations'] += int(m['expected_violation'])
-            bucket[m.get('verdict','unjudged')] += 1
-        for bucket in axes.values():
-            denominator=bucket['TP']+bucket['FN']
-            bucket['fn_rate']=bucket['FN']/denominator if denominator else None
-        denominator=counts['TP']+counts['FN']; negative=counts['FP']+counts['TN']
-        return dict(costs=self.run_costs(run_id),run_id=run_id,generated=len(rows),counts={k:counts[k] for k in ('TP','FN','FP','TN','unjudged')},
-                    fn_rate=counts['FN']/denominator if denominator else None,
-                    fp_rate=counts['FP']/negative if negative else None,
-                    accuracy=(counts['TP']+counts['TN'])/len(rows),by_axis=axes,
-                    FN=[r for r in rows if r['meta'].get('verdict')=='FN'],
-                    FP=[r for r in rows if r['meta'].get('verdict')=='FP'],samples=rows)
+        return dict(self.summarize(rows,run_id),costs=self.run_costs(run_id))
+
+    @staticmethod
+    def summarize(rows,run_id='combined'):
+        """旧TP由保存的目标/实际轴重新解释，不重判、不改旧审计。无效标签不入分母。"""
+        from collections import Counter
+        from backend.agents.redteam import JudgeAgent
+        valid=[r for r in rows if not r['meta'].get('label_invalid')]
+        counts=Counter(); axes={}; tagged=[]
+        for row in valid:
+            m=row['meta']
+            verdict=JudgeAgent.classify(m['expected_violation'],dict(score=m.get('score',-1),incomplete=m.get('verdict')=='unjudged'),m['target_axis'],m.get('actual_axes',[]))
+            tagged.append(dict(row,meta=dict(m,verdict=verdict)))
+            counts[verdict]+=1
+            bucket=axes.setdefault(m['target_axis'],Counter())
+            bucket[verdict]+=1
+        tp=counts['TP_axis']+counts['TP_other']; denom=tp+counts['FN']; neg=counts['FP']+counts['TN']
+        return dict(run_id=run_id,generated=len(valid),counts={k:counts[k] for k in ('TP_axis','TP_other','FN','FP','TN','unjudged')},
+                    fn_rate=counts['FN']/denom if denom else None,
+                    axis_fn_rate=(counts['FN']+counts['TP_other'])/denom if denom else None,
+                    fp_rate=counts['FP']/neg if neg else None,
+                    accuracy=(tp+counts['TN'])/len(valid) if valid else None,by_axis=axes,
+                    FN=[r for r in tagged if r['meta']['verdict']=='FN'],FP=[r for r in tagged if r['meta']['verdict']=='FP'],samples=tagged,
+                    invalid_samples=[r for r in rows if r['meta'].get('label_invalid')])
 
     def run_costs(self, run_id):
         """从已存meta汇总三项费用及生成成本，未知项传播NULL。"""
