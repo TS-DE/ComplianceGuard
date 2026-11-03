@@ -45,12 +45,15 @@ class scripts:
 
     @staticmethod
     def list_paged(
-        db: Session, page: int, page_size: int, client_id: int | None = None
+        db: Session, page: int, page_size: int, client_id: int | None = None,
+        q: str | None = None
     ) -> tuple[list[Script], int]:
-        """分页查询，可选按 client_id 过滤。"""
+        """分页查询，内容子串过滤与机构过滤同时生效。"""
         stmt = select(Script).order_by(Script.id.desc())
         if client_id is not None:
             stmt = stmt.where(Script.client_id == client_id)
+        if q:
+            stmt = stmt.where(Script.content.contains(q, autoescape=True))
         return paginate(db, stmt, page, page_size)
 
     @staticmethod

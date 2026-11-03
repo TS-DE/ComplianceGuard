@@ -38,6 +38,14 @@ def resource_router(name, service, create_schema, update_schema, out_schema, fil
         rows, total = service.list_paged(db, page.page, page.page_size, client_id)
         return ok([output(row) for row in rows], total=total)
 
+    def list_scripts(db: DbSession, page: Page,
+                     client_id: Annotated[int | None, Query(gt=0)] = None,
+                     q: Annotated[str | None, Query(max_length=500)] = None) -> dict:
+        """纯查询走仓储，避免为过滤参数改动审查编排。"""
+        from backend.crud.special import scripts as script_repo
+        rows, total = script_repo.list_paged(db, page.page, page.page_size, client_id, q)
+        return ok([output(row) for row in rows], total=total)
+
     def get_item(item_id: int, db: DbSession) -> dict:
         return ok(output(service.get(db, item_id)))
 
@@ -51,7 +59,8 @@ def resource_router(name, service, create_schema, update_schema, out_schema, fil
         service.delete(db, item_id)
         return ok({"id": item_id})
 
-    router.add_api_route("", list_filtered if filtered else list_items, methods=["GET"])
+    listing = list_scripts if name == 'scripts' else list_filtered if filtered else list_items
+    router.add_api_route("", listing, methods=["GET"])
     router.add_api_route("/{item_id}", get_item, methods=["GET"])
     router.add_api_route("", create_item, methods=["POST"])
     router.add_api_route("/{item_id}", update_item, methods=["PUT"])

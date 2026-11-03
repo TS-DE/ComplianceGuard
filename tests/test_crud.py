@@ -164,3 +164,15 @@ def test_rule_toggle_does_not_bump(client: TestClient, auth_headers: dict) -> No
         f"{API}/rules/{old['id']}", json={"enabled": False}, headers=auth_headers
     ).json()["data"]
     assert upd["id"] == old["id"] and upd["version"] == 1 and upd["enabled"] is False
+
+
+def test_scripts_content_search(client, auth_headers):
+    root = '/api/v1'
+    institution = client.post(root+'/clients', headers=auth_headers, json={'name':'搜索机构'}).json()['data']
+    for content in ['双眼皮面诊限定词', '口腔咨询']:
+        client.post(root+'/scripts', headers=auth_headers, json={'client_id':institution['id'],'content':content})
+    result = client.get(root+'/scripts', headers=auth_headers, params={'q':'限定词'}).json()
+    assert result['total'] == 1
+    assert result['data'][0]['content'] == '双眼皮面诊限定词'
+    assert client.get(root+'/scripts', headers=auth_headers, params={'q':'不存在'}).json()['total'] == 0
+    assert client.get(root+'/scripts', headers=auth_headers).json()['total'] == 2
