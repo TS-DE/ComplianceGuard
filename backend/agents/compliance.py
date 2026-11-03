@@ -1,5 +1,9 @@
 """A1 证据流水线与 A2 二次过审；模型不得决定分数。"""
 import json
+import logging
+import os
+from copy import deepcopy
+from concurrent.futures import ThreadPoolExecutor
 import re
 import unicodedata
 from dataclasses import fields
@@ -45,8 +49,11 @@ def _score(hits):
 
 class ComplianceAuditAgent:
     """组合规则加载、检索和检测器，接口不依赖数据库或模型供应商。"""
-    def __init__(self, rules_loader, search_law, model, detectors=None, known_docs=None):
+    def __init__(self, rules_loader, search_law, model, detectors=None, known_docs=None, workers=None):
         self.rules_loader, self.search_law, self.model = rules_loader, search_law, model
+        self.workers = int(workers if workers is not None else os.environ.get("JUDGE_WORKERS", 4))
+        if self.workers < 1:
+            raise ValueError("JUDGE_WORKERS must be positive")
         self.known_docs = known_docs
         self.detectors = dict(DETECTORS if detectors is None else detectors)
         if detectors is None:
@@ -56,9 +63,10 @@ class ComplianceAuditAgent:
         """执行 N1–N8；轴失败标未完成，检索故障继续检测但不伪造依据。"""
         started = perf_counter()
         normalized, offsets = normalize_text(text)  # N1
+        normalized_at = perf_counter()
         result = dict(hits=[], traces=[], law_refs=[], incomplete=False, no_reference=False,
                       prompt_tokens=0, completion_tokens=0, cost=0.0, model=None,
-                      disclaimer=DISCLAIMER_TEXT)
+                      disclaimer=DISCLAIMER_TEXT, timings_ms={"normalize": (normalized_at-started)*1000})
         try:  # N2
             names = {f.name for f in fields(Rule)}
             rules = [r if isinstance(r, Rule) else Rule(**{k: v for k, v in r.items() if k in names})
@@ -69,6 +77,7 @@ class ComplianceAuditAgent:
             rules = []
             result['incomplete'] = True
             result['traces'].append(dict(status='rules_failed', error=type(exc).__name__))
+        result["timings_ms"]["rules"] = (perf_counter() - normalized_at) * 1000
         if rules and self._scope(normalized, result):
             result.update(score=2, hit_count=0, latency_ms=int((perf_counter() - started) * 1000))
             return result
@@ -76,26 +85,47 @@ class ComplianceAuditAgent:
         for rule in rules:  # N3
             if rule.detector != 'llm_judge':
                 self._detect(normalized, rule, candidates, result)
-        for rule in rules:  # N4
-            try:
-                rule.law_refs = self.search_law(normalized + '\n' + rule.pattern)
-                for ref in rule.law_refs:
-                    if ref not in result['law_refs']:
-                        result['law_refs'].append(ref)
-                if not rule.law_refs:
-                    result['no_reference'] = True
-            except Exception as exc:
-                rule.law_refs = []
-                result['no_reference'] = True
-                result['traces'].append(dict(axis=rule.axis, status='no_reference', error=type(exc).__name__))
-        for rule in rules:  # N5
-            if rule.detector == 'llm_judge':
-                self._detect(normalized, rule, candidates, result)
+        before = perf_counter()
+        try:
+            result['law_refs'] = self.search_law(normalized) if rules else []
+        except Exception as exc:
+            result['traces'].append(dict(status='no_reference', error=type(exc).__name__))
+        result['no_reference'] = not bool(result['law_refs'])
+        for rule in rules:
+            rule.law_refs = result['law_refs']
+        result['timings_ms']['retrieve'] = (perf_counter() - before) * 1000
+        before = perf_counter()
+        semantic = [rule for rule in rules if rule.detector == 'llm_judge']
+        with ThreadPoolExecutor(max_workers=self.workers) as pool:
+            outcomes = list(pool.map(lambda rule: self._isolated_detect(normalized, rule), semantic))
+        for rows, partial in outcomes:
+            candidates.extend(rows)
+            result['traces'].extend(partial['traces'])
+            result['incomplete'] |= partial['incomplete']
+            for key in ('prompt_tokens', 'completion_tokens', 'cost'):
+                result[key] += partial[key]
+            result['model'] = partial['model'] or result['model']
+        result['timings_ms']['detect'] = (perf_counter() - before) * 1000
+        before = perf_counter()
         self._validate(text, normalized, offsets, candidates, result)  # N6–N7
         result['hit_count'] = len({h['sentence_id'] for h in result['hits']})  # N8
         result['score'] = -1 if result['incomplete'] else _score(result['hits'])
+        result['timings_ms']['aggregate'] = (perf_counter() - before) * 1000
         result['latency_ms'] = int((perf_counter() - started) * 1000)
+        logging.getLogger(__name__).warning('audit_timings_ms=%s', result['timings_ms'])
         return result
+
+    def _isolated_detect(self, text, rule):
+        """每个任务独立检测器和用量容器，按输入顺序归并避免共享 last_usage。"""
+        local = deepcopy(self.detectors[rule.detector])
+        if isinstance(local, LLMJudgeDetector):
+            local = LLMJudgeDetector(self.model)
+        agent = object.__new__(ComplianceAuditAgent)
+        agent.detectors = {rule.detector: local}
+        partial = dict(traces=[], incomplete=False, prompt_tokens=0, completion_tokens=0, cost=0.0, model=None)
+        rows = []
+        agent._detect(text, rule, rows, partial)
+        return rows, partial
 
     def _scope(self, text, result):
         """只对显式范围候选调用前置开关；豁免须有逐字证据和有效 ID。"""

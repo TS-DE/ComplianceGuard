@@ -1,6 +1,8 @@
 """审查组合根与 urllib 模型边界；数据库操作仅经仓储执行。"""
 import json
 from decimal import Decimal
+from time import perf_counter
+import logging
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -50,7 +52,11 @@ class AuditTool:
         if script["client_id"] != client_id:
             raise BusinessValidationError("话术不属于指定机构")
         result = self.auditor.review(script["content"], client_id=client_id)
+        before = perf_counter()
         audit_id = self.repository.save(script_id, result)
+        result.setdefault("timings_ms", {})["persist"] = (perf_counter() - before) * 1000
+        result["latency_ms"] += int(result["timings_ms"]["persist"])
+        logging.getLogger(__name__).warning("audit_timings_ms=%s", result["timings_ms"])
         return dict(result, id=audit_id, audit_id=audit_id, script_id=script_id)
 
     def rewrite_audit(self, audit_id):

@@ -198,7 +198,7 @@ def test_cheap_detection_runs_before_retrieval_then_semantics():
     agent = ComplianceAuditAgent(lambda: rules, search, None,
         detectors={'keyword': Probe('cheap'), 'llm_judge': Probe('semantic')})
     result = agent.review('保证有效。')
-    assert events == ['cheap', 'rag', 'rag', 'semantic']
+    assert events == ['cheap', 'rag', 'semantic']
     assert result['score'] == 0
     assert result['hit_count'] == 1
     assert {h['axis'] for h in result['hits']} == {'efficacy_claim', 'safety_guarantee'}

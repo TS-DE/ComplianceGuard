@@ -54,3 +54,33 @@ def test_other_axis_law_rejected():
     result = check_axis('安全', '广告法第16条', '广告法第9条', {'广告法'})
     assert not result['hits']
     assert result['traces'][0]['status'] == 'cross_axis_rejected'
+
+
+
+def test_concurrent_matches_serial_and_retrieves_once(caplog):
+    import json
+    from time import sleep
+    from backend.agents.base import ChatModel
+
+    class Model(ChatModel):
+        def complete(self, messages):
+            axis = json.loads(messages[1]['content'])['axis']
+            sleep(0.01)
+            return dict(content=json.dumps({'hits': [dict(quote='非常安全',
+                law_article='广告法第16条', reason=axis)]}), model='stub',
+                prompt_tokens=3, completion_tokens=2, cost=0.001)
+
+    rules = [dict(axis=str(i), pattern='安全', law_article='广告法第16条') for i in range(8)]
+    results = []
+    for workers in (1, 4):
+        calls = []
+        def search(query):
+            calls.append(query)
+            return [dict(code='广告法第16条')]
+        agent = ComplianceAuditAgent(lambda: rules, search, Model(), workers=workers)
+        result = agent.review('非常安全')
+        assert len(calls) == 1
+        assert result['prompt_tokens'] == 24
+        assert set(result['timings_ms']) >= {'normalize', 'rules', 'retrieve', 'detect', 'aggregate'}
+        results.append(result['hits'])
+    assert results[0] == results[1]
