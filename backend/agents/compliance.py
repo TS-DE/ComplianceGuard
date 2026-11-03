@@ -11,7 +11,7 @@ from decimal import Decimal
 from time import perf_counter
 from backend.agents.base import Rule, DETECTORS, LLMJudgeDetector
 from backend.core.config import DISCLAIMER_TEXT
-from backend.core.constants import to_refs, missing_docs, add_cost
+from backend.core.constants import to_refs, missing_docs, add_cost, match_refs, bind_chunk
 
 _SENTENCES = re.compile(r'[^。！？!?；;\n]+[。！？!?；;\n]?')
 _ZERO_WIDTH = frozenset('\u200b\u200c\u200d\ufeff\u2060')
@@ -205,15 +205,22 @@ class ComplianceAuditAgent:
             if hit.get('law_article') not in codes:
                 result['traces'].append(dict(hit, status='invalid_law_ref'))
                 continue
+            chunk = bind_chunk(hit, result['law_refs'])
+            if chunk is None:
+                result['traces'].append(dict(hit, status='invalid_law_ref'))
+                continue
             declared = to_refs(rule.law_article) if rule.law_article else set()
-            known = self.known_docs
-            absent = missing_docs(declared, known) if known is not None else set()
+            absent = missing_docs(declared, self.known_docs) if self.known_docs is not None else set()
+            status = match_refs(declared, {hit['ref']}) if declared else 'matched'
             if absent:
                 result['traces'].append(dict(hit, status='law_ref_missing', documents=sorted(absent)))
-            if (re.sub(r'\s+', '', hit['pattern']) != re.sub(r'\s+', '', rule.pattern)
-                    or (declared and not absent and not (to_refs(hit['law_article']) & declared))):
-                result['traces'].append(dict(hit, status='cross_axis_rejected'))
+            if re.sub(r'\s+', '', hit['pattern']) != re.sub(r'\s+', '', rule.pattern):
+                status = 'cross_axis_rejected'
+            if status in ('item_mismatch', 'cross_axis_rejected') and not absent:
+                result['traces'].append(dict(hit, status=status))
                 continue
+            if status == 'matched_at_article_level':
+                result['traces'].append(dict(hit, status=status))
             end = start + len(quote)
             a, b = offsets[start], offsets[end - 1] + 1
             restored = original[a:b]

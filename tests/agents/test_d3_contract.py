@@ -95,3 +95,14 @@ def test_sentence_claims_keep_raw_axis_evidence():
     assert result['hit_count'] == len(result['hits']) == 1
     assert result['hits'][0]['axes'] == ['efficacy_claim', 'safety_guarantee']
     assert len(result['raw_hits']) == 2
+
+
+
+def test_item_metadata_rejects_wrong_axis_and_preserves_provenance():
+    rule = dict(axis='before_after', pattern='患者对比', law_article='医美指南第五条(五)', detector='echo')
+    chunk = dict(code='医疗美容广告执法指南第5条', item_no='第五条(四)', chunk_id='trusted:5:4')
+    detector = Candidate('患者对比', chunk['code'])
+    result = ComplianceAuditAgent(lambda: [rule], lambda q:[chunk], None, {'echo':detector}).review('保证有效')
+    assert not result['hits']
+    assert result['traces'][0]['status'] == 'item_mismatch'
+    assert result['traces'][0]['ref'] == '医疗美容广告执法指南.5.4'
