@@ -78,7 +78,7 @@ class ComplianceAuditAgent:
     def review(self, text, client_id=None):
         """执行 N1–N8；轴失败标未完成，检索故障继续检测但不伪造依据。"""
         started = perf_counter()
-        normalized, offsets = normalize_text(text)  # N1
+        normalized, offsets = normalize_with_map(text)  # N1
         normalized_at = perf_counter()
         result = dict(hits=[], traces=[], law_refs=[], incomplete=False, no_reference=False,
                       prompt_tokens=0, completion_tokens=0, cost=0.0, model=None,
@@ -215,7 +215,7 @@ class ComplianceAuditAgent:
                 result['traces'].append(dict(hit, status='cross_axis_rejected'))
                 continue
             end = start + len(quote)
-            a, b = offsets[start][0], offsets[end - 1][1]
+            a, b = offsets[start], offsets[end - 1] + 1
             restored = original[a:b]
             if not restored or original.find(restored) < 0 or normalize_text(restored)[0] != quote:
                 result['traces'].append(dict(hit, status='quote_not_in_original'))

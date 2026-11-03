@@ -8,7 +8,7 @@ from urllib.request import Request, urlopen
 
 from backend.agents.base import ChatModel
 from backend.core.config import DISCLAIMER_TEXT
-from backend.core.constants import MODEL_PRICES, compute_cost, add_cost
+from backend.core.constants import MODEL_PRICES, compute_cost, add_cost, to_refs
 from backend.rag.embedding import DASHSCOPE_URL, NETWORK_TIMEOUT, EmbeddingError, llm_config
 
 TOKENS_PER_MILLION = Decimal("1000000")
@@ -23,6 +23,15 @@ def search_law(query, top_k=3):
     return rag_search_law(query, top_k)
 
 
+def indexed_docs():
+    """只读本地 Chroma 元数据，不创建集合、不触发 embedding 或网络。"""
+    import chromadb
+    from backend.rag.embedding import ROOT
+    collection = chromadb.PersistentClient(path=str(ROOT / 'data/chroma')).get_collection('law_articles')
+    return {ref.rsplit('.', 1)[0] for row in collection.get(include=['metadatas'])['metadatas']
+            for ref in to_refs(row['code'])}
+
+
 class AuditTool:
     """组合审查、改写与仓储；API/MCP 共用相同 N1–N8 复核路径。"""
 
@@ -31,7 +40,8 @@ class AuditTool:
         from backend.agents.compliance import ComplianceAuditAgent, RewriteAgent
         self.repository = repository
         self.model = model if model is not None else UrllibChatModel()
-        self.auditor = ComplianceAuditAgent(repository.load_rules, search_law, self.model, detectors)
+        known = indexed_docs() if search_law is globals()["search_law"] else None
+        self.auditor = ComplianceAuditAgent(repository.load_rules, search_law, self.model, detectors, known_docs=known)
         self.rewriter = RewriteAgent(self.auditor, self.model)
 
     def _client(self, client_id):
@@ -52,11 +62,14 @@ class AuditTool:
             raise NotFoundError("script", script_id)
         if script["client_id"] != client_id:
             raise BusinessValidationError("话术不属于指定机构")
+        started = perf_counter()
         result = self.auditor.review(script["content"], client_id=client_id)
         before = perf_counter()
         audit_id = self.repository.save(script_id, result)
         result.setdefault("timings_ms", {})["persist"] = (perf_counter() - before) * 1000
-        result["latency_ms"] += int(result["timings_ms"]["persist"])
+        result["latency_ms"] = int((perf_counter() - started) * 1000)
+        if hasattr(self.repository, "update_latency"):
+            self.repository.update_latency(audit_id, result["latency_ms"])
         logging.getLogger(__name__).warning("audit_timings_ms=%s", result["timings_ms"])
         return dict(result, id=audit_id, audit_id=audit_id, script_id=script_id)
 

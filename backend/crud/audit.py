@@ -63,6 +63,15 @@ class AuditRepository:
             raise
         return row.id
 
+    def update_latency(self, audit_id, latency_ms):
+        """回填首次落库完成后的总耗时；失败回滚并抛错。"""
+        try:
+            self.session.get(Audit, audit_id).latency_ms = latency_ms
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
+            raise
+
     def update_rewrite(self, audit_id, result):
         """保存改写状态并累计实际调用成本；保留原审查分数。"""
         row = self.session.get(Audit, audit_id)
