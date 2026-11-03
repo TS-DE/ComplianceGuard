@@ -26,3 +26,53 @@ SCOPE_EXEMPTIONS = [
         "source": "医疗广告认定指南 第七条",
     },
 ]
+
+# 引用命名规范与范围常量同族，保持 core 不超过三个功能文件。
+import logging
+import re
+
+ALIASES = {
+    '医美指南': '医疗美容广告执法指南',
+    '绝对化用语指南': '广告绝对化用语执法指南',
+    '认定指南': '医疗广告认定指南',
+    '监管工作指南': '医疗广告监管工作指南',
+}
+_NUMBERS = dict(zip('零一二三四五六七八九', range(10)))
+
+
+def _article_number(value):
+    """解析中文十百以内条号；非法字符由调用方记录，不猜测。"""
+    if value.isdigit():
+        return int(value)
+    total = digit = 0
+    for char in value:
+        if char in _NUMBERS:
+            digit = _NUMBERS[char]
+        elif char in '十百':
+            total += (digit or 1) * {'十': 10, '百': 100}[char]
+            digit = 0
+        else:
+            raise ValueError('invalid article number')
+    return total + digit
+
+
+def to_refs(text: str) -> set[str]:
+    """引用文本转条级 canonical 集合；省略文档沿用同串上一条，坏片段告警。"""
+    refs, previous = set(), ''
+    for part in re.split(r'[、，,;；]', text):
+        part = re.sub(r'\s+', '', part)
+        match = re.fullmatch(r'(.*?)第([0-9零一二三四五六七八九十百]+)条(?:[（(][^）)]*[）)])*', part)
+        if match:
+            doc, number = match.groups()
+            doc = ALIASES.get(doc, doc) if doc else previous
+            if doc:
+                refs.add(f'{doc}.{_article_number(number)}')
+                previous = doc
+                continue
+        logging.getLogger(__name__).warning('law_ref_unparsed: %s', part)
+    return refs
+
+
+def missing_docs(refs: set[str], known: set[str]) -> set[str]:
+    """输入 canonical 引用和索引文档名；返回缺失文档，不访问基础设施。"""
+    return {ref.rsplit('.', 1)[0] for ref in refs} - known
