@@ -191,7 +191,7 @@ def test_cheap_detection_runs_before_retrieval_then_semantics():
             events.append(self.name)
             return [dict(quote='保证有效', law_article='广告法第16条')]
     rules = [dict(axis='efficacy_claim', detector='llm_judge'),
-             dict(axis='safety_guarantee', detector='keyword')]
+             dict(axis='safety_guarantee', detector='keyword',law_article='广告法第16条')]
     def search(query):
         events.append('rag')
         return [dict(code='广告法第16条', text='不得保证疗效')]

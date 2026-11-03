@@ -9,7 +9,7 @@ import unicodedata
 from dataclasses import fields
 from decimal import Decimal
 from time import perf_counter
-from backend.agents.base import Rule, DETECTORS, LLMJudgeDetector, merged_judgment
+from backend.agents.base import Rule, DETECTORS, LLMJudgeDetector, merged_judgment, bind_rule_law
 from backend.core.config import DISCLAIMER_TEXT
 from backend.core.constants import to_refs, missing_docs, add_cost, match_refs, bind_chunk
 
@@ -213,22 +213,25 @@ class ComplianceAuditAgent:
             if start < 0:
                 result['traces'].append(dict(hit, status='invalid_quote'))
                 continue
-            cited_chunk = next((r for r in result['law_refs'] if r.get('chunk_id') == hit.get('law_article')), None)
-            if cited_chunk:
-                hit['chunk_id'] = cited_chunk['chunk_id']
-                hit['law_article'] = cited_chunk['code']
-            codes = {r['code'] for r in result['law_refs']}
-            if rule.detector != 'llm_judge' and hit.get('law_article') not in codes:
-                parent = hit.get('law_article', '').split('(')[0]
-                if parent in codes:
-                    hit['law_article'] = parent
-            if hit.get('law_article') not in codes:
-                result['traces'].append(dict(hit, status='invalid_law_ref'))
-                continue
-            chunk = bind_chunk(hit, result['law_refs'])
-            if chunk is None:
-                result['traces'].append(dict(hit, status='invalid_law_ref'))
-                continue
+            if rule.detector in ('regex','keyword'):
+                if not bind_rule_law(hit,rule,result['law_refs']):
+                    result['traces'].append(dict(hit,status='invalid_law_ref'))
+                    continue
+                if hit.get('law_from_rule_table'):
+                    result['traces'].append(dict(hit,status='law_from_rule_table'))
+            else:
+                cited_chunk = next((r for r in result['law_refs'] if r.get('chunk_id') == hit.get('law_article')), None)
+                if cited_chunk:
+                    hit['chunk_id'] = cited_chunk['chunk_id']
+                    hit['law_article'] = cited_chunk['code']
+                codes = {r['code'] for r in result['law_refs']}
+                if hit.get('law_article') not in codes:
+                    result['traces'].append(dict(hit, status='invalid_law_ref'))
+                    continue
+                chunk = bind_chunk(hit, result['law_refs'])
+                if chunk is None:
+                    result['traces'].append(dict(hit, status='invalid_law_ref'))
+                    continue
             declared = to_refs(rule.law_article) if rule.law_article else set()
             absent = missing_docs(declared, self.known_docs) if self.known_docs is not None else set()
             status = match_refs(declared, {hit['ref']}) if declared else 'matched'

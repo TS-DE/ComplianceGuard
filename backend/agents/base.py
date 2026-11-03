@@ -159,3 +159,21 @@ def merged_judgment(model, text, rules, refs):
             candidates.append((rule, _hit(rule, row['quote'], 'llm_judge') |
                                {'law_article': row['law_article'], 'reason': row['reason']}))
     return candidates, response, []
+
+
+
+def bind_rule_law(hit, rule, refs):
+    """确定性候选采用规则法源；检索只补展示，不具否决权。"""
+    from backend.core.constants import to_refs, chunk_refs, match_refs, bind_chunk
+    declared=to_refs(rule.law_article)
+    hit['law_article']=rule.law_article
+    matching=[ref for ref in refs if match_refs(declared,chunk_refs(ref)) in ('matched','matched_at_article_level')]
+    if matching:
+        selected=matching[0]
+        hit['chunk_id']=selected.get('chunk_id')
+        hit['law_article']=selected['code']
+        bind_chunk(hit,[selected])
+    else:
+        hit.update(ref=next(iter(sorted(declared)),''),refs=sorted(declared),
+                   chunk_id=None,item_no=None,law_from_rule_table=1)
+    return bool(declared)
