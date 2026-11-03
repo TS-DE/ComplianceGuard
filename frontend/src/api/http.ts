@@ -39,8 +39,14 @@ http.interceptors.response.use(response => {
   }
   return fail('请求失败')
 })
-export async function request<T>(method: string, url: string, data?: unknown, params?: object): Promise<T> {
-  const response = await http.request<T>({ method, url, data, params })
+/**
+ * timeoutMs 可按请求覆盖：默认 180 秒够单条审查，但红队一次要生成 16 条再逐条判定，
+ * 实测约 141 秒、与默认超时贴得太近，必须放宽到 300 秒，否则浏览器先超时而后端还在跑。
+ */
+export async function request<T>(
+  method: string, url: string, data?: unknown, params?: object, timeoutMs?: number
+): Promise<T> {
+  const response = await http.request<T>({ method, url, data, params, ...(timeoutMs ? { timeout: timeoutMs } : {}) })
   return response.data
 }
 export async function page<T>(url: string, params?: object): Promise<Page<T>> {

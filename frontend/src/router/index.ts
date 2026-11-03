@@ -14,8 +14,7 @@ const router = createRouter({
         { path: '/scripts', component: () => import('../views/script/ScriptList.vue'), meta: { title: '话术库' } },
         { path: '/audits', component: () => import('../views/audit/AuditList.vue'), meta: { title: '审查记录' } },
         { path: '/rules', component: () => import('../views/rule/RuleList.vue'), meta: { title: '规则库' } },
-        // 红队压测页在 D5-c 实现；先占位，避免菜单点空。
-        { path: '/redteam', component: () => import('../views/dashboard/Placeholder.vue'), meta: { title: '红队压测' } },
+        { path: '/redteam', component: () => import('../views/redteam/RedTeam.vue'), meta: { title: '红队压测' } },
         { path: '/clients', component: () => import('../views/client/ClientList.vue'), meta: { title: '机构管理' } }
       ]
     },

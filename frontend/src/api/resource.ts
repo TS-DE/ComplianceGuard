@@ -42,6 +42,40 @@ export interface DailyReport {
 }
 export const rewriteAudit = (id: number) =>
   request<{ rewritten_text?: string | null; rewrite_passed?: boolean | null; recheck?: unknown }>('POST', `/audit/${id}/rewrite`)
+
+// ---------- 红队压测 ----------
+// 后端约束：scenes 恰好 1 个、axes 1~4 个且限定 4 类、strength 只接受 'all'。
+export const REDTEAM_AXES = [
+  { value: 'efficacy_claim', label: '功效断言' },
+  { value: 'safety_guarantee', label: '安全性保证' },
+  { value: 'absolute_terms', label: '绝对化用语' },
+  { value: 'inducement', label: '容貌焦虑诱导' }
+] as const
+
+export interface RedTeamCounts {
+  TP_axis: number; TP_other: number; FN: number; FP: number; TN: number; unjudged: number
+}
+export interface RedTeamSample {
+  id: number; client_id: number; scene: string; content: string
+  meta: {
+    verdict?: string; strength?: string; strategy?: string
+    score?: number | null; actual_axes?: string[]; audit_id?: number
+    latency_ms?: number; cost?: string | null
+  }
+}
+export interface RedTeamGaps {
+  run_id: string; generated: number; counts: RedTeamCounts
+  fn_rate: number; axis_fn_rate: number; fp_rate: number; accuracy: number
+  by_axis: Record<string, Partial<RedTeamCounts>>
+  FN: RedTeamSample[]; FP: RedTeamSample[]
+  samples: RedTeamSample[]; invalid_samples?: unknown[]
+}
+export const runRedTeam = (clientId: number, scene: string, axes: string[]) =>
+  request<{ run_id: string; generated: number; script_ids: number[] }>(
+    'POST', '/redteam/run', { client_id: clientId, scenes: [scene], axes, strength: 'all' },
+    undefined, 300000)
+export const redTeamGaps = (runId: string) =>
+  request<RedTeamGaps>('GET', `/redteam/${encodeURIComponent(runId)}/gaps`)
 // 日报接口的 date 是必填（不传返回 400），前端默认传本地当天，避免一进工作台就报错。
 const pad = (n: number) => String(n).padStart(2, '0')
 const today = () => {
