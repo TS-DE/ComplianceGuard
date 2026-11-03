@@ -46,6 +46,17 @@ def resource_router(name, service, create_schema, update_schema, out_schema, fil
         rows, total = script_repo.list_paged(db, page.page, page.page_size, client_id, q)
         return ok([output(row) for row in rows], total=total)
 
+    def list_audits(db: DbSession, page: Page,
+                    client_id: Annotated[int | None, Query(gt=0)] = None,
+                    script_id: Annotated[int | None, Query(gt=0)] = None) -> dict:
+        """审查记录列表：可按机构或单条话术过滤。
+
+        script_id 支撑「从话术库跳到该话术的审查历史」——一条话术可能被多次审查，
+        返回的是历史列表而非只取最新一条。
+        """
+        rows, total = service.list_paged(db, page.page, page.page_size, client_id, script_id)
+        return ok([output(row) for row in rows], total=total)
+
     def get_item(item_id: int, db: DbSession) -> dict:
         return ok(output(service.get(db, item_id)))
 
@@ -59,7 +70,9 @@ def resource_router(name, service, create_schema, update_schema, out_schema, fil
         service.delete(db, item_id)
         return ok({"id": item_id})
 
-    listing = list_scripts if name == 'scripts' else list_filtered if filtered else list_items
+    listing = (list_scripts if name == 'scripts'
+               else list_audits if name == 'audits'
+               else list_filtered if filtered else list_items)
     router.add_api_route("", listing, methods=["GET"])
     router.add_api_route("/{item_id}", get_item, methods=["GET"])
     router.add_api_route("", create_item, methods=["POST"])

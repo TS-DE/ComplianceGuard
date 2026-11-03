@@ -109,9 +109,14 @@ class audits:
         page: int,
         page_size: int,
         client_id: int | None,
+        script_id: int | None = None,
     ) -> tuple[list[Audit], int]:
-        """分页列表，可按机构过滤（经 scripts 关联）。"""
-        return repos.audits.list_paged(db, page, page_size, client_id)
+        """分页列表，可按机构（经 scripts 关联）或单条话术过滤。
+
+        script_id 用于「从话术库跳到它的审查记录」：一条话术可能被多次审查，
+        因此这里返回该话术的全部审查历史，而不是最新一条。
+        """
+        return repos.audits.list_paged(db, page, page_size, client_id, script_id)
 
     @staticmethod
     def create(db: Session, payload: AuditCreate) -> Audit:

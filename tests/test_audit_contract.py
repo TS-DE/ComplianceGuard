@@ -58,3 +58,39 @@ def test_audits_list_survives_null_cost_row(client: TestClient, auth_headers: di
     detail = client.get(f"/api/v1/audits/{body['data'][0]['id']}", headers=auth_headers)
     assert detail.status_code == 200
     assert detail.json()["data"]["cost"] is None
+
+
+def test_audits_filter_by_script_id_returns_full_history(
+    client: TestClient, auth_headers: dict, db: Session
+) -> None:
+    """从话术库跳转时按 script_id 过滤，且必须给出该话术的全部审查历史。
+
+    一条话术可能被审多次，只回最新一条会让「点进去看历史」变成看当前状态，
+    所以这里断言两次审查都能被取到，并且不掺入其它话术的记录。
+    """
+    from backend.db.models import Audit, Client, Script
+
+    account = Client(name="跳转测试机构", industry="medical_beauty", contact=None, plan="free")
+    db.add(account)
+    db.flush()
+    target = Script(client_id=account.id, scene="双眼皮", content="保证白一个色度")
+    other = Script(client_id=account.id, scene="美白", content="另一条话术")
+    db.add_all([target, other])
+    db.flush()
+    for script in (target, target, other):
+        db.add(Audit(
+            script_id=script.id, score=0, hit_count=0, hits_json=None, law_refs_json=None,
+            rewritten_text=None, rewrite_passed=None, model="qwen3.8-flash",
+            prompt_tokens=1, completion_tokens=1, cost=None, latency_ms=1, incomplete=False,
+        ))
+    db.commit()
+
+    resp = client.get("/api/v1/audits", params={"script_id": target.id}, headers=auth_headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 2
+    assert {row["script_id"] for row in body["data"]} == {target.id}
+
+    empty = client.get("/api/v1/audits", params={"script_id": 999999}, headers=auth_headers)
+    assert empty.status_code == 200
+    assert empty.json()["total"] == 0

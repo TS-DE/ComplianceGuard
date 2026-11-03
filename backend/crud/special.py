@@ -91,6 +91,7 @@ class audits:
         page: int,
         page_size: int,
         client_id: int | None = None,
+        script_id: int | None = None,
     ) -> tuple[list[Audit], int]:
         """分页查询；client_id 过滤需 join scripts（audits 本身没有该列）。"""
         stmt = select(Audit).order_by(Audit.id.desc())
@@ -98,6 +99,8 @@ class audits:
             stmt = stmt.join(Script, Audit.script_id == Script.id).where(
                 Script.client_id == client_id
             )
+        if script_id is not None:
+            stmt = stmt.where(Audit.script_id == script_id)
         return paginate(db, stmt, page, page_size)
 
     @staticmethod

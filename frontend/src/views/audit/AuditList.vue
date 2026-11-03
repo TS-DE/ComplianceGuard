@@ -5,21 +5,29 @@
  * 表格里刻意把「未完成」与「违规」分色：判定未完成是红色警示，
  * 不能因为 score=-1 看上去不是 2 就被误读成没问题。
  */
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { audits, type AuditRow } from '../../api/resource'
 import AuditDetail from './AuditDetail.vue'
 
+const route = useRoute()
+const router = useRouter()
 const rows = ref<AuditRow[]>([])
 const page = ref(1)
 const total = ref(0)
 const loading = ref(false)
 const open = ref(false)
 const current = ref<AuditRow | null>(null)
+// 从话术库跳过来时带 script_id，只显示该话术的审查历史（可能多条）。
+const scriptId = ref<number | null>(route.query.script_id ? Number(route.query.script_id) : null)
 
 async function load() {
   loading.value = true
   try {
-    const data = await audits.list<AuditRow>({ page: page.value, page_size: 20 })
+    const data = await audits.list<AuditRow>({
+      page: page.value, page_size: 20,
+      script_id: scriptId.value ?? undefined
+    })
     rows.value = data.items
     total.value = data.total
   } catch {
@@ -28,6 +36,20 @@ async function load() {
     loading.value = false
   }
 }
+
+function clearFilter() {
+  scriptId.value = null
+  page.value = 1
+  void router.replace({ path: '/audits' })
+  void load()
+}
+
+// 同一个页面内再次跳转时 router 不会重建组件，靠 watch 响应 query 变化。
+watch(() => route.query.script_id, value => {
+  scriptId.value = value ? Number(value) : null
+  page.value = 1
+  void load()
+})
 
 function detail(row: AuditRow) {
   current.value = row
@@ -50,6 +72,11 @@ onMounted(load)
     <p class="muted">每一次审查的分数、命中条款、引文、成本与耗时都可回溯。</p>
 
     <el-card shadow="never">
+      <el-alert v-if="scriptId" type="info" :closable="false" show-icon style="margin-bottom: 12px"
+                :title="`仅显示话术 #${scriptId} 的审查历史（共 ${total} 条）`">
+        <el-button link type="primary" @click="clearFilter">显示全部审查记录</el-button>
+      </el-alert>
+
       <el-table v-loading="loading" :data="rows" empty-text="暂无审查记录，请到话术库提交审查">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="script_id" label="话术 ID" width="100" />
