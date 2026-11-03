@@ -106,3 +106,27 @@ def test_scope_exemptions_preserve_original_source_records():
     records = json.loads((Path(__file__).resolve().parents[1] / "data/seeds/rules.json").read_text(encoding="utf-8"))
     assert constants.SCOPE_EXEMPTIONS == records["scope_exemptions"]
     assert len(constants.SCOPE_EXEMPTIONS) == 4
+
+
+
+def test_seed_versioned_changes_preserve_history(tmp_path):
+    seed = load_module('scripts.seed_rules')
+    engine = create_engine('sqlite://')
+    path = tmp_path / 'rules.json'
+    original = dict(axis='efficacy_claim', law_article='广告法第16条(一)', pattern='功效',
+                    level='hard', detector='llm_judge', exemptions=None, version=1)
+    path.write_text(json.dumps({'rules':[original]}), encoding='utf-8')
+    with engine.begin() as conn:
+        conn.execute(text('CREATE TABLE rules (id INTEGER PRIMARY KEY, axis TEXT, law_article TEXT, pattern TEXT, level TEXT, detector TEXT, exemptions JSON, version INTEGER, enabled BOOLEAN)'))
+        seed.seed_rules(conn, apply=True, seed_path=path)
+        updated = dict(original, version=2, law_article='广告法第16条(一)、医美指南第五条(四)')
+        path.write_text(json.dumps({'rules':[updated]}), encoding='utf-8')
+        preview = seed.seed_rules(conn, seed_path=path)
+        assert preview['pending'] == 1
+        assert conn.execute(text('SELECT enabled FROM rules')).scalar_one() == 1
+        seed.seed_rules(conn, apply=True, seed_path=path)
+        rows = conn.execute(text('SELECT version, enabled, law_article FROM rules ORDER BY version')).all()
+        assert rows == [(1,0,original['law_article']),(2,1,updated['law_article'])]
+        assert seed.seed_rules(conn, apply=True, seed_path=path)['inserted'] == 0
+        assert conn.execute(text('SELECT count(*) FROM rules')).scalar_one() == 2
+    engine.dispose()

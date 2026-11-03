@@ -1,0 +1,38 @@
+[
+  {
+    "axis": "cure_rate",
+    "version": 1,
+    "enabled": 0,
+    "law_article": "广告法第16条(二)"
+  },
+  {
+    "axis": "cure_rate",
+    "version": 2,
+    "enabled": 1,
+    "law_article": "广告法第16条(二)、医疗广告管理办法第7条(三)"
+  },
+  {
+    "axis": "efficacy_claim",
+    "version": 1,
+    "enabled": 0,
+    "law_article": "广告法第16条(一)"
+  },
+  {
+    "axis": "efficacy_claim",
+    "version": 2,
+    "enabled": 1,
+    "law_article": "广告法第16条(一)、医美指南第五条(四)"
+  },
+  {
+    "axis": "safety_guarantee",
+    "version": 1,
+    "enabled": 0,
+    "law_article": "广告法第16条(一)"
+  },
+  {
+    "axis": "safety_guarantee",
+    "version": 2,
+    "enabled": 1,
+    "law_article": "广告法第16条(一)、医美指南第五条(四)"
+  }
+]
