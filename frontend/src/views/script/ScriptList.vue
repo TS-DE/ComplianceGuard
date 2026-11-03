@@ -31,6 +31,7 @@ const result = ref<AuditResult | null>(null)
 const resultOpen = ref(false)
 const articleOpen = ref(false)
 const articleCode = ref<string | null>(null)
+const articleItemNo = ref<string | null>(null)
 
 async function load() {
   loading.value = true
@@ -75,8 +76,9 @@ async function audit(row: ScriptRow) {
   }
 }
 
-function openArticle(code: string) {
+function openArticle(code: string, itemNo?: string | null) {
   articleCode.value = code
+  articleItemNo.value = itemNo ?? null
   articleOpen.value = true
 }
 
@@ -129,7 +131,10 @@ onMounted(async () => {
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag>{{ row.status === 'pending' ? '待审查' : row.status === 'audited' ? '已审查' : '已归档' }}</el-tag>
+            <!-- 未审查用灰色 info，已审查用蓝色 primary：原先两者同为蓝色，扫视时无法区分。 -->
+            <el-tag v-if="row.status === 'audited'" type="primary" effect="light">已审查</el-tag>
+            <el-tag v-else-if="row.status === 'pending'" type="info" effect="plain">未审查</el-tag>
+            <el-tag v-else type="info">已归档</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="created_at" label="创建时间" min-width="170" />
@@ -163,8 +168,8 @@ onMounted(async () => {
           <el-table-column prop="axis" label="风险轴" width="160" />
           <el-table-column label="法条依据" width="230">
             <template #default="{ row }">
-              <el-link type="primary" :underline="false" @click="openArticle(row.law_article)">
-                {{ row.law_article }}
+              <el-link type="primary" :underline="false" @click="openArticle(row.law_article, row.item_no)">
+                {{ row.law_article }}<span v-if="row.item_no" class="item-hint">{{ row.item_no.slice(row.item_no.indexOf('条') + 1) }}</span>
               </el-link>
             </template>
           </el-table-column>
@@ -176,13 +181,14 @@ onMounted(async () => {
       </template>
     </el-dialog>
 
-    <ArticleDrawer v-model="articleOpen" :code="articleCode" />
+    <ArticleDrawer v-model="articleOpen" :code="articleCode" :item-no="articleItemNo" />
   </div>
 </template>
 
 <style scoped>
 .toolbar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .muted { color: var(--el-text-color-secondary); font-size: 13px; }
+.item-hint { margin-left: 2px; color: var(--el-color-warning-dark-2); }
 /* 统一两行高度：话术长短不一时表格不再忽高忽低。 */
 .script-table :deep(.el-table__row) { height: 68px; }
 .clamp-2 {

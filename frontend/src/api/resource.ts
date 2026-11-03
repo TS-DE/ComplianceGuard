@@ -2,7 +2,7 @@ import { page, request } from './http'
 export interface Client { id: number; name: string }
 export interface ScriptRow { id: number; client_id: number; scene: string | null; content: string; status: string; created_at: string }
 export interface ScriptInput { client_id: number; scene: string | null; content: string }
-export interface Hit { axis: string; law_article: string; quote: string }
+export interface Hit { axis: string; law_article: string; quote: string; item_no?: string | null }
 export interface AuditResult { score: number; hit_count: number; hits: Hit[]; incomplete: boolean; disclaimer: string }
 export const resources = (name: 'clients' | 'scripts' | 'audits' | 'rules') => ({
   list: <T>(params?: object) => page<T>(`/${name}`, params),
@@ -25,6 +25,9 @@ export const reports = { daily: (date: string) => request<unknown>('GET', '/repo
 
 // 法条追溯：命中条文 -> 该条原文 + 所属法规全表（用于「直达完整法规并定位高亮」）。
 // 后端只读本地法规归档，不查向量库、不调模型，因此可随时点开且不产生费用。
-export interface LawArticleRow { code: string; article_no: number; text: string }
-export interface LawArticle { doc: string; source: string; code: string; article_no: number; text: string; articles: LawArticleRow[] }
-export const lawArticle = (code: string) => request<LawArticle>('GET', '/law/article', undefined, { code })
+export interface LawArticle {
+  doc: string; source: string; code: string; article_no: number
+  item_no: string | null; item_text: string | null; article_text: string
+}
+export const lawArticle = (code: string, itemNo?: string | null) =>
+  request<LawArticle>('GET', '/law/article', undefined, itemNo ? { code, item_no: itemNo } : { code })

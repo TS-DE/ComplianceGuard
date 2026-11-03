@@ -178,16 +178,42 @@ def law_catalog() -> dict[str, dict]:
     return catalog
 
 
-def find_law_article(code: str) -> dict | None:
-    """按条文 code 定位，返回该条原文与所属法规的全部条文；未收录返回 None。
+_ITEM_RE = re.compile(r"[（(]([一二三四五六七八九十]+)[）)]")
 
-    返回 articles 是为了让前端能同屏渲染上下文并滚动高亮目标条，
-    避免只给一根孤立的条文而失去「在整部法规中的位置」这一追溯价值。
+
+def extract_item(parent: str, item_no: str | None) -> str | None:
+    """从整条原文里切出指定项，如 item_no="第五条(五)" -> "（五）利用……作证明的。"
+
+    命中粒度本来就是「条下的某一项」，只回整条会让用户拿不到到底触发了哪一项；
+    这里按全角/半角括号都兼容的方式定位，取到下一项起点或条末为止。
+    """
+    if not item_no:
+        return None
+    matched = _ITEM_RE.search(item_no)
+    if matched is None:
+        return None
+    label = matched.group(1)
+    spans = list(_ITEM_RE.finditer(parent))
+    for index, span in enumerate(spans):
+        if span.group(1) != label:
+            continue
+        end = spans[index + 1].start() if index + 1 < len(spans) else len(parent)
+        return parent[span.start():end].strip()
+    return None
+
+
+def find_law_article(code: str, item_no: str | None = None) -> dict | None:
+    """按条文 code 定位，可选带项号；返回该项原文与所属条全文；未收录返回 None。
+
+    返回 article_text 是为了让前端能「展开看整条」，但默认只呈现命中的那一项——
+    用户点的是「第五条(五)」，给他整条第 5 条九项是噪声。
     """
     for doc in law_catalog().values():
         for article in doc["articles"]:
-            if article["code"] == code:
-                return dict(doc=doc["title"], source=doc["source"], code=article["code"],
-                            article_no=article["article_no"], text=article["text"],
-                            articles=doc["articles"])
+            if article["code"] != code:
+                continue
+            return dict(doc=doc["title"], source=doc["source"], code=article["code"],
+                        article_no=article["article_no"], item_no=item_no,
+                        item_text=extract_item(article["text"], item_no),
+                        article_text=article["text"])
     return None
