@@ -246,7 +246,7 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 
 **改动/独立依据**：仅efficacy_claim、safety_guarantee补医美指南第五条(四)，依据03原文及入库建议表“efficacy_claim+safety_guarantee”；cure_rate补医疗广告管理办法第7条(三)，依据08原文“宣传治愈率、有效率等诊疗效果的”。三条种子version=2；非放宽项级闸，不改评测。seed_rules追加变更快照并仅停用旧行，绝不覆盖历史内容。
 
-**验证**：版本化RED为旧version1仍enabled1；修复后seed测试9 passed。生产预览pending3/total11；apply新增3/total14；三轴各v1停用/v2启用；重复apply新增0跳过11/total14。历史法源保持原样。第4次验收尚未执行。
+**验证**：版本化RED为旧version1仍enabled1；修复后seed测试9 passed。生产预览pending3/total11；apply新增3/total14；三轴各v1停用/v2启用；重复apply新增0跳过11/total14。历史法源保持原样。第4次单次验收audit_id=8三项通过：功效/安全均有效，无before_after/inducement；原文定位[0,21]，两项ref精确归属；score0/incomplete=false/40311ms，10063输入/2109输出、cost0.013745元、A1调用1次无重试。完整原始JSON及六样证据见data/d3_v032_acceptance_report.md。未重跑。
 
 **风险**：T-007语义空闸、T-008索引code前缀、T-009费用不含RAG继续保留。未改判定器代码或项级匹配粒度。
 
