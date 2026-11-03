@@ -28,6 +28,12 @@ def normalize_text(original):
     return ''.join(chars), offsets
 
 
+def normalize_with_map(original):
+    """NFKC 文本及每字符原文起点；兼容保留区间映射的 normalize_text。"""
+    normalized, spans = normalize_text(original)
+    return normalized, [start for start, end in spans]
+
+
 def _score(hits):
     """同句多轴仅计一处，严重度取该句最大值。"""
     sentences = {h['sentence_id'] for h in hits}
@@ -150,7 +156,11 @@ class ComplianceAuditAgent:
                 continue
             end = start + len(quote)
             a, b = offsets[start][0], offsets[end - 1][1]
-            hit.update(start=a, end=b, original_quote=original[a:b], normalized_start=start,
+            restored = original[a:b]
+            if not restored or original.find(restored) < 0 or normalize_text(restored)[0] != quote:
+                result['traces'].append(dict(hit, status='quote_not_in_original'))
+                continue
+            hit.update(quote=restored, start=a, end=b, original_quote=restored, normalized_start=start,
                        normalized_end=end, sentence_id=next((i for i, s in enumerate(sentences)
                                                            if s.start() <= start < s.end()), 0))
             exemption = self._exemption(text, rule)
