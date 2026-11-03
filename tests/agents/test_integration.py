@@ -23,8 +23,8 @@ def test_incomplete_cannot_persist_compliant_score(db):
 def test_chat_adapter_uses_reported_usage_and_decimal_prices(monkeypatch):
     from backend.tools import audit_tool
     monkeypatch.setattr(audit_tool, "llm_config", lambda: {
-        "JUDGE_MODEL": "test-model", "JUDGE_INPUT_PRICE_PER_MILLION": "2",
-        "JUDGE_OUTPUT_PRICE_PER_MILLION": "8"})
+        "JUDGE_MODEL": "test-model", "JUDGE_INPUT_PRICE_PER_M": "2",
+        "JUDGE_OUTPUT_PRICE_PER_M": "8"})
     calls = []
 
     def transport(path, payload):
@@ -165,7 +165,7 @@ def test_production_chat_transport_uses_chat_config_not_embedding(monkeypatch):
     assert requests[0][1] == "Bearer local-test-key"
     assert requests[0][2]["model"] == "chat-test"
     assert result["prompt_tokens"] == 3
-    assert result["pricing_source"] == "default_zero_estimate"
+    assert result["pricing_source"] == "unpriced"
     assert "local-test-key" not in str(result)
 
 
@@ -173,7 +173,7 @@ def test_production_chat_transport_uses_chat_config_not_embedding(monkeypatch):
 def test_chat_adapter_rejects_invalid_prices(monkeypatch, price):
     from backend.tools import audit_tool
     monkeypatch.setattr(audit_tool, "llm_config", lambda: {
-        "JUDGE_INPUT_PRICE_PER_MILLION": price})
+        "JUDGE_INPUT_PRICE_PER_M": price})
     with pytest.raises(ValueError, match="报价"):
         audit_tool.UrllibChatModel(transport=lambda *args: {})
 

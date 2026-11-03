@@ -8,6 +8,7 @@ from urllib.request import Request, urlopen
 
 from backend.agents.base import ChatModel
 from backend.core.config import DISCLAIMER_TEXT
+from backend.core.constants import MODEL_PRICES, compute_cost, add_cost
 from backend.rag.embedding import DASHSCOPE_URL, NETWORK_TIMEOUT, EmbeddingError, llm_config
 
 TOKENS_PER_MILLION = Decimal("1000000")
@@ -75,8 +76,8 @@ class AuditTool:
         checks = [candidate["recheck"] for candidate in result.get("candidates", [])]
         for key in ("prompt_tokens", "completion_tokens", "latency_ms"):
             result[key] = result.get(key, 0) + sum(check.get(key, 0) for check in checks)
-        result["cost"] = Decimal(str(result.get("cost", 0))) + sum(
-            (Decimal(str(check.get("cost", 0))) for check in checks), Decimal("0"))
+        for check in checks:
+            result["cost"] = add_cost(result.get("cost"), check.get("cost"))
         self.repository.update_rewrite(audit_id, result)
         return dict(result, id=audit_id, audit_id=audit_id, disclaimer=DISCLAIMER_TEXT)
 
@@ -111,12 +112,11 @@ class UrllibChatModel(ChatModel):
         """读取 JUDGE_* 配置；密钥只由网络适配器保存，不进入响应。"""
         config = llm_config()
         self.model = config.get("JUDGE_MODEL", "qwen-plus")
-        self.input_price = Decimal(config.get("JUDGE_INPUT_PRICE_PER_MILLION", DEFAULT_INPUT_PRICE))
-        self.output_price = Decimal(config.get("JUDGE_OUTPUT_PRICE_PER_MILLION", DEFAULT_OUTPUT_PRICE))
-        if any(not price.is_finite() or price < 0 for price in (self.input_price, self.output_price)):
-            raise ValueError("模型报价必须是有限非负数")
-        self.pricing_source = ("configured" if all(config.get(key) is not None for key in
-            ("JUDGE_INPUT_PRICE_PER_MILLION", "JUDGE_OUTPUT_PRICE_PER_MILLION")) else "default_zero_estimate")
+        fallback = MODEL_PRICES.get(self.model, {})
+        self.input_price = config.get('JUDGE_INPUT_PRICE_PER_M') or fallback.get('in')
+        self.output_price = config.get('JUDGE_OUTPUT_PRICE_PER_M') or fallback.get('out')
+        compute_cost(0, 0, self.input_price, self.output_price)
+        self.pricing_source = 'configured_or_model_table' if self.input_price is not None and self.output_price is not None else 'unpriced'
         self.api_key = config.get("JUDGE_API_KEY")
         self.base_url = config.get("JUDGE_BASE_URL", DASHSCOPE_URL).rstrip("/")
         self.transport = transport if transport is not None else self._request
@@ -156,5 +156,5 @@ class UrllibChatModel(ChatModel):
             raise ValueError("模型内容必须是字符串")
         return {"content": content, "model": response.get("model", self.model),
                 "prompt_tokens": prompt, "completion_tokens": completion,
-                "cost": (prompt * self.input_price + completion * self.output_price) / TOKENS_PER_MILLION,
+                "cost": compute_cost(prompt, completion, self.input_price, self.output_price),
                 "pricing_source": self.pricing_source}

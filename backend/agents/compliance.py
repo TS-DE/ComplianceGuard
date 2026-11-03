@@ -11,7 +11,7 @@ from decimal import Decimal
 from time import perf_counter
 from backend.agents.base import Rule, DETECTORS, LLMJudgeDetector
 from backend.core.config import DISCLAIMER_TEXT
-from backend.core.constants import to_refs, missing_docs
+from backend.core.constants import to_refs, missing_docs, add_cost
 
 _SENTENCES = re.compile(r'[^。！？!?；;\n]+[。！？!?；;\n]?')
 _ZERO_WIDTH = frozenset('\u200b\u200c\u200d\ufeff\u2060')
@@ -119,7 +119,7 @@ class ComplianceAuditAgent:
             result['traces'].extend(partial['traces'])
             result['incomplete'] |= partial['incomplete']
             for key in ('prompt_tokens', 'completion_tokens', 'cost'):
-                result[key] += partial[key]
+                result[key] = add_cost(result[key], partial[key]) if key == 'cost' else result[key] + partial[key]
             result['model'] = partial['model'] or result['model']
         result['timings_ms']['detect'] = (perf_counter() - before) * 1000
         before = perf_counter()
@@ -157,7 +157,7 @@ class ComplianceAuditAgent:
                      '若同时推广商品疗效或安全不得豁免。'),
                 dict(role='user', content=json.dumps(dict(text=text, scope_exemptions=SCOPE_EXEMPTIONS), ensure_ascii=False))])
             for key in ('prompt_tokens', 'completion_tokens', 'cost'):
-                result[key] += float(response[key]) if key == 'cost' else response[key]
+                result[key] = add_cost(result[key], response[key]) if key == 'cost' else result[key] + response[key]
             result['model'] = response['model']
             choice = json.loads(response['content'])
             exemption = next((e for e in SCOPE_EXEMPTIONS if e['id'] == choice.get('scope_exemption')), None)
@@ -182,7 +182,7 @@ class ComplianceAuditAgent:
         finally:
             usage = getattr(detector, 'last_usage', {})
             for key in ('prompt_tokens', 'completion_tokens', 'cost'):
-                result[key] += float(usage.get(key, 0)) if key == 'cost' else usage.get(key, 0)
+                result[key] = add_cost(result[key], usage.get(key, 0)) if key == 'cost' else result[key] + usage.get(key, 0)
             result['model'] = usage.get('model') or result['model']
 
     def _validate(self, original, text, offsets, candidates, result):

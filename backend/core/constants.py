@@ -76,3 +76,35 @@ def to_refs(text: str) -> set[str]:
 def missing_docs(refs: set[str], known: set[str]) -> set[str]:
     """输入 canonical 引用和索引文档名；返回缺失文档，不访问基础设施。"""
     return {ref.rsplit('.', 1)[0] for ref in refs} - known
+
+# ── 模型单价兜底表（元/百万tokens）─────────────────────────────
+# 取值优先级：.env 的 JUDGE_INPUT_PRICE_PER_M / JUDGE_OUTPUT_PRICE_PER_M
+# 高于本表；两者都缺时 cost = None（不是 0）。
+# 价格会变动，as_of 为抓取日期；本表仅用于估算，非账单金额。
+MODEL_PRICES = {
+    # as_of: 2026-11-03，阿里云百炼控制台 qwen3.8-flash 标价
+    "qwen3.8-flash": {"in": 0.8, "out": 2.7},
+}
+
+
+from decimal import Decimal, InvalidOperation
+
+
+def compute_cost(prompt_tokens, completion_tokens, price_in, price_out):
+    """按百万 token 单价计费；缺价为 None，非法数值抛 ValueError。"""
+    try:
+        prices = [None if p is None or p == '' else Decimal(str(p)) for p in (price_in, price_out)]
+        if any(p is not None and (not p.is_finite() or p < 0) for p in prices):
+            raise ValueError('模型报价必须是有限非负数')
+        if any(type(n) is not int or n < 0 for n in (prompt_tokens, completion_tokens)):
+            raise ValueError('token 用量必须是非负整数')
+        if None in prices:
+            return None
+        return ((prompt_tokens * prices[0] + completion_tokens * prices[1]) / Decimal('1000000')).quantize(Decimal('0.000001'))
+    except (InvalidOperation, TypeError) as exc:
+        raise ValueError('模型报价非法') from exc
+
+
+def add_cost(left, right):
+    """任一费用未知时累计费用也未知，不用零掩盖未知。"""
+    return None if left is None or right is None else Decimal(str(left)) + Decimal(str(right))

@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from backend.agents.base import Rule as AgentRule
 from backend.core.config import SCORE_INCOMPLETE, ScriptStatus
+from backend.core.constants import add_cost
 from backend.db.models import Audit, Client, Rule, Script
 
 AUDIT_METADATA = ("score", "hit_count", "model", "prompt_tokens", "completion_tokens",
@@ -68,7 +69,7 @@ class AuditRepository:
         try:
             row.rewritten_text = result.get("rewritten_text")
             row.rewrite_passed = result["rewrite_passed"]
-            row.cost += Decimal(str(result.get("cost", 0)))
+            row.cost = add_cost(row.cost, result.get("cost"))
             for key in ("prompt_tokens", "completion_tokens", "latency_ms"):
                 setattr(row, key, getattr(row, key) + result.get(key, 0))
             self.session.commit()

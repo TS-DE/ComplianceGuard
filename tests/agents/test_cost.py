@@ -57,3 +57,15 @@ def test_null_cost_persisted(db):
     audit_id = AuditRepository(db).save(script.id, result)
     db.expire_all()
     assert db.get(Audit, audit_id).cost is None
+
+
+
+def test_price_precedence_and_unknown_propagation(monkeypatch):
+    from backend.tools import audit_tool
+    monkeypatch.setattr(audit_tool, 'MODEL_PRICES', {'stub': {'in': '1', 'out': '2'}})
+    response = lambda *a: dict(choices=[dict(message=dict(content='{"hits":[]}'))],
+                               usage=dict(prompt_tokens=1000, completion_tokens=1000))
+    monkeypatch.setattr(audit_tool, 'llm_config', lambda: {'JUDGE_MODEL':'stub', 'JUDGE_INPUT_PRICE_PER_M':'3'})
+    assert audit_tool.UrllibChatModel(response).complete([])['cost'] == Decimal('0.005000')
+    monkeypatch.setattr(audit_tool, 'llm_config', lambda: {'JUDGE_MODEL':'unknown'})
+    assert audit_tool.UrllibChatModel(response).complete([])['cost'] is None
