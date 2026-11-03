@@ -286,3 +286,37 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **测试**：核心旧代码0命中，新增5测试3失败/2通过；修复5 passed。全量一度因MySQL1041内存错误阻塞，恢复后238 passed in 12.07s。无规则/检索/阈值改动。
 **验收范围**：仅新absolute_terms四条；其余12条沿用功效安全旧8条+上轮inducement4条；所有旧样本审计保留。真实单轮已执行：rt_20261103_155339_absolute_terms，42–45四条=3 TP_axis+1 TN；组合矩阵9/1/2/0/4，整体漏杀16.67%、轴级25%。证据data/d4_deterministic_report.md。
 **风险**：正则覆盖缺口只报告，不自行补词或改规则。T-007/T-008保留；embedding未知不伪合计。
+
+
+## D4 v0.4.4：embedding计价与索引元数据缓存
+
+### 改动
+- 本地.env与.env.example：EMBEDDING_PRICE_PER_M=0.5；text-embedding-v3文本输入，元/百万tokens，官方价2026-11（统筹方核实提供，非Batch File）。既有record_usage已读取此键，无需另加计费路径。
+- indexed_docs增加lru_cache(maxsize=1)，顺序重复调用只读取一次Chroma元数据；LLM/检索/规则不变。
+- 审查与红队成本注释按实际未知项生成，不再对已计价embedding宣称未计价；其他成本未知仍total=null。
+- 不回填历史审计/脚本/证据；本轮没有调用任何付费模型，也没有重跑验收。
+
+### RED/GREEN与实际输出
+- 缓存RED：两次调用创建2次client，断言2==1失败；GREEN：indexed_docs calls=2; PersistentClient creations=1，结果集合一致。
+- 费用配置RED：两条测试均因空单价失败；GREEN：1000 embedding tokens -> 0.000500元；judge=0.001、rewrite=0 -> total=0.001500元。
+- 未知judge：embedding=0.000500、total=None，cost_note包含“仅 embedding 已计价，其他未知项不计伪合计”。
+- 红队费用说明RED：两条测试发现硬编码“embedding未计价”；修复后通过。
+- 全量pytest：243 passed in 11.76s。
+
+### 外部资源创建点清单（本轮仅修indexed_docs）
+|位置|生命周期与结论|
+|---|---|
+|backend/tools/audit_tool.py:indexed_docs|PersistentClient；本轮缓存函数结果，连续调用不再重复构造。|
+|backend/rag/embedding.py:ChromaStore.__init__|每个实例创建PersistentClient；默认生产路径由retrieve.default_retriever的lru_cache(maxsize=1)保护。直接重复实例化仍可重复建资源，列T-011。|
+|backend/db/session.py:engine|模块级create_engine，进程内复用连接池；非逐请求创建。|
+|scripts/build_index.py|每次CLI执行创建ChromaStore，非请求热路径。|
+|scripts/show_tables.py、seed_rules.py、migrate_rules_columns.py|每次CLI执行create_engine，已有dispose。|
+|scripts/init_db.py|建库/建表分别create_engine，已有dispose。|
+|tests/conftest.py|测试建库/建表/夹具create_engine，非生产路径。|
+|tests/test_rules_setup.py、tests/mcp/test_tools.py|SQLite测试engine，已有dispose。|
+|SentenceTransformer|仓库Python代码搜索无实例化或引用。|
+
+### 技术债
+- T-009 关闭（面向新记录）：embedding价格已接入，三项均已知时可合计；历史NULL不追溯。估算不是供应商账单，未来缺token或缺其他价格仍传播NULL。
+- T-010 embedding模型可升级：qwen3.7-text-embedding-flash，0.125元/百万、128K上下文、100万免费额度至2026-11-30（统筹方提供，执行升级前需再核实）；需重建索引+重跑评测，勿在有交付压力时执行。本轮未升级。
+- T-011 外部资源生命周期：直接重复实例化ChromaStore仍会构造client；后续统一资源工厂/关闭策略。indexed_docs缓存为进程级元数据快照，重建索引后需重启或cache_clear；lru_cache不保证并发冷启动只执行一次，不将本次顺序调用测试扩大为并发/内存泄漏根治证明。
