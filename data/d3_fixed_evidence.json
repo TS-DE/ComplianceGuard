@@ -1,0 +1,78 @@
+{
+  "claim_positions": [
+    21,
+    0
+  ],
+  "raw_positions": [
+    21,
+    0,
+    0,
+    0
+  ],
+  "law_membership": [
+    {
+      "axis": "efficacy_claim",
+      "declared": "广告法第16条(一)",
+      "canonical_declared": [
+        "广告法.16"
+      ],
+      "cited": "广告法第16条",
+      "canonical_cited": [
+        "广告法.16"
+      ],
+      "matches": true
+    },
+    {
+      "axis": "safety_guarantee",
+      "declared": "广告法第16条(一)",
+      "canonical_declared": [
+        "广告法.16"
+      ],
+      "cited": "广告法第16条",
+      "canonical_cited": [
+        "广告法.16"
+      ],
+      "matches": true
+    },
+    {
+      "axis": "before_after",
+      "declared": "医疗广告管理办法第7条(六)、医美指南第五条(五)",
+      "canonical_declared": [
+        "医疗广告管理办法.7",
+        "医疗美容广告执法指南.5"
+      ],
+      "cited": "医疗美容广告执法指南第5条",
+      "canonical_cited": [
+        "医疗美容广告执法指南.5"
+      ],
+      "matches": true
+    },
+    {
+      "axis": "inducement",
+      "declared": "广告法第9条(七)、医美指南第五条(一)",
+      "canonical_declared": [
+        "医疗美容广告执法指南.5",
+        "广告法.9"
+      ],
+      "cited": "医疗美容广告执法指南第5条",
+      "canonical_cited": [
+        "医疗美容广告执法指南.5"
+      ],
+      "matches": true
+    }
+  ],
+  "database": {
+    "id": 6,
+    "script_id": 3,
+    "score": 0,
+    "hit_count": 2,
+    "incomplete": 0,
+    "model": "qwen3.8-flash",
+    "prompt_tokens": 9148,
+    "completion_tokens": 8853,
+    "cost": "0.031221",
+    "latency_ms": 114625,
+    "created_at": "2026-11-03 10:39:17",
+    "hits_json_length": 8
+  }
+}

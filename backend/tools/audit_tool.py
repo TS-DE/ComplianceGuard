@@ -1,11 +1,14 @@
 """审查组合根与 urllib 模型边界；数据库操作仅经仓储执行。"""
 import json
 from decimal import Decimal
+from time import perf_counter
+import logging
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from backend.agents.base import ChatModel
 from backend.core.config import DISCLAIMER_TEXT
+from backend.core.constants import MODEL_PRICES, compute_cost, add_cost, to_refs
 from backend.rag.embedding import DASHSCOPE_URL, NETWORK_TIMEOUT, EmbeddingError, llm_config
 
 TOKENS_PER_MILLION = Decimal("1000000")
@@ -20,6 +23,15 @@ def search_law(query, top_k=3):
     return rag_search_law(query, top_k)
 
 
+def indexed_docs():
+    """只读本地 Chroma 元数据，不创建集合、不触发 embedding 或网络。"""
+    import chromadb
+    from backend.rag.embedding import ROOT
+    collection = chromadb.PersistentClient(path=str(ROOT / 'data/chroma')).get_collection('law_articles')
+    return {ref.rsplit('.', 1)[0] for row in collection.get(include=['metadatas'])['metadatas']
+            for ref in to_refs(row['code'])}
+
+
 class AuditTool:
     """组合审查、改写与仓储；API/MCP 共用相同 N1–N8 复核路径。"""
 
@@ -28,7 +40,9 @@ class AuditTool:
         from backend.agents.compliance import ComplianceAuditAgent, RewriteAgent
         self.repository = repository
         self.model = model if model is not None else UrllibChatModel()
-        self.auditor = ComplianceAuditAgent(repository.load_rules, search_law, self.model, detectors)
+        known = indexed_docs() if search_law is globals()["search_law"] else None
+        self.auditor = ComplianceAuditAgent(repository.load_rules, search_law, self.model, detectors, known_docs=known,
+            semantic_mode=__import__("os").environ.get("JUDGE_MODE", "merged") if known is not None else "multi")
         self.rewriter = RewriteAgent(self.auditor, self.model)
 
     def _client(self, client_id):
@@ -49,8 +63,16 @@ class AuditTool:
             raise NotFoundError("script", script_id)
         if script["client_id"] != client_id:
             raise BusinessValidationError("话术不属于指定机构")
+        started = perf_counter()
         result = self.auditor.review(script["content"], client_id=client_id)
+        before = perf_counter()
         audit_id = self.repository.save(script_id, result)
+        result.setdefault("timings_ms", {})["persist"] = (perf_counter() - before) * 1000
+        result["latency_ms"] = int((perf_counter() - started) * 1000)
+        if hasattr(self.repository, "update_latency"):
+            self.repository.update_latency(audit_id, result["latency_ms"])
+        logging.getLogger(__name__).warning("audit_timings_ms=%s", result["timings_ms"])
+        result["llm_calls"] = getattr(self.model, "calls", [])
         return dict(result, id=audit_id, audit_id=audit_id, script_id=script_id)
 
     def rewrite_audit(self, audit_id):
@@ -69,8 +91,8 @@ class AuditTool:
         checks = [candidate["recheck"] for candidate in result.get("candidates", [])]
         for key in ("prompt_tokens", "completion_tokens", "latency_ms"):
             result[key] = result.get(key, 0) + sum(check.get(key, 0) for check in checks)
-        result["cost"] = Decimal(str(result.get("cost", 0))) + sum(
-            (Decimal(str(check.get("cost", 0))) for check in checks), Decimal("0"))
+        for check in checks:
+            result["cost"] = add_cost(result.get("cost"), check.get("cost"))
         self.repository.update_rewrite(audit_id, result)
         return dict(result, id=audit_id, audit_id=audit_id, disclaimer=DISCLAIMER_TEXT)
 
@@ -105,12 +127,12 @@ class UrllibChatModel(ChatModel):
         """读取 JUDGE_* 配置；密钥只由网络适配器保存，不进入响应。"""
         config = llm_config()
         self.model = config.get("JUDGE_MODEL", "qwen-plus")
-        self.input_price = Decimal(config.get("JUDGE_INPUT_PRICE_PER_MILLION", DEFAULT_INPUT_PRICE))
-        self.output_price = Decimal(config.get("JUDGE_OUTPUT_PRICE_PER_MILLION", DEFAULT_OUTPUT_PRICE))
-        if any(not price.is_finite() or price < 0 for price in (self.input_price, self.output_price)):
-            raise ValueError("模型报价必须是有限非负数")
-        self.pricing_source = ("configured" if all(config.get(key) is not None for key in
-            ("JUDGE_INPUT_PRICE_PER_MILLION", "JUDGE_OUTPUT_PRICE_PER_MILLION")) else "default_zero_estimate")
+        fallback = MODEL_PRICES.get(self.model, {})
+        self.input_price = config.get('JUDGE_INPUT_PRICE_PER_M') or fallback.get('in')
+        self.output_price = config.get('JUDGE_OUTPUT_PRICE_PER_M') or fallback.get('out')
+        compute_cost(0, 0, self.input_price, self.output_price)
+        self.pricing_source = 'configured_or_model_table' if self.input_price is not None and self.output_price is not None else 'unpriced'
+        self.calls = []
         self.api_key = config.get("JUDGE_API_KEY")
         self.base_url = config.get("JUDGE_BASE_URL", DASHSCOPE_URL).rstrip("/")
         self.transport = transport if transport is not None else self._request
@@ -132,6 +154,7 @@ class UrllibChatModel(ChatModel):
 
     def complete(self, messages: list[dict]) -> dict:
         """输入聊天消息，返回供应商真实用量和 Decimal 成本；响应缺项抛异常。"""
+        started = perf_counter()
         for attempt in range(3):
             try:
                 response = self.transport("/chat/completions", {
@@ -142,6 +165,10 @@ class UrllibChatModel(ChatModel):
                 if attempt == 2:
                     raise
         usage = response["usage"]
+        call = dict(latency_ms=(perf_counter()-started)*1000, attempt_count=attempt+1,
+                    retried=attempt>0, prompt_tokens=usage.get("prompt_tokens"), completion_tokens=usage.get("completion_tokens"))
+        logging.getLogger(__name__).warning("llm_call=%s", call)
+        self.calls.append(call)
         prompt, completion = usage["prompt_tokens"], usage["completion_tokens"]
         if any(type(value) is not int or value < 0 for value in (prompt, completion)):
             raise ValueError("模型用量必须是非负整数")
@@ -150,5 +177,5 @@ class UrllibChatModel(ChatModel):
             raise ValueError("模型内容必须是字符串")
         return {"content": content, "model": response.get("model", self.model),
                 "prompt_tokens": prompt, "completion_tokens": completion,
-                "cost": (prompt * self.input_price + completion * self.output_price) / TOKENS_PER_MILLION,
+                "cost": compute_cost(prompt, completion, self.input_price, self.output_price),
                 "pricing_source": self.pricing_source}

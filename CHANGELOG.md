@@ -5,13 +5,33 @@
 > 每条四段式：做了什么 / 验证证据（命令 + 实际输出）/ 遗留问题 / 规则或评测集变动。
 > **验证证据只写真实跑出来的输出，不写"已完成"。**
 
+## D3 · 阶段F计价与收尾接线
+
+**改动**：audits.cost 唯一授权迁移至可空，默认预览、--apply执行并可重复跳过；Decimal六位计价，配置优先作者填入MODEL_PRICES，缺价返回None并原样持久化NULL。组合根只读Chroma实际文档名；统一字符起点映射；总耗时在save后计量并回填数据库。
+
+**验证**：迁移前cost decimal(10,6) NOT NULL DEFAULT '0.000000'，迁移后decimal(10,6) DEFAULT NULL；生产审计行数4→4；再次apply打印跳过。NULL持久化旧代码实测误存0后修复。成本/迁移/接线13 passed；全量201 passed in 10.52s（随后新增落库耗时测试单独通过）。
+
+**风险**：价格为作者提供的标准价估算，非供应商账单。费用仅涵盖A1模型响应，不涵盖RAG内部rewrite/embedding；唯一真实验收audit_id=6：score=0、incomplete=false、cost=0.031221、latency_ms=114625；引文及本轴条级法条验证通过，但before_after/inducement仍语义误命中，延迟超90秒。验收失败后停止，未改代码重跑；完整JSON/证据/归因见data/d3_fixed_acceptance_report.md。索引正文仍带code前缀，仅返回边界剥离，本轮未重建。
+
+**规则/评测**：未改规则数据、法规正文、冻结检索评测。除cost可空外未改表结构。
+
+## D3 · 召回前置契约更正与正文去重
+
+**改动**：通用“利用患者名义形象作证明”查询接受合法法源集合（医疗广告管理办法第7条、医疗美容广告执法指南第5条）任一命中；独立使用“卫生技术人员”验证第七条区分度。检索输出text移除合成的code前缀，保留独立code、完整parent_text，索引及归档不改。
+
+**验证**：去前缀测试旧代码RED（text仍以code开头），修复后全量176 passed in 10.92s。纯离线BM25/恒等rewrite：通用查询命中医美指南第5条；区分查询Top3为认定指南第7条、管理办法第7条、医美指南第8条，第七条正文含“卫生技术人员”。无付费调用。
+
+**遗留**：法条规范化、引文回填、跨轴校验及审查并发仍待实施；此次未执行真实审查。
+
+**规则/评测**：按用户明确授权调整前置召回断言，不更改冻结罚单评测集、业务规则或排序算法。
+
 ## D3 · 空规则 fail-closed 收尾修复
 
 **改动**：空规则或全禁用规则显式返回 reason=no_rules_loaded、incomplete=true、score=-1；审计仓储对 incomplete 强制保存 score=-1，避免上游误传2。全部 detector 抛错的既有 fail-closed 行为新增回归覆盖。
 
 **验证**：空规则测试先因缺少 reason 两次失败；仓储反例先实际写出 score=2 导致测试失败，修复后全量 tests 为 174 passed in 9.97s。前置生产只读检查：rules=11/enabled=11，两列存在；law_articles=164、case_fines=11。
 
-**遗留**：当前未配置输入/输出单价，成本将明确为零单价估算，不能充当供应商账单；真实单次审查尚未执行。
+**遗留 / 单次真实验收结果**：修复提交3e6a85a后，仅执行指定case_002原话一次A1（script_id=3/client_id=4），未执行A2、未重跑。audit_id=5，score=0、hit_count=2、incomplete=false、latency_ms=352785、prompt_tokens=8386、completion_tokens=10856。验收不通过：6条命中中4条quote因NFKC标点归一未恢复原文导致find=-1，original_quote映射均可定位，这是对外quote契约bug；法条子集校验通过。未配置单价使cost=0，不代表免费。另见before_after跨轴误命中。未当场改代码或重跑；完整原始JSON及只读落库证据保存在data/d3_acceptance_once.json、data/d3_acceptance_report.md。
 
 **规则/评测**：未改规则与评测标签；未改表结构。
 
@@ -204,3 +224,19 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 
 **规则 / 评测集变动**
 - 无（rules 表为空；锚点集尚未入 Chroma）
+
+
+## D3 第二轮：项级继承与合并检测
+
+**行为变化**：to_refs保留项号，命中项号仅从检索chunk metadata继承；规则项与证据项不同记item_mismatch，证据无项号明确降级。保留多路JUDGE_MODE=multi，生产默认merged一次覆盖全部语义轴，缺轴为missing_axis。适配器记录每次调用耗时、token、attempt_count/retried。
+
+**验证**：项级测试旧代码5失败/2通过，修复7通过；项继承旧代码cross_axis_rejected不符预期，修复通过。合并两测试先因缺接口失败，修复后agents83 passed。最终唯一验收audit_id=7：score0/incomplete=false，70346ms低于90秒；安全轴有效，功效轴两条合理候选因引用医美指南5.4（规则只声明广告法16.1）被严格拒绝，总体验收未全通过。无before_after/inducement误命中；未人工重跑。完整原始JSON/六样证据/归因见data/d3_final_acceptance_report.md。
+
+**风险/技术债**：
+| ID | 内容 |
+|---|---|
+| T-007 | 语义空闸：pattern由规则预填，模型可声称命中而无客观证据；候选方案回传判据短语并校验本轴词集，降级weak_evidence，不前置拒绝。 |
+| T-008 | 索引正文仍含code前缀，稀释BM25权重；待未来重建时在摄取阶段剥离。 |
+| T-009 | 成本只含A1判定调用，未含RAG rewrite/embedding。 |
+
+**规则/评测**：未改规则内容或冻结评测；旧规范化测试更新项号输出断言，简称/中文数字/多引用/容错能力保留。

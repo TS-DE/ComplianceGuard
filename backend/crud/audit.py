@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from backend.agents.base import Rule as AgentRule
 from backend.core.config import SCORE_INCOMPLETE, ScriptStatus
+from backend.core.constants import add_cost
 from backend.db.models import Audit, Client, Rule, Script
 
 AUDIT_METADATA = ("score", "hit_count", "model", "prompt_tokens", "completion_tokens",
@@ -45,6 +46,7 @@ class AuditRepository:
     def save(self, script_id, result):
         """审计元数据与话术状态同一事务提交；错误回滚。"""
         hits = [dict(hit, status="active") for hit in result["hits"]]
+        hits.extend(dict(hit, status="raw") for hit in result.get("raw_hits", []))
         hits.extend(dict(trace, status=trace.get("status", "trace")) for trace in result.get("traces", []))
         metadata = {key: result[key] for key in AUDIT_METADATA}
         if metadata['incomplete']:
@@ -61,13 +63,22 @@ class AuditRepository:
             raise
         return row.id
 
+    def update_latency(self, audit_id, latency_ms):
+        """回填首次落库完成后的总耗时；失败回滚并抛错。"""
+        try:
+            self.session.get(Audit, audit_id).latency_ms = latency_ms
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
+            raise
+
     def update_rewrite(self, audit_id, result):
         """保存改写状态并累计实际调用成本；保留原审查分数。"""
         row = self.session.get(Audit, audit_id)
         try:
             row.rewritten_text = result.get("rewritten_text")
             row.rewrite_passed = result["rewrite_passed"]
-            row.cost += Decimal(str(result.get("cost", 0)))
+            row.cost = add_cost(row.cost, result.get("cost"))
             for key in ("prompt_tokens", "completion_tokens", "latency_ms"):
                 setattr(row, key, getattr(row, key) + result.get(key, 0))
             self.session.commit()

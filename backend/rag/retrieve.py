@@ -32,6 +32,8 @@ class Hit:
     score: float
     route: str
     source: str = ''
+    chunk_id: str = ''
+    item_no: str | None = None
 
 
 class VectorIndex(Protocol):
@@ -192,8 +194,10 @@ class HybridRetriever(Retriever):
                 route += '+rewrite'
             if self.status.get('degraded'):
                 route += ';degraded=vector_unavailable'
-            hit = Hit(meta['code'], content, meta.get('parent_text', content),
-                      meta['doc_type'], score, route, meta.get('source', ''))
+            # code 已是独立字段；只在输出边界去掉合成前缀，不改索引或归档原文。
+            body = content.removeprefix(meta['code'] + '\n') if name == 'law_articles' else content
+            hit = Hit(meta['code'], body, meta.get('parent_text', body),
+                      meta['doc_type'], score, route, meta.get('source', ''), key, meta.get('item_no'))
             hits.append((bonus, score, hit))
         if not hits or max(h[1] for h in hits) < MIN_SCORE:
             self.status['no_reference'] = True
