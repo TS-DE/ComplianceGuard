@@ -84,3 +84,14 @@ def test_concurrent_matches_serial_and_retrieves_once(caplog):
         assert set(result['timings_ms']) >= {'normalize', 'rules', 'retrieve', 'detect', 'aggregate'}
         results.append(result['hits'])
     assert results[0] == results[1]
+
+
+
+def test_sentence_claims_keep_raw_axis_evidence():
+    rules = [dict(axis=axis, pattern='安全', law_article='广告法第16条', detector='echo')
+             for axis in ('efficacy_claim', 'safety_guarantee')]
+    result = ComplianceAuditAgent(lambda: rules, lambda q: [dict(code='广告法第16条')],
+                                 None, {'echo': Echo()}).review('非常安全')
+    assert result['hit_count'] == len(result['hits']) == 1
+    assert result['hits'][0]['axes'] == ['efficacy_claim', 'safety_guarantee']
+    assert len(result['raw_hits']) == 2

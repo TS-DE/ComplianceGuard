@@ -45,6 +45,7 @@ class AuditRepository:
     def save(self, script_id, result):
         """审计元数据与话术状态同一事务提交；错误回滚。"""
         hits = [dict(hit, status="active") for hit in result["hits"]]
+        hits.extend(dict(hit, status="raw") for hit in result.get("raw_hits", []))
         hits.extend(dict(trace, status=trace.get("status", "trace")) for trace in result.get("traces", []))
         metadata = {key: result[key] for key in AUDIT_METADATA}
         if metadata['incomplete']:

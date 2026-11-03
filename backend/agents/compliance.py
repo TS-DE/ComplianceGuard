@@ -47,6 +47,22 @@ def _score(hits):
     return 1 if sentences else 2
 
 
+def aggregate_claims(hits):
+    """按句聚合显示，保留原始证据列表和每轴引用，不更改原始判分依据。"""
+    claims = {}
+    for hit in hits:
+        key = hit['sentence_id']
+        if key not in claims:
+            claims[key] = dict(hit, axes=[], evidence=[])
+        claim = claims[key]
+        if hit['axis'] not in claim['axes']:
+            claim['axes'].append(hit['axis'])
+        claim['evidence'].append(hit)
+        if hit['severity'] == 'hard':
+            claim['severity'] = 'hard'
+    return list(claims.values())
+
+
 class ComplianceAuditAgent:
     """组合规则加载、检索和检测器，接口不依赖数据库或模型供应商。"""
     def __init__(self, rules_loader, search_law, model, detectors=None, known_docs=None, workers=None):
@@ -108,7 +124,9 @@ class ComplianceAuditAgent:
         result['timings_ms']['detect'] = (perf_counter() - before) * 1000
         before = perf_counter()
         self._validate(text, normalized, offsets, candidates, result)  # N6–N7
-        result['hit_count'] = len({h['sentence_id'] for h in result['hits']})  # N8
+        result['raw_hits'] = result['hits']
+        result['hits'] = aggregate_claims(result['raw_hits'])
+        result['hit_count'] = len(result['hits'])  # N8
         result['score'] = -1 if result['incomplete'] else _score(result['hits'])
         result['timings_ms']['aggregate'] = (perf_counter() - before) * 1000
         result['latency_ms'] = int((perf_counter() - started) * 1000)
