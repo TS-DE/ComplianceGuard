@@ -1,6 +1,7 @@
 """只读解析法规结构及官方罚单，不改写归档原文、不触发网络调用。"""
 import json
 import re
+from functools import lru_cache
 from pathlib import Path
 
 from scripts.verify_law import ARTICLE_PATTERN, GUIDE_PATTERN, body_text, chinese_number
@@ -155,3 +156,41 @@ def load_cases() -> list[dict]:
                         law_articles="；".join(case.get("law_articles", [])))
         records.append(dict(id=case["case_id"], text=text, metadata=metadata))
     return records
+
+
+@lru_cache(maxsize=1)
+def law_catalog() -> dict[str, dict]:
+    """返回「法规全称 -> {title, source, articles}」，每条含该条完整原文。
+
+    用途：前端命中某条法条后需要「直达完整法规并定位到该条」。
+    直接复用 load_laws() 的解析结果，不查向量库、不走网络，也不改归档原文。
+    同一 code 只保留一条（多子块共享同一 parent_text）。
+    """
+    catalog: dict[str, dict] = {}
+    laws, _ = load_laws()
+    for record in laws:
+        meta = record["metadata"]
+        title = re.sub(r"^\d+_", "", meta["source"].rsplit(".", 1)[0])
+        doc = catalog.setdefault(title, dict(title=title, source=meta["source"], articles=[]))
+        if any(item["code"] == meta["code"] for item in doc["articles"]):
+            continue
+        doc["articles"].append(dict(code=meta["code"], article_no=meta.get("article_no"),
+                                    text=meta.get("parent_text") or record["text"]))
+    for doc in catalog.values():
+        doc["articles"].sort(key=lambda item: item.get("article_no") or 0)
+    return catalog
+
+
+def find_law_article(code: str) -> dict | None:
+    """按条文 code 定位，返回该条原文与所属法规的全部条文；未收录返回 None。
+
+    返回 articles 是为了让前端能同屏渲染上下文并滚动高亮目标条，
+    避免只给一根孤立的条文而失去「在整部法规中的位置」这一追溯价值。
+    """
+    for doc in law_catalog().values():
+        for article in doc["articles"]:
+            if article["code"] == code:
+                return dict(doc=doc["title"], source=doc["source"], code=article["code"],
+                            article_no=article["article_no"], text=article["text"],
+                            articles=doc["articles"])
+    return None

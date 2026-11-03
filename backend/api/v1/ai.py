@@ -1,17 +1,36 @@
 """鉴权后的 AI 审查与改写入口，仅委托服务层组合根。"""
 from typing import Annotated
 
-from fastapi import APIRouter, Path
+from fastapi import APIRouter, Path, Query
 from pydantic import BaseModel, Field
 from datetime import date
 from typing import Literal
 from backend.services.compliance import run_redteam, redteam_operations
 
+from backend.core.errors import AppError, CODE_NOT_FOUND
 from backend.core.security import CurrentUser, DbSession
+from backend.rag.ingest import find_law_article
 from backend.schemas.common import ok
 from backend.services.compliance import audit_operations as build_audit_tool
 
 router = APIRouter()
+
+
+@router.get("/law/article", tags=["law"])
+def law_article_original(
+    current_user: CurrentUser,
+    code: Annotated[str, Query(min_length=2, max_length=80, description="命中法条的 code，如 广告法第16条")],
+) -> dict:
+    """返回命中法条的原文与所属法规条文表，供前端「一键追溯到条文」使用。
+
+    只读本地法规归档，不查向量库、不调用模型，因此可以随时点开而不产生费用。
+    """
+    found = find_law_article(code)
+    if found is None:
+        # AppError 基类接受 (code, msg)：NotFoundException 的签名是 (resource, res_id:int)，
+        # 这里 code 是字符串条文标识，直接构造基类更贴合语义。
+        raise AppError(CODE_NOT_FOUND, f"法规归档中未收录该条文：{code}")
+    return ok(found)
 
 
 class AuditRunRequest(BaseModel):

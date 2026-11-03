@@ -22,3 +22,9 @@ export const runAudit = (row: ScriptRow) => request<AuditResult>('POST', '/audit
 export const rewrite = (id: number) => request<unknown>('POST', `/audit/${id}/rewrite`)
 export const redteam = { run: (data: unknown) => request<unknown>('POST', '/redteam/run', data), gaps: (id: string) => request<unknown>('GET', `/redteam/${encodeURIComponent(id)}/gaps`) }
 export const reports = { daily: (date: string) => request<unknown>('GET', '/reports/daily', undefined, { date }), redteam: (id: string) => request<unknown>('GET', `/reports/redteam/${encodeURIComponent(id)}`) }
+
+// 法条追溯：命中条文 -> 该条原文 + 所属法规全表（用于「直达完整法规并定位高亮」）。
+// 后端只读本地法规归档，不查向量库、不调模型，因此可随时点开且不产生费用。
+export interface LawArticleRow { code: string; article_no: number; text: string }
+export interface LawArticle { doc: string; source: string; code: string; article_no: number; text: string; articles: LawArticleRow[] }
+export const lawArticle = (code: string) => request<LawArticle>('GET', '/law/article', undefined, { code })
