@@ -278,4 +278,4 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **改动**：A3从当前启用rules读取pattern/law_article并传入prompt，pattern_ref逐字匹配；不符记录invalid_axis_ref且不入矩阵。TP拆TP_axis/TP_other，报告新增轴级漏杀率，旧TP只按已存actual_axes重新解释不重判。
 **验证**：3条新契约先因缺rules_loader/目标轴参数RED，修复GREEN；5格fixture含无效标签排除和两漏杀率，全量233 passed in 11.48s。
 **历史保护**：授权保留34–37及全部审计，旧meta仅新增label_invalid及原因；不删除。新run只做inducement四条，旧22–33不生成/不判定/不改审计。主视图16，附视图20。
-**风险**：pattern_ref是定义一致性检查，不等于模型语义证据；最终需人工论证容貌焦虑。唯一新增真实批次尚未执行，禁止为凑结果再调。
+**风险**：pattern_ref是定义一致性检查，不等于模型语义证据；最终需人工论证容貌焦虑。唯一新增批次rt_20261103_152505_inducement完成：新3条TP_axis/1条TN，无invalid_axis_ref；旧12条保留，主视图TP_axis6/TP_other4/FN2/FP0/TN4，整体漏杀16.67%、轴漏杀50%。含生成71546ms，未重跑；完整证据data/d4_axis_alignment_report.md。

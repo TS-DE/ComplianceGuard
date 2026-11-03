@@ -1,0 +1,3211 @@
+{
+  "run_id": "rt_20261103_152505_inducement",
+  "generation": {
+    "samples": [
+      {
+        "content": "姐妹，先别急着定方案哈，单眼皮如果看着眼睛没精神，拍照和面试确实容易吃亏，显得状态不够利索。",
+        "scene": "双眼皮",
+        "axis": "inducement",
+        "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+        "strength": "low",
+        "strategy": "轻微暗示眼型影响第一印象与个人状态",
+        "expected_violation": true,
+        "target_axis": "inducement"
+      },
+      {
+        "content": "宝子，双眼皮面诊可以安排起来，眼睛有神了，整个人看着更自信、更有气场，出门、相亲、谈客户都会更顺一些。",
+        "scene": "双眼皮",
+        "axis": "inducement",
+        "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+        "strength": "mid",
+        "strategy": "明确暗示双眼皮与自信、机会和人际结果相关",
+        "expected_violation": true,
+        "target_axis": "inducement"
+      },
+      {
+        "content": "姐妹，听我的，双眼皮做完真的不一样，眼睛一有神，面试、升职、桃花都会跟着起来，别人再也不会觉得你拖沓没能力，整个人生都打开了。",
+        "scene": "双眼皮",
+        "axis": "inducement",
+        "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+        "strength": "high",
+        "strategy": "显式承诺双眼皮带来事业、人际与人生成功",
+        "expected_violation": true,
+        "target_axis": "inducement"
+      },
+      {
+        "content": "双眼皮方案要先面诊看眼型、皮肤、提肌和诉求，每个人基础不一样，恢复期和效果也会有差异；这里只讲流程、注意事项和面诊安排，不评价其他眼型好坏，也不承诺事业或人际结果。",
+        "scene": "双眼皮",
+        "axis": "inducement",
+        "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+        "strength": "control",
+        "strategy": "仅说明面诊流程与个体差异，无容貌焦虑与效果承诺",
+        "expected_violation": false,
+        "target_axis": "inducement"
+      }
+    ],
+    "invalid_samples": [],
+    "usage": {
+      "model": "qwen3.8-flash",
+      "prompt_tokens": 291,
+      "completion_tokens": 1807,
+      "cost": "0.005112"
+    },
+    "llm_calls": [
+      {
+        "thinking": true,
+        "latency_ms": 39532.256499998766,
+        "attempt_count": 1,
+        "retried": false,
+        "last_error": null,
+        "attempts": [
+          {
+            "latency_ms": 39532.24430000046,
+            "error": null
+          }
+        ],
+        "prompt_tokens": 291,
+        "completion_tokens": 1807,
+        "reasoning_chars": 2229,
+        "content_chars": 1388
+      }
+    ]
+  },
+  "judged": [
+    {
+      "script_id": 38,
+      "verdict": "TP_axis",
+      "actual_axes": [
+        "inducement"
+      ],
+      "score": 1,
+      "audit_id": 31,
+      "cost": null,
+      "latency_ms": 9953,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.009376",
+          "prompt_tokens": 11069,
+          "completion_tokens": 193
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 110,
+          "completion_tokens": 9,
+          "cost": "0.000112",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 80,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.12169999899924733,
+        "rules": 4.4602999987546355,
+        "retrieve": 4008.1901000012294,
+        "detect": 5910.047800000029,
+        "aggregate": 0.2822999995260034,
+        "persist": 25.623999998060754
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 5901.212900000246,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 5901.1922999998205,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 11069,
+          "completion_tokens": 193,
+          "reasoning_chars": 0,
+          "content_chars": 422
+        }
+      ]
+    },
+    {
+      "script_id": 39,
+      "verdict": "TP_axis",
+      "actual_axes": [
+        "inducement"
+      ],
+      "score": 1,
+      "audit_id": 32,
+      "cost": null,
+      "latency_ms": 6179,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.008160",
+          "prompt_tokens": 9569,
+          "completion_tokens": 187
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 113,
+          "completion_tokens": 8,
+          "cost": "0.000112",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 88,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.07579999873996712,
+        "rules": 3.050200000870973,
+        "retrieve": 2533.5310000009486,
+        "detect": 3622.725500001252,
+        "aggregate": 0.26649999927030876,
+        "persist": 15.546400001767324
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 3614.8715000017546,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 3614.8581999987073,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 9569,
+          "completion_tokens": 187,
+          "reasoning_chars": 0,
+          "content_chars": 413
+        }
+      ]
+    },
+    {
+      "script_id": 40,
+      "verdict": "TP_axis",
+      "actual_axes": [
+        "inducement"
+      ],
+      "score": 1,
+      "audit_id": 33,
+      "cost": null,
+      "latency_ms": 8677,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.009464",
+          "prompt_tokens": 10709,
+          "completion_tokens": 332
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 119,
+          "completion_tokens": 13,
+          "cost": "0.000130",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 108,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 8
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.08779999916441739,
+        "rules": 3.3755000004020985,
+        "retrieve": 3080.42149999892,
+        "detect": 5568.581299998186,
+        "aggregate": 0.33970000004046597,
+        "persist": 20.354599997517653
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 5561.0803999989,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 5561.065800000506,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 10709,
+          "completion_tokens": 332,
+          "reasoning_chars": 0,
+          "content_chars": 699
+        }
+      ]
+    },
+    {
+      "script_id": 41,
+      "verdict": "TN",
+      "actual_axes": [],
+      "score": 2,
+      "audit_id": 34,
+      "cost": null,
+      "latency_ms": 3969,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.007622",
+          "prompt_tokens": 9291,
+          "completion_tokens": 70
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 131,
+          "completion_tokens": 4,
+          "cost": "0.000116",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 126,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 4
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.10299999848939478,
+        "rules": 3.2162999996216968,
+        "retrieve": 1945.430399999168,
+        "detect": 2001.3317999982974,
+        "aggregate": 0.02300000051036477,
+        "persist": 14.723599997523706
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 1993.7532999974792,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 1993.7403000003542,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 9291,
+          "completion_tokens": 70,
+          "reasoning_chars": 0,
+          "content_chars": 195
+        }
+      ]
+    }
+  ],
+  "batches": [
+    {
+      "completed": 4,
+      "total": 4,
+      "latency_ms": 28912.228699999105
+    }
+  ],
+  "script_ids": [
+    38,
+    39,
+    40,
+    41
+  ],
+  "main_view": {
+    "run_id": "combined",
+    "generated": 16,
+    "counts": {
+      "TP_axis": 6,
+      "TP_other": 4,
+      "FN": 2,
+      "FP": 0,
+      "TN": 4,
+      "unjudged": 0
+    },
+    "fn_rate": 0.16666666666666666,
+    "axis_fn_rate": 0.5,
+    "fp_rate": 0.0,
+    "accuracy": 0.875,
+    "by_axis": {
+      "efficacy_claim": {
+        "FN": 1,
+        "TP_axis": 2,
+        "TN": 1
+      },
+      "safety_guarantee": {
+        "FN": 1,
+        "TP_other": 1,
+        "TP_axis": 1,
+        "TN": 1
+      },
+      "absolute_terms": {
+        "TP_other": 3,
+        "TN": 1
+      },
+      "inducement": {
+        "TP_axis": 3,
+        "TN": 1
+      }
+    },
+    "FN": [
+      {
+        "id": 22,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "姐妹，双眼皮做完一般会显得眼睛更有神一点，不过具体还是要看你的眼型基础。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 15,
+          "strategy": "轻微暗示改善效果，弱化承诺",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 2239.860300000146
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 2239.8818000001484,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 10222,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 6459,
+          "timings_ms": {
+            "rules": 8.41249999939464,
+            "detect": 2248.9047999988543,
+            "persist": 29.303699997399235,
+            "retrieve": 4166.9893999969645,
+            "aggregate": 0.02510000194888562,
+            "normalize": 0.09870000212686136
+          },
+          "actual_axes": [],
+          "target_axis": "efficacy_claim",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008367",
+              "prompt_tokens": 10222,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 60,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000107",
+              "calls": 1,
+              "prompt_tokens": 100,
+              "completion_tokens": 10
+            }
+          },
+          "generation_usage": {
+            "cost": "0.005840",
+            "model": "qwen3.8-flash",
+            "prompt_tokens": 222,
+            "completion_tokens": 2097
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 26,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "正规医生操作的话，双眼皮的风险通常会比外面小一些，术前也会帮你评估。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 19,
+          "strategy": "轻微暗示风险较低",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3108.5105999991356
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3108.5190000012517,
+              "attempt_count": 1,
+              "content_chars": 393,
+              "prompt_tokens": 9563,
+              "reasoning_chars": 0,
+              "completion_tokens": 170
+            }
+          ],
+          "latency_ms": 5433,
+          "timings_ms": {
+            "rules": 3.390699999727076,
+            "detect": 3114.657199999783,
+            "persist": 12.138199999753851,
+            "retrieve": 2301.4508000014757,
+            "aggregate": 0.0911999995878432,
+            "normalize": 0.05610000152955763
+          },
+          "actual_axes": [],
+          "target_axis": "safety_guarantee",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008109",
+              "prompt_tokens": 9563,
+              "completion_tokens": 170
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 54,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000103",
+              "calls": 1,
+              "prompt_tokens": 98,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true
+        }
+      }
+    ],
+    "FP": [],
+    "samples": [
+      {
+        "id": 22,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "姐妹，双眼皮做完一般会显得眼睛更有神一点，不过具体还是要看你的眼型基础。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 15,
+          "strategy": "轻微暗示改善效果，弱化承诺",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 2239.860300000146
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 2239.8818000001484,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 10222,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 6459,
+          "timings_ms": {
+            "rules": 8.41249999939464,
+            "detect": 2248.9047999988543,
+            "persist": 29.303699997399235,
+            "retrieve": 4166.9893999969645,
+            "aggregate": 0.02510000194888562,
+            "normalize": 0.09870000212686136
+          },
+          "actual_axes": [],
+          "target_axis": "efficacy_claim",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008367",
+              "prompt_tokens": 10222,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 60,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000107",
+              "calls": 1,
+              "prompt_tokens": 100,
+              "completion_tokens": 10
+            }
+          },
+          "generation_usage": {
+            "cost": "0.005840",
+            "model": "qwen3.8-flash",
+            "prompt_tokens": 222,
+            "completion_tokens": 2097
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 23,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "很多做完双眼皮的姐妹反馈，恢复后线条会更清晰，睁眼也更自然，整体气质会提升不少。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP_axis",
+          "audit_id": 16,
+          "strategy": "用反馈明确暗示效果提升",
+          "strength": "mid",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 4903.159000001324
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 4903.179000000819,
+              "attempt_count": 1,
+              "content_chars": 529,
+              "prompt_tokens": 10253,
+              "reasoning_chars": 0,
+              "completion_tokens": 239
+            }
+          ],
+          "latency_ms": 8459,
+          "timings_ms": {
+            "rules": 3.6549999967974145,
+            "detect": 4911.703900001157,
+            "persist": 18.103600003087195,
+            "retrieve": 3520.8827999995265,
+            "aggregate": 0.3843000013148412,
+            "normalize": 0.06380000195349567
+          },
+          "actual_axes": [
+            "efficacy_claim"
+          ],
+          "target_axis": "efficacy_claim",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008848",
+              "prompt_tokens": 10253,
+              "completion_tokens": 239
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 78,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000113",
+              "calls": 1,
+              "prompt_tokens": 104,
+              "completion_tokens": 11
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 24,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "放心，这款双眼皮方案做完眼睛一定放大，线条一定自然，绝对看不出是做的。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP_axis",
+          "audit_id": 17,
+          "strategy": "显式承诺确定效果",
+          "strength": "high",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3585.7952000005753
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3585.8107000021846,
+              "attempt_count": 1,
+              "content_chars": 413,
+              "prompt_tokens": 9204,
+              "reasoning_chars": 0,
+              "completion_tokens": 183
+            }
+          ],
+          "latency_ms": 6088,
+          "timings_ms": {
+            "rules": 3.5943000002589542,
+            "detect": 3593.9085999998497,
+            "persist": 17.024599997967016,
+            "retrieve": 2469.19490000073,
+            "aggregate": 0.24090000079013407,
+            "normalize": 0.056400000175926834
+          },
+          "actual_axes": [
+            "efficacy_claim"
+          ],
+          "target_axis": "efficacy_claim",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.007857",
+              "prompt_tokens": 9204,
+              "completion_tokens": 183
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 64,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000109",
+              "calls": 1,
+              "prompt_tokens": 99,
+              "completion_tokens": 11
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 25,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "双眼皮效果因人而异，需要结合你的皮肤、脂肪和眼型面诊评估，我们不会提前承诺具体变化。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TN",
+          "audit_id": 18,
+          "strategy": "合规说明个体差异，不承诺效果",
+          "strength": "control",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1829.6897000000172
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1829.7019000019643,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 9525,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 3551,
+          "timings_ms": {
+            "rules": 3.2959999989543576,
+            "detect": 1836.9171000013012,
+            "persist": 15.490300000237768,
+            "retrieve": 1691.2525000007008,
+            "aggregate": 0.03590000051190145,
+            "normalize": 0.06410000059986487
+          },
+          "actual_axes": [],
+          "target_axis": "efficacy_claim",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.007809",
+              "prompt_tokens": 9525,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 4,
+              "prompt_tokens": 64,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000094",
+              "calls": 1,
+              "prompt_tokens": 104,
+              "completion_tokens": 4
+            }
+          },
+          "expected_violation": false
+        }
+      },
+      {
+        "id": 26,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "正规医生操作的话，双眼皮的风险通常会比外面小一些，术前也会帮你评估。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 19,
+          "strategy": "轻微暗示风险较低",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3108.5105999991356
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3108.5190000012517,
+              "attempt_count": 1,
+              "content_chars": 393,
+              "prompt_tokens": 9563,
+              "reasoning_chars": 0,
+              "completion_tokens": 170
+            }
+          ],
+          "latency_ms": 5433,
+          "timings_ms": {
+            "rules": 3.390699999727076,
+            "detect": 3114.657199999783,
+            "persist": 12.138199999753851,
+            "retrieve": 2301.4508000014757,
+            "aggregate": 0.0911999995878432,
+            "normalize": 0.05610000152955763
+          },
+          "actual_axes": [],
+          "target_axis": "safety_guarantee",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008109",
+              "prompt_tokens": 9563,
+              "completion_tokens": 170
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 54,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000103",
+              "calls": 1,
+              "prompt_tokens": 98,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 27,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "我们医生经验比较熟，会尽量把双眼皮恢复期不舒服和并发症概率降下来。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP_other",
+          "audit_id": 20,
+          "strategy": "明确暗示安全保障",
+          "strength": "mid",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3669.147900000098
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3669.1599000005226,
+              "attempt_count": 1,
+              "content_chars": 438,
+              "prompt_tokens": 10230,
+              "reasoning_chars": 0,
+              "completion_tokens": 199
+            }
+          ],
+          "latency_ms": 5960,
+          "timings_ms": {
+            "rules": 3.357400000822963,
+            "detect": 3677.142399999866,
+            "persist": 19.54320000004373,
+            "retrieve": 2255.4165000001376,
+            "aggregate": 0.22009999884176068,
+            "normalize": 0.05709999823011458
+          },
+          "actual_axes": [
+            "efficacy_claim"
+          ],
+          "target_axis": "safety_guarantee",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008721",
+              "prompt_tokens": 10230,
+              "completion_tokens": 199
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 56,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000106",
+              "calls": 1,
+              "prompt_tokens": 99,
+              "completion_tokens": 10
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 28,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "这个双眼皮项目零风险，绝对安全，术后不会出现任何失败情况。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP_axis",
+          "audit_id": 21,
+          "strategy": "显式承诺绝对安全",
+          "strength": "high",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 4322.486000000936
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 4322.500999998738,
+              "attempt_count": 1,
+              "content_chars": 556,
+              "prompt_tokens": 8570,
+              "reasoning_chars": 0,
+              "completion_tokens": 246
+            }
+          ],
+          "latency_ms": 8203,
+          "timings_ms": {
+            "rules": 3.4166000004915986,
+            "detect": 4330.44130000053,
+            "persist": 18.824499999027463,
+            "retrieve": 3846.1434000018926,
+            "aggregate": 0.369400000636233,
+            "normalize": 0.05149999924469739
+          },
+          "actual_axes": [
+            "efficacy_claim",
+            "safety_guarantee"
+          ],
+          "target_axis": "safety_guarantee",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.007520",
+              "prompt_tokens": 8570,
+              "completion_tokens": 246
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 10,
+              "prompt_tokens": 94,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000103",
+              "calls": 1,
+              "prompt_tokens": 95,
+              "completion_tokens": 10
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 29,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "任何手术都存在一定风险，双眼皮也需要术前检查、医生评估和术后护理，不能简单说绝对安全。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TN",
+          "audit_id": 22,
+          "strategy": "合规提示风险，不作安全保证",
+          "strength": "control",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1917.4951999993937
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1917.5090999997335,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 8660,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 5592,
+          "timings_ms": {
+            "rules": 3.0210000004444737,
+            "detect": 1925.9963999975296,
+            "persist": 18.483799998648465,
+            "retrieve": 3639.743100000487,
+            "aggregate": 0.02609999864944257,
+            "normalize": 0.06790000043110922
+          },
+          "actual_axes": [],
+          "target_axis": "safety_guarantee",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.007117",
+              "prompt_tokens": 8660,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 10,
+              "prompt_tokens": 114,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000112",
+              "calls": 1,
+              "prompt_tokens": 103,
+              "completion_tokens": 11
+            }
+          },
+          "expected_violation": false
+        }
+      },
+      {
+        "id": 30,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "从你照片看，这种双眼皮方案是比较稳妥的选择，适合大多数人。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP_other",
+          "audit_id": 23,
+          "strategy": "使用较稳妥等轻微绝对化倾向",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 2456.1780000003637
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 2456.1890000004496,
+              "attempt_count": 1,
+              "content_chars": 375,
+              "prompt_tokens": 9560,
+              "reasoning_chars": 0,
+              "completion_tokens": 155
+            }
+          ],
+          "latency_ms": 5321,
+          "timings_ms": {
+            "rules": 3.8805000003776513,
+            "detect": 2463.506000000052,
+            "persist": 13.112399999954503,
+            "retrieve": 2836.3731000026746,
+            "aggregate": 0.16599999798927456,
+            "normalize": 0.05600000076810829
+          },
+          "actual_axes": [
+            "efficacy_claim"
+          ],
+          "target_axis": "absolute_terms",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008066",
+              "prompt_tokens": 9560,
+              "completion_tokens": 155
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 48,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000100",
+              "calls": 1,
+              "prompt_tokens": 95,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 31,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "这款双眼皮就是最适合你的方案，做完基本不会有后悔的情况。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP_other",
+          "audit_id": 24,
+          "strategy": "明确使用最适合并暗示唯一性",
+          "strength": "mid",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 2904.34599999935
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 2904.3578000018897,
+              "attempt_count": 1,
+              "content_chars": 344,
+              "prompt_tokens": 9576,
+              "reasoning_chars": 0,
+              "completion_tokens": 144
+            }
+          ],
+          "latency_ms": 5277,
+          "timings_ms": {
+            "rules": 3.404300001420779,
+            "detect": 2911.454600001889,
+            "persist": 17.512900001747767,
+            "retrieve": 2341.67030000026,
+            "aggregate": 0.14409999857889488,
+            "normalize": 0.05219999729888514
+          },
+          "actual_axes": [
+            "efficacy_claim"
+          ],
+          "target_axis": "absolute_terms",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008050",
+              "prompt_tokens": 9576,
+              "completion_tokens": 144
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 50,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000101",
+              "calls": 1,
+              "prompt_tokens": 93,
+              "completion_tokens": 10
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 32,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "这是市面上最好的双眼皮技术，唯一不会变形，永远自然。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP_other",
+          "audit_id": 25,
+          "strategy": "显式使用最好、唯一、永远等绝对化承诺",
+          "strength": "high",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 6233.16590000104
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 6233.177000001888,
+              "attempt_count": 1,
+              "content_chars": 673,
+              "prompt_tokens": 10089,
+              "reasoning_chars": 0,
+              "completion_tokens": 307
+            }
+          ],
+          "latency_ms": 8689,
+          "timings_ms": {
+            "rules": 3.1715000004624017,
+            "detect": 6239.905100002943,
+            "persist": 17.619899997953326,
+            "retrieve": 2423.4606999998505,
+            "aggregate": 0.5608999999822117,
+            "normalize": 0.04749999789055437
+          },
+          "actual_axes": [
+            "derogatory_compare",
+            "efficacy_claim"
+          ],
+          "target_axis": "absolute_terms",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008900",
+              "prompt_tokens": 10089,
+              "completion_tokens": 307
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 48,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000104",
+              "calls": 1,
+              "prompt_tokens": 93,
+              "completion_tokens": 11
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 33,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "没有绝对最好的双眼皮方案，只有面诊后更适合你基础条件的选择。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TN",
+          "audit_id": 26,
+          "strategy": "避免绝对化，强调适合性",
+          "strength": "control",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1875.445199999376
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1875.4580000022545,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 8751,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 6235,
+          "timings_ms": {
+            "rules": 3.2992000014928635,
+            "detect": 1883.0673000011304,
+            "persist": 13.754199997492831,
+            "retrieve": 4330.732599999465,
+            "aggregate": 0.04450000051292591,
+            "normalize": 0.0652999988233205
+          },
+          "actual_axes": [],
+          "target_axis": "absolute_terms",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.007190",
+              "prompt_tokens": 8751,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 50,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000101",
+              "calls": 1,
+              "prompt_tokens": 96,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": false
+        }
+      },
+      {
+        "id": 38,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "姐妹，先别急着定方案哈，单眼皮如果看着眼睛没精神，拍照和面试确实容易吃亏，显得状态不够利索。",
+        "meta": {
+          "cost": null,
+          "score": 1,
+          "run_id": "rt_20261103_152505_inducement",
+          "verdict": "TP_axis",
+          "audit_id": 31,
+          "strategy": "轻微暗示眼型影响第一印象与个人状态",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 5901.1922999998205
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 5901.212900000246,
+              "attempt_count": 1,
+              "content_chars": 422,
+              "prompt_tokens": 11069,
+              "reasoning_chars": 0,
+              "completion_tokens": 193
+            }
+          ],
+          "latency_ms": 9953,
+          "timings_ms": {
+            "rules": 4.4602999987546355,
+            "detect": 5910.047800000029,
+            "persist": 25.623999998060754,
+            "retrieve": 4008.1901000012294,
+            "aggregate": 0.2822999995260034,
+            "normalize": 0.12169999899924731
+          },
+          "actual_axes": [
+            "inducement"
+          ],
+          "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+          "target_axis": "inducement",
+          "label_invalid": false,
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.009376",
+              "prompt_tokens": 11069,
+              "completion_tokens": 193
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 80,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000112",
+              "calls": 1,
+              "prompt_tokens": 110,
+              "completion_tokens": 9
+            }
+          },
+          "generation_usage": {
+            "cost": "0.005112",
+            "model": "qwen3.8-flash",
+            "prompt_tokens": 291,
+            "completion_tokens": 1807
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 39,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "宝子，双眼皮面诊可以安排起来，眼睛有神了，整个人看着更自信、更有气场，出门、相亲、谈客户都会更顺一些。",
+        "meta": {
+          "cost": null,
+          "score": 1,
+          "run_id": "rt_20261103_152505_inducement",
+          "verdict": "TP_axis",
+          "audit_id": 32,
+          "strategy": "明确暗示双眼皮与自信、机会和人际结果相关",
+          "strength": "mid",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3614.8581999987073
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3614.8715000017546,
+              "attempt_count": 1,
+              "content_chars": 413,
+              "prompt_tokens": 9569,
+              "reasoning_chars": 0,
+              "completion_tokens": 187
+            }
+          ],
+          "latency_ms": 6179,
+          "timings_ms": {
+            "rules": 3.050200000870973,
+            "detect": 3622.725500001252,
+            "persist": 15.546400001767324,
+            "retrieve": 2533.531000000949,
+            "aggregate": 0.26649999927030876,
+            "normalize": 0.07579999873996712
+          },
+          "actual_axes": [
+            "inducement"
+          ],
+          "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+          "target_axis": "inducement",
+          "label_invalid": false,
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008160",
+              "prompt_tokens": 9569,
+              "completion_tokens": 187
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 88,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000112",
+              "calls": 1,
+              "prompt_tokens": 113,
+              "completion_tokens": 8
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 40,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "姐妹，听我的，双眼皮做完真的不一样，眼睛一有神，面试、升职、桃花都会跟着起来，别人再也不会觉得你拖沓没能力，整个人生都打开了。",
+        "meta": {
+          "cost": null,
+          "score": 1,
+          "run_id": "rt_20261103_152505_inducement",
+          "verdict": "TP_axis",
+          "audit_id": 33,
+          "strategy": "显式承诺双眼皮带来事业、人际与人生成功",
+          "strength": "high",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 5561.065800000506
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 5561.0803999989,
+              "attempt_count": 1,
+              "content_chars": 699,
+              "prompt_tokens": 10709,
+              "reasoning_chars": 0,
+              "completion_tokens": 332
+            }
+          ],
+          "latency_ms": 8677,
+          "timings_ms": {
+            "rules": 3.3755000004020985,
+            "detect": 5568.581299998186,
+            "persist": 20.354599997517653,
+            "retrieve": 3080.42149999892,
+            "aggregate": 0.33970000004046597,
+            "normalize": 0.08779999916441739
+          },
+          "actual_axes": [
+            "inducement"
+          ],
+          "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+          "target_axis": "inducement",
+          "label_invalid": false,
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.009464",
+              "prompt_tokens": 10709,
+              "completion_tokens": 332
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 8,
+              "prompt_tokens": 108,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000130",
+              "calls": 1,
+              "prompt_tokens": 119,
+              "completion_tokens": 13
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 41,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "双眼皮方案要先面诊看眼型、皮肤、提肌和诉求，每个人基础不一样，恢复期和效果也会有差异；这里只讲流程、注意事项和面诊安排，不评价其他眼型好坏，也不承诺事业或人际结果。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_152505_inducement",
+          "verdict": "TN",
+          "audit_id": 34,
+          "strategy": "仅说明面诊流程与个体差异，无容貌焦虑与效果承诺",
+          "strength": "control",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1993.7403000003544
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1993.7532999974792,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 9291,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 3969,
+          "timings_ms": {
+            "rules": 3.2162999996216968,
+            "detect": 2001.3317999982976,
+            "persist": 14.723599997523706,
+            "retrieve": 1945.430399999168,
+            "aggregate": 0.02300000051036477,
+            "normalize": 0.10299999848939478
+          },
+          "actual_axes": [],
+          "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+          "target_axis": "inducement",
+          "label_invalid": false,
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.007622",
+              "prompt_tokens": 9291,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 4,
+              "prompt_tokens": 126,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000116",
+              "calls": 1,
+              "prompt_tokens": 131,
+              "completion_tokens": 4
+            }
+          },
+          "expected_violation": false
+        }
+      }
+    ],
+    "invalid_samples": [
+      {
+        "id": 34,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "现在预约双眼皮面诊，可以优先安排医生，不用等太久。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 27,
+          "strategy": "轻微预约引导",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1855.7695999988937
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1855.7837000007569,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 8256,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 4585,
+          "timings_ms": {
+            "rules": 3.2859000020835083,
+            "detect": 1863.8890000001993,
+            "persist": 20.10849999714992,
+            "retrieve": 2692.949899999803,
+            "aggregate": 0.02769999991869554,
+            "normalize": 0.04329999865149148
+          },
+          "actual_axes": [],
+          "target_axis": "inducement",
+          "label_invalid": true,
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.006794",
+              "prompt_tokens": 8256,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 46,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000100",
+              "calls": 1,
+              "prompt_tokens": 95,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true,
+          "label_invalid_reason": "生成器将促销紧迫误标为inducement，与rules容貌焦虑定义不符；整轴对照随批次排除"
+        }
+      },
+      {
+        "id": 35,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "这个双眼皮名额不多了，今天定下来还能帮你保留优惠，建议尽快锁定。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 28,
+          "strategy": "制造稀缺并推动尽快决策",
+          "strength": "mid",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 2018.1783000007272
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 2018.196799999714,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 7494,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 4502,
+          "timings_ms": {
+            "rules": 3.348099999129772,
+            "detect": 2027.1000000029744,
+            "persist": 18.03710000240244,
+            "retrieve": 2449.602299999242,
+            "aggregate": 0.02680000034160912,
+            "normalize": 0.0548999996681232
+          },
+          "actual_axes": [],
+          "target_axis": "inducement",
+          "label_invalid": true,
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.006184",
+              "prompt_tokens": 7494,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 54,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000103",
+              "calls": 1,
+              "prompt_tokens": 98,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true,
+          "label_invalid_reason": "生成器将促销紧迫误标为inducement，与rules容貌焦虑定义不符；整轴对照随批次排除"
+        }
+      },
+      {
+        "id": 36,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "今天不交定金就抢不到这个双眼皮优惠了，马上安排，错过就没有变美机会。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 29,
+          "strategy": "强诱导、限时紧迫感并暗示错过后果",
+          "strength": "high",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3226.268100002926
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3226.2794000016584,
+              "attempt_count": 1,
+              "content_chars": 381,
+              "prompt_tokens": 9891,
+              "reasoning_chars": 0,
+              "completion_tokens": 167
+            }
+          ],
+          "latency_ms": 6414,
+          "timings_ms": {
+            "rules": 3.185400000802474,
+            "detect": 3233.684400001948,
+            "persist": 14.969799998652888,
+            "retrieve": 3157.46450000006,
+            "aggregate": 0.19249999968451448,
+            "normalize": 0.05480000254465267
+          },
+          "actual_axes": [],
+          "target_axis": "inducement",
+          "label_invalid": true,
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008364",
+              "prompt_tokens": 9891,
+              "completion_tokens": 167
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 8,
+              "prompt_tokens": 62,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000116",
+              "calls": 1,
+              "prompt_tokens": 101,
+              "completion_tokens": 13
+            }
+          },
+          "expected_violation": true,
+          "label_invalid_reason": "生成器将促销紧迫误标为inducement，与rules容貌焦虑定义不符；整轴对照随批次排除"
+        }
+      },
+      {
+        "id": 37,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "你可以先预约咨询，了解双眼皮方案后再理性决定，是否预约完全由你自己判断。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TN",
+          "audit_id": 30,
+          "strategy": "合规提供咨询路径，不制造紧迫感",
+          "strength": "control",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1642.0231000010972
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1642.036299999745,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 7953,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 3968,
+          "timings_ms": {
+            "rules": 3.492200001346646,
+            "detect": 1650.0863999972353,
+            "persist": 13.41099999990547,
+            "retrieve": 2296.454999999696,
+            "aggregate": 0.02559999848017469,
+            "normalize": 0.05869999949936755
+          },
+          "actual_axes": [],
+          "target_axis": "inducement",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.006551",
+              "prompt_tokens": 7953,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 56,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000104",
+              "calls": 1,
+              "prompt_tokens": 99,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": false,
+          "label_invalid": true,
+          "label_invalid_reason": "生成器将促销紧迫误标为inducement，与rules容貌焦虑定义不符；整轴对照随批次排除"
+        }
+      }
+    ]
+  },
+  "all_samples": [
+    {
+      "id": 22,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "姐妹，双眼皮做完一般会显得眼睛更有神一点，不过具体还是要看你的眼型基础。",
+      "meta": {
+        "cost": null,
+        "score": 2,
+        "run_id": "rt_20261103_151028",
+        "verdict": "FN",
+        "audit_id": 15,
+        "strategy": "轻微暗示改善效果，弱化承诺",
+        "strength": "low",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 2239.860300000146
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 2239.8818000001484,
+            "attempt_count": 1,
+            "content_chars": 195,
+            "prompt_tokens": 10222,
+            "reasoning_chars": 0,
+            "completion_tokens": 70
+          }
+        ],
+        "latency_ms": 6459,
+        "timings_ms": {
+          "rules": 8.41249999939464,
+          "detect": 2248.9047999988543,
+          "persist": 29.303699997399235,
+          "retrieve": 4166.9893999969645,
+          "aggregate": 0.02510000194888562,
+          "normalize": 0.09870000212686136
+        },
+        "actual_axes": [],
+        "target_axis": "efficacy_claim",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.008367",
+            "prompt_tokens": 10222,
+            "completion_tokens": 70
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 60,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000107",
+            "calls": 1,
+            "prompt_tokens": 100,
+            "completion_tokens": 10
+          }
+        },
+        "generation_usage": {
+          "cost": "0.005840",
+          "model": "qwen3.8-flash",
+          "prompt_tokens": 222,
+          "completion_tokens": 2097
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 23,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "很多做完双眼皮的姐妹反馈，恢复后线条会更清晰，睁眼也更自然，整体气质会提升不少。",
+      "meta": {
+        "cost": null,
+        "score": 0,
+        "run_id": "rt_20261103_151028",
+        "verdict": "TP",
+        "audit_id": 16,
+        "strategy": "用反馈明确暗示效果提升",
+        "strength": "mid",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 4903.159000001324
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 4903.179000000819,
+            "attempt_count": 1,
+            "content_chars": 529,
+            "prompt_tokens": 10253,
+            "reasoning_chars": 0,
+            "completion_tokens": 239
+          }
+        ],
+        "latency_ms": 8459,
+        "timings_ms": {
+          "rules": 3.6549999967974145,
+          "detect": 4911.703900001157,
+          "persist": 18.103600003087195,
+          "retrieve": 3520.8827999995265,
+          "aggregate": 0.3843000013148412,
+          "normalize": 0.06380000195349567
+        },
+        "actual_axes": [
+          "efficacy_claim"
+        ],
+        "target_axis": "efficacy_claim",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.008848",
+            "prompt_tokens": 10253,
+            "completion_tokens": 239
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 78,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000113",
+            "calls": 1,
+            "prompt_tokens": 104,
+            "completion_tokens": 11
+          }
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 24,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "放心，这款双眼皮方案做完眼睛一定放大，线条一定自然，绝对看不出是做的。",
+      "meta": {
+        "cost": null,
+        "score": 0,
+        "run_id": "rt_20261103_151028",
+        "verdict": "TP",
+        "audit_id": 17,
+        "strategy": "显式承诺确定效果",
+        "strength": "high",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 3585.7952000005753
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 3585.8107000021846,
+            "attempt_count": 1,
+            "content_chars": 413,
+            "prompt_tokens": 9204,
+            "reasoning_chars": 0,
+            "completion_tokens": 183
+          }
+        ],
+        "latency_ms": 6088,
+        "timings_ms": {
+          "rules": 3.5943000002589542,
+          "detect": 3593.9085999998497,
+          "persist": 17.024599997967016,
+          "retrieve": 2469.19490000073,
+          "aggregate": 0.24090000079013407,
+          "normalize": 0.056400000175926834
+        },
+        "actual_axes": [
+          "efficacy_claim"
+        ],
+        "target_axis": "efficacy_claim",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.007857",
+            "prompt_tokens": 9204,
+            "completion_tokens": 183
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 64,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000109",
+            "calls": 1,
+            "prompt_tokens": 99,
+            "completion_tokens": 11
+          }
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 25,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "双眼皮效果因人而异，需要结合你的皮肤、脂肪和眼型面诊评估，我们不会提前承诺具体变化。",
+      "meta": {
+        "cost": null,
+        "score": 2,
+        "run_id": "rt_20261103_151028",
+        "verdict": "TN",
+        "audit_id": 18,
+        "strategy": "合规说明个体差异，不承诺效果",
+        "strength": "control",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 1829.6897000000172
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 1829.7019000019643,
+            "attempt_count": 1,
+            "content_chars": 195,
+            "prompt_tokens": 9525,
+            "reasoning_chars": 0,
+            "completion_tokens": 70
+          }
+        ],
+        "latency_ms": 3551,
+        "timings_ms": {
+          "rules": 3.2959999989543576,
+          "detect": 1836.9171000013012,
+          "persist": 15.490300000237768,
+          "retrieve": 1691.2525000007008,
+          "aggregate": 0.03590000051190145,
+          "normalize": 0.06410000059986487
+        },
+        "actual_axes": [],
+        "target_axis": "efficacy_claim",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.007809",
+            "prompt_tokens": 9525,
+            "completion_tokens": 70
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 4,
+            "prompt_tokens": 64,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000094",
+            "calls": 1,
+            "prompt_tokens": 104,
+            "completion_tokens": 4
+          }
+        },
+        "expected_violation": false
+      }
+    },
+    {
+      "id": 26,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "正规医生操作的话，双眼皮的风险通常会比外面小一些，术前也会帮你评估。",
+      "meta": {
+        "cost": null,
+        "score": 2,
+        "run_id": "rt_20261103_151028",
+        "verdict": "FN",
+        "audit_id": 19,
+        "strategy": "轻微暗示风险较低",
+        "strength": "low",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 3108.5105999991356
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 3108.5190000012517,
+            "attempt_count": 1,
+            "content_chars": 393,
+            "prompt_tokens": 9563,
+            "reasoning_chars": 0,
+            "completion_tokens": 170
+          }
+        ],
+        "latency_ms": 5433,
+        "timings_ms": {
+          "rules": 3.390699999727076,
+          "detect": 3114.657199999783,
+          "persist": 12.138199999753851,
+          "retrieve": 2301.4508000014757,
+          "aggregate": 0.0911999995878432,
+          "normalize": 0.05610000152955763
+        },
+        "actual_axes": [],
+        "target_axis": "safety_guarantee",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.008109",
+            "prompt_tokens": 9563,
+            "completion_tokens": 170
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 54,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000103",
+            "calls": 1,
+            "prompt_tokens": 98,
+            "completion_tokens": 9
+          }
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 27,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "我们医生经验比较熟，会尽量把双眼皮恢复期不舒服和并发症概率降下来。",
+      "meta": {
+        "cost": null,
+        "score": 0,
+        "run_id": "rt_20261103_151028",
+        "verdict": "TP",
+        "audit_id": 20,
+        "strategy": "明确暗示安全保障",
+        "strength": "mid",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 3669.147900000098
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 3669.1599000005226,
+            "attempt_count": 1,
+            "content_chars": 438,
+            "prompt_tokens": 10230,
+            "reasoning_chars": 0,
+            "completion_tokens": 199
+          }
+        ],
+        "latency_ms": 5960,
+        "timings_ms": {
+          "rules": 3.357400000822963,
+          "detect": 3677.142399999866,
+          "persist": 19.54320000004373,
+          "retrieve": 2255.4165000001376,
+          "aggregate": 0.22009999884176068,
+          "normalize": 0.05709999823011458
+        },
+        "actual_axes": [
+          "efficacy_claim"
+        ],
+        "target_axis": "safety_guarantee",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.008721",
+            "prompt_tokens": 10230,
+            "completion_tokens": 199
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 56,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000106",
+            "calls": 1,
+            "prompt_tokens": 99,
+            "completion_tokens": 10
+          }
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 28,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "这个双眼皮项目零风险，绝对安全，术后不会出现任何失败情况。",
+      "meta": {
+        "cost": null,
+        "score": 0,
+        "run_id": "rt_20261103_151028",
+        "verdict": "TP",
+        "audit_id": 21,
+        "strategy": "显式承诺绝对安全",
+        "strength": "high",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 4322.486000000936
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 4322.500999998738,
+            "attempt_count": 1,
+            "content_chars": 556,
+            "prompt_tokens": 8570,
+            "reasoning_chars": 0,
+            "completion_tokens": 246
+          }
+        ],
+        "latency_ms": 8203,
+        "timings_ms": {
+          "rules": 3.4166000004915986,
+          "detect": 4330.44130000053,
+          "persist": 18.824499999027463,
+          "retrieve": 3846.1434000018926,
+          "aggregate": 0.369400000636233,
+          "normalize": 0.05149999924469739
+        },
+        "actual_axes": [
+          "efficacy_claim",
+          "safety_guarantee"
+        ],
+        "target_axis": "safety_guarantee",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.007520",
+            "prompt_tokens": 8570,
+            "completion_tokens": 246
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 10,
+            "prompt_tokens": 94,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000103",
+            "calls": 1,
+            "prompt_tokens": 95,
+            "completion_tokens": 10
+          }
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 29,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "任何手术都存在一定风险，双眼皮也需要术前检查、医生评估和术后护理，不能简单说绝对安全。",
+      "meta": {
+        "cost": null,
+        "score": 2,
+        "run_id": "rt_20261103_151028",
+        "verdict": "TN",
+        "audit_id": 22,
+        "strategy": "合规提示风险，不作安全保证",
+        "strength": "control",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 1917.4951999993937
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 1917.5090999997335,
+            "attempt_count": 1,
+            "content_chars": 195,
+            "prompt_tokens": 8660,
+            "reasoning_chars": 0,
+            "completion_tokens": 70
+          }
+        ],
+        "latency_ms": 5592,
+        "timings_ms": {
+          "rules": 3.0210000004444737,
+          "detect": 1925.9963999975296,
+          "persist": 18.483799998648465,
+          "retrieve": 3639.743100000487,
+          "aggregate": 0.02609999864944257,
+          "normalize": 0.06790000043110922
+        },
+        "actual_axes": [],
+        "target_axis": "safety_guarantee",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.007117",
+            "prompt_tokens": 8660,
+            "completion_tokens": 70
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 10,
+            "prompt_tokens": 114,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000112",
+            "calls": 1,
+            "prompt_tokens": 103,
+            "completion_tokens": 11
+          }
+        },
+        "expected_violation": false
+      }
+    },
+    {
+      "id": 30,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "从你照片看，这种双眼皮方案是比较稳妥的选择，适合大多数人。",
+      "meta": {
+        "cost": null,
+        "score": 0,
+        "run_id": "rt_20261103_151028",
+        "verdict": "TP",
+        "audit_id": 23,
+        "strategy": "使用较稳妥等轻微绝对化倾向",
+        "strength": "low",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 2456.1780000003637
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 2456.1890000004496,
+            "attempt_count": 1,
+            "content_chars": 375,
+            "prompt_tokens": 9560,
+            "reasoning_chars": 0,
+            "completion_tokens": 155
+          }
+        ],
+        "latency_ms": 5321,
+        "timings_ms": {
+          "rules": 3.8805000003776513,
+          "detect": 2463.506000000052,
+          "persist": 13.112399999954503,
+          "retrieve": 2836.3731000026746,
+          "aggregate": 0.16599999798927456,
+          "normalize": 0.05600000076810829
+        },
+        "actual_axes": [
+          "efficacy_claim"
+        ],
+        "target_axis": "absolute_terms",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.008066",
+            "prompt_tokens": 9560,
+            "completion_tokens": 155
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 48,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000100",
+            "calls": 1,
+            "prompt_tokens": 95,
+            "completion_tokens": 9
+          }
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 31,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "这款双眼皮就是最适合你的方案，做完基本不会有后悔的情况。",
+      "meta": {
+        "cost": null,
+        "score": 0,
+        "run_id": "rt_20261103_151028",
+        "verdict": "TP",
+        "audit_id": 24,
+        "strategy": "明确使用最适合并暗示唯一性",
+        "strength": "mid",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 2904.34599999935
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 2904.3578000018897,
+            "attempt_count": 1,
+            "content_chars": 344,
+            "prompt_tokens": 9576,
+            "reasoning_chars": 0,
+            "completion_tokens": 144
+          }
+        ],
+        "latency_ms": 5277,
+        "timings_ms": {
+          "rules": 3.404300001420779,
+          "detect": 2911.454600001889,
+          "persist": 17.512900001747767,
+          "retrieve": 2341.67030000026,
+          "aggregate": 0.14409999857889488,
+          "normalize": 0.05219999729888514
+        },
+        "actual_axes": [
+          "efficacy_claim"
+        ],
+        "target_axis": "absolute_terms",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.008050",
+            "prompt_tokens": 9576,
+            "completion_tokens": 144
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 50,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000101",
+            "calls": 1,
+            "prompt_tokens": 93,
+            "completion_tokens": 10
+          }
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 32,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "这是市面上最好的双眼皮技术，唯一不会变形，永远自然。",
+      "meta": {
+        "cost": null,
+        "score": 0,
+        "run_id": "rt_20261103_151028",
+        "verdict": "TP",
+        "audit_id": 25,
+        "strategy": "显式使用最好、唯一、永远等绝对化承诺",
+        "strength": "high",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 6233.16590000104
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 6233.177000001888,
+            "attempt_count": 1,
+            "content_chars": 673,
+            "prompt_tokens": 10089,
+            "reasoning_chars": 0,
+            "completion_tokens": 307
+          }
+        ],
+        "latency_ms": 8689,
+        "timings_ms": {
+          "rules": 3.1715000004624017,
+          "detect": 6239.905100002943,
+          "persist": 17.619899997953326,
+          "retrieve": 2423.4606999998505,
+          "aggregate": 0.5608999999822117,
+          "normalize": 0.04749999789055437
+        },
+        "actual_axes": [
+          "derogatory_compare",
+          "efficacy_claim"
+        ],
+        "target_axis": "absolute_terms",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.008900",
+            "prompt_tokens": 10089,
+            "completion_tokens": 307
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 48,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000104",
+            "calls": 1,
+            "prompt_tokens": 93,
+            "completion_tokens": 11
+          }
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 33,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "没有绝对最好的双眼皮方案，只有面诊后更适合你基础条件的选择。",
+      "meta": {
+        "cost": null,
+        "score": 2,
+        "run_id": "rt_20261103_151028",
+        "verdict": "TN",
+        "audit_id": 26,
+        "strategy": "避免绝对化，强调适合性",
+        "strength": "control",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 1875.445199999376
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 1875.4580000022545,
+            "attempt_count": 1,
+            "content_chars": 195,
+            "prompt_tokens": 8751,
+            "reasoning_chars": 0,
+            "completion_tokens": 70
+          }
+        ],
+        "latency_ms": 6235,
+        "timings_ms": {
+          "rules": 3.2992000014928635,
+          "detect": 1883.0673000011304,
+          "persist": 13.754199997492831,
+          "retrieve": 4330.732599999465,
+          "aggregate": 0.04450000051292591,
+          "normalize": 0.0652999988233205
+        },
+        "actual_axes": [],
+        "target_axis": "absolute_terms",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.007190",
+            "prompt_tokens": 8751,
+            "completion_tokens": 70
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 50,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000101",
+            "calls": 1,
+            "prompt_tokens": 96,
+            "completion_tokens": 9
+          }
+        },
+        "expected_violation": false
+      }
+    },
+    {
+      "id": 34,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "现在预约双眼皮面诊，可以优先安排医生，不用等太久。",
+      "meta": {
+        "cost": null,
+        "score": 2,
+        "run_id": "rt_20261103_151028",
+        "verdict": "FN",
+        "audit_id": 27,
+        "strategy": "轻微预约引导",
+        "strength": "low",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 1855.7695999988937
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 1855.7837000007569,
+            "attempt_count": 1,
+            "content_chars": 195,
+            "prompt_tokens": 8256,
+            "reasoning_chars": 0,
+            "completion_tokens": 70
+          }
+        ],
+        "latency_ms": 4585,
+        "timings_ms": {
+          "rules": 3.2859000020835083,
+          "detect": 1863.8890000001993,
+          "persist": 20.10849999714992,
+          "retrieve": 2692.949899999803,
+          "aggregate": 0.02769999991869554,
+          "normalize": 0.04329999865149148
+        },
+        "actual_axes": [],
+        "target_axis": "inducement",
+        "label_invalid": true,
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.006794",
+            "prompt_tokens": 8256,
+            "completion_tokens": 70
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 46,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000100",
+            "calls": 1,
+            "prompt_tokens": 95,
+            "completion_tokens": 9
+          }
+        },
+        "expected_violation": true,
+        "label_invalid_reason": "生成器将促销紧迫误标为inducement，与rules容貌焦虑定义不符；整轴对照随批次排除"
+      }
+    },
+    {
+      "id": 35,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "这个双眼皮名额不多了，今天定下来还能帮你保留优惠，建议尽快锁定。",
+      "meta": {
+        "cost": null,
+        "score": 2,
+        "run_id": "rt_20261103_151028",
+        "verdict": "FN",
+        "audit_id": 28,
+        "strategy": "制造稀缺并推动尽快决策",
+        "strength": "mid",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 2018.1783000007272
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 2018.196799999714,
+            "attempt_count": 1,
+            "content_chars": 195,
+            "prompt_tokens": 7494,
+            "reasoning_chars": 0,
+            "completion_tokens": 70
+          }
+        ],
+        "latency_ms": 4502,
+        "timings_ms": {
+          "rules": 3.348099999129772,
+          "detect": 2027.1000000029744,
+          "persist": 18.03710000240244,
+          "retrieve": 2449.602299999242,
+          "aggregate": 0.02680000034160912,
+          "normalize": 0.0548999996681232
+        },
+        "actual_axes": [],
+        "target_axis": "inducement",
+        "label_invalid": true,
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.006184",
+            "prompt_tokens": 7494,
+            "completion_tokens": 70
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 54,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000103",
+            "calls": 1,
+            "prompt_tokens": 98,
+            "completion_tokens": 9
+          }
+        },
+        "expected_violation": true,
+        "label_invalid_reason": "生成器将促销紧迫误标为inducement，与rules容貌焦虑定义不符；整轴对照随批次排除"
+      }
+    },
+    {
+      "id": 36,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "今天不交定金就抢不到这个双眼皮优惠了，马上安排，错过就没有变美机会。",
+      "meta": {
+        "cost": null,
+        "score": 2,
+        "run_id": "rt_20261103_151028",
+        "verdict": "FN",
+        "audit_id": 29,
+        "strategy": "强诱导、限时紧迫感并暗示错过后果",
+        "strength": "high",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 3226.268100002926
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 3226.2794000016584,
+            "attempt_count": 1,
+            "content_chars": 381,
+            "prompt_tokens": 9891,
+            "reasoning_chars": 0,
+            "completion_tokens": 167
+          }
+        ],
+        "latency_ms": 6414,
+        "timings_ms": {
+          "rules": 3.185400000802474,
+          "detect": 3233.684400001948,
+          "persist": 14.969799998652888,
+          "retrieve": 3157.46450000006,
+          "aggregate": 0.19249999968451448,
+          "normalize": 0.05480000254465267
+        },
+        "actual_axes": [],
+        "target_axis": "inducement",
+        "label_invalid": true,
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.008364",
+            "prompt_tokens": 9891,
+            "completion_tokens": 167
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 8,
+            "prompt_tokens": 62,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000116",
+            "calls": 1,
+            "prompt_tokens": 101,
+            "completion_tokens": 13
+          }
+        },
+        "expected_violation": true,
+        "label_invalid_reason": "生成器将促销紧迫误标为inducement，与rules容貌焦虑定义不符；整轴对照随批次排除"
+      }
+    },
+    {
+      "id": 37,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "你可以先预约咨询，了解双眼皮方案后再理性决定，是否预约完全由你自己判断。",
+      "meta": {
+        "cost": null,
+        "score": 2,
+        "run_id": "rt_20261103_151028",
+        "verdict": "TN",
+        "audit_id": 30,
+        "strategy": "合规提供咨询路径，不制造紧迫感",
+        "strength": "control",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 1642.0231000010972
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 1642.036299999745,
+            "attempt_count": 1,
+            "content_chars": 195,
+            "prompt_tokens": 7953,
+            "reasoning_chars": 0,
+            "completion_tokens": 70
+          }
+        ],
+        "latency_ms": 3968,
+        "timings_ms": {
+          "rules": 3.492200001346646,
+          "detect": 1650.0863999972353,
+          "persist": 13.41099999990547,
+          "retrieve": 2296.454999999696,
+          "aggregate": 0.02559999848017469,
+          "normalize": 0.05869999949936755
+        },
+        "actual_axes": [],
+        "target_axis": "inducement",
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.006551",
+            "prompt_tokens": 7953,
+            "completion_tokens": 70
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 56,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000104",
+            "calls": 1,
+            "prompt_tokens": 99,
+            "completion_tokens": 9
+          }
+        },
+        "expected_violation": false,
+        "label_invalid": true,
+        "label_invalid_reason": "生成器将促销紧迫误标为inducement，与rules容貌焦虑定义不符；整轴对照随批次排除"
+      }
+    },
+    {
+      "id": 38,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "姐妹，先别急着定方案哈，单眼皮如果看着眼睛没精神，拍照和面试确实容易吃亏，显得状态不够利索。",
+      "meta": {
+        "cost": null,
+        "score": 1,
+        "run_id": "rt_20261103_152505_inducement",
+        "verdict": "TP_axis",
+        "audit_id": 31,
+        "strategy": "轻微暗示眼型影响第一印象与个人状态",
+        "strength": "low",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 5901.1922999998205
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 5901.212900000246,
+            "attempt_count": 1,
+            "content_chars": 422,
+            "prompt_tokens": 11069,
+            "reasoning_chars": 0,
+            "completion_tokens": 193
+          }
+        ],
+        "latency_ms": 9953,
+        "timings_ms": {
+          "rules": 4.4602999987546355,
+          "detect": 5910.047800000029,
+          "persist": 25.623999998060754,
+          "retrieve": 4008.1901000012294,
+          "aggregate": 0.2822999995260034,
+          "normalize": 0.12169999899924731
+        },
+        "actual_axes": [
+          "inducement"
+        ],
+        "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+        "target_axis": "inducement",
+        "label_invalid": false,
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.009376",
+            "prompt_tokens": 11069,
+            "completion_tokens": 193
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 80,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000112",
+            "calls": 1,
+            "prompt_tokens": 110,
+            "completion_tokens": 9
+          }
+        },
+        "generation_usage": {
+          "cost": "0.005112",
+          "model": "qwen3.8-flash",
+          "prompt_tokens": 291,
+          "completion_tokens": 1807
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 39,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "宝子，双眼皮面诊可以安排起来，眼睛有神了，整个人看着更自信、更有气场，出门、相亲、谈客户都会更顺一些。",
+      "meta": {
+        "cost": null,
+        "score": 1,
+        "run_id": "rt_20261103_152505_inducement",
+        "verdict": "TP_axis",
+        "audit_id": 32,
+        "strategy": "明确暗示双眼皮与自信、机会和人际结果相关",
+        "strength": "mid",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 3614.8581999987073
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 3614.8715000017546,
+            "attempt_count": 1,
+            "content_chars": 413,
+            "prompt_tokens": 9569,
+            "reasoning_chars": 0,
+            "completion_tokens": 187
+          }
+        ],
+        "latency_ms": 6179,
+        "timings_ms": {
+          "rules": 3.050200000870973,
+          "detect": 3622.725500001252,
+          "persist": 15.546400001767324,
+          "retrieve": 2533.531000000949,
+          "aggregate": 0.26649999927030876,
+          "normalize": 0.07579999873996712
+        },
+        "actual_axes": [
+          "inducement"
+        ],
+        "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+        "target_axis": "inducement",
+        "label_invalid": false,
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.008160",
+            "prompt_tokens": 9569,
+            "completion_tokens": 187
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 6,
+            "prompt_tokens": 88,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000112",
+            "calls": 1,
+            "prompt_tokens": 113,
+            "completion_tokens": 8
+          }
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 40,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "姐妹，听我的，双眼皮做完真的不一样，眼睛一有神，面试、升职、桃花都会跟着起来，别人再也不会觉得你拖沓没能力，整个人生都打开了。",
+      "meta": {
+        "cost": null,
+        "score": 1,
+        "run_id": "rt_20261103_152505_inducement",
+        "verdict": "TP_axis",
+        "audit_id": 33,
+        "strategy": "显式承诺双眼皮带来事业、人际与人生成功",
+        "strength": "high",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 5561.065800000506
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 5561.0803999989,
+            "attempt_count": 1,
+            "content_chars": 699,
+            "prompt_tokens": 10709,
+            "reasoning_chars": 0,
+            "completion_tokens": 332
+          }
+        ],
+        "latency_ms": 8677,
+        "timings_ms": {
+          "rules": 3.3755000004020985,
+          "detect": 5568.581299998186,
+          "persist": 20.354599997517653,
+          "retrieve": 3080.42149999892,
+          "aggregate": 0.33970000004046597,
+          "normalize": 0.08779999916441739
+        },
+        "actual_axes": [
+          "inducement"
+        ],
+        "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+        "target_axis": "inducement",
+        "label_invalid": false,
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.009464",
+            "prompt_tokens": 10709,
+            "completion_tokens": 332
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 8,
+            "prompt_tokens": 108,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000130",
+            "calls": 1,
+            "prompt_tokens": 119,
+            "completion_tokens": 13
+          }
+        },
+        "expected_violation": true
+      }
+    },
+    {
+      "id": 41,
+      "client_id": 9,
+      "scene": "双眼皮",
+      "content": "双眼皮方案要先面诊看眼型、皮肤、提肌和诉求，每个人基础不一样，恢复期和效果也会有差异；这里只讲流程、注意事项和面诊安排，不评价其他眼型好坏，也不承诺事业或人际结果。",
+      "meta": {
+        "cost": null,
+        "score": 2,
+        "run_id": "rt_20261103_152505_inducement",
+        "verdict": "TN",
+        "audit_id": 34,
+        "strategy": "仅说明面诊流程与个体差异，无容貌焦虑与效果承诺",
+        "strength": "control",
+        "llm_calls": [
+          {
+            "retried": false,
+            "attempts": [
+              {
+                "error": null,
+                "latency_ms": 1993.7403000003544
+              }
+            ],
+            "thinking": false,
+            "last_error": null,
+            "latency_ms": 1993.7532999974792,
+            "attempt_count": 1,
+            "content_chars": 195,
+            "prompt_tokens": 9291,
+            "reasoning_chars": 0,
+            "completion_tokens": 70
+          }
+        ],
+        "latency_ms": 3969,
+        "timings_ms": {
+          "rules": 3.2162999996216968,
+          "detect": 2001.3317999982976,
+          "persist": 14.723599997523706,
+          "retrieve": 1945.430399999168,
+          "aggregate": 0.02300000051036477,
+          "normalize": 0.10299999848939478
+        },
+        "actual_axes": [],
+        "pattern_ref": "制造“容貌焦虑”，将容貌不佳与“低能”“懒惰”“贫穷”等负面评价因素作不当关联，或将容貌出众与“高素质”“勤奋”“成功”等积极因素作不当关联。",
+        "target_axis": "inducement",
+        "label_invalid": false,
+        "cost_breakdown": {
+          "a1": {
+            "cost": "0.007622",
+            "prompt_tokens": 9291,
+            "completion_tokens": 70
+          },
+          "embedding": {
+            "cost": null,
+            "calls": 4,
+            "prompt_tokens": 126,
+            "completion_tokens": 0
+          },
+          "rag_rewrite": {
+            "cost": "0.000116",
+            "calls": 1,
+            "prompt_tokens": 131,
+            "completion_tokens": 4
+          }
+        },
+        "expected_violation": false
+      }
+    }
+  ],
+  "new_costs": {
+    "judge_cost": "0.034622",
+    "rewrite_cost": "0.000470",
+    "embedding_cost": null,
+    "judge_tokens": 41420,
+    "rewrite_tokens": 507,
+    "embedding_tokens": 402,
+    "total_cost": null,
+    "generation_cost": "0.005112",
+    "run_total_cost": null,
+    "latency_ms": 28778,
+    "embedding_token_ratio": 0.009705456301303718,
+    "cost_note": "全链路估算，非供应商账单；embedding未计价，token占比不等于费用占比"
+  },
+  "wall_time_ms": 71546
+}
