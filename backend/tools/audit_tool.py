@@ -41,7 +41,8 @@ class AuditTool:
         self.repository = repository
         self.model = model if model is not None else UrllibChatModel()
         known = indexed_docs() if search_law is globals()["search_law"] else None
-        self.auditor = ComplianceAuditAgent(repository.load_rules, search_law, self.model, detectors, known_docs=known)
+        self.auditor = ComplianceAuditAgent(repository.load_rules, search_law, self.model, detectors, known_docs=known,
+            semantic_mode=__import__("os").environ.get("JUDGE_MODE", "merged") if known is not None else "multi")
         self.rewriter = RewriteAgent(self.auditor, self.model)
 
     def _client(self, client_id):
@@ -71,6 +72,7 @@ class AuditTool:
         if hasattr(self.repository, "update_latency"):
             self.repository.update_latency(audit_id, result["latency_ms"])
         logging.getLogger(__name__).warning("audit_timings_ms=%s", result["timings_ms"])
+        result["llm_calls"] = getattr(self.model, "calls", [])
         return dict(result, id=audit_id, audit_id=audit_id, script_id=script_id)
 
     def rewrite_audit(self, audit_id):
@@ -130,6 +132,7 @@ class UrllibChatModel(ChatModel):
         self.output_price = config.get('JUDGE_OUTPUT_PRICE_PER_M') or fallback.get('out')
         compute_cost(0, 0, self.input_price, self.output_price)
         self.pricing_source = 'configured_or_model_table' if self.input_price is not None and self.output_price is not None else 'unpriced'
+        self.calls = []
         self.api_key = config.get("JUDGE_API_KEY")
         self.base_url = config.get("JUDGE_BASE_URL", DASHSCOPE_URL).rstrip("/")
         self.transport = transport if transport is not None else self._request
@@ -151,6 +154,7 @@ class UrllibChatModel(ChatModel):
 
     def complete(self, messages: list[dict]) -> dict:
         """输入聊天消息，返回供应商真实用量和 Decimal 成本；响应缺项抛异常。"""
+        started = perf_counter()
         for attempt in range(3):
             try:
                 response = self.transport("/chat/completions", {
@@ -161,6 +165,10 @@ class UrllibChatModel(ChatModel):
                 if attempt == 2:
                     raise
         usage = response["usage"]
+        call = dict(latency_ms=(perf_counter()-started)*1000, attempt_count=attempt+1,
+                    retried=attempt>0, prompt_tokens=usage.get("prompt_tokens"), completion_tokens=usage.get("completion_tokens"))
+        logging.getLogger(__name__).warning("llm_call=%s", call)
+        self.calls.append(call)
         prompt, completion = usage["prompt_tokens"], usage["completion_tokens"]
         if any(type(value) is not int or value < 0 for value in (prompt, completion)):
             raise ValueError("模型用量必须是非负整数")

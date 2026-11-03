@@ -106,3 +106,40 @@ def test_item_metadata_rejects_wrong_axis_and_preserves_provenance():
     assert not result['hits']
     assert result['traces'][0]['status'] == 'item_mismatch'
     assert result['traces'][0]['ref'] == '医疗美容广告执法指南.5.4'
+
+
+
+def test_merged_missing_axis_fails_closed():
+    from backend.agents.base import ChatModel
+    import json
+    class Model(ChatModel):
+        def complete(self, messages):
+            return dict(content=json.dumps({'a': []}), model='stub', prompt_tokens=1, completion_tokens=1, cost=0)
+    rules = [dict(axis=a, pattern='安全', law_article='广告法第16条') for a in 'abcdefgh']
+    result = ComplianceAuditAgent(lambda: rules, lambda q:[dict(code='广告法第16条')],
+                                 Model(), semantic_mode='merged').review('非常安全')
+    assert result['incomplete'] is True
+    assert result['reason'] == 'missing_axis'
+    assert result['score'] == -1
+
+
+def test_merged_and_multi_results_equal():
+    from backend.agents.base import ChatModel
+    import json
+    class Model(ChatModel):
+        calls = 0
+        def complete(self, messages):
+            self.calls += 1
+            payload = json.loads(messages[1]['content'])
+            hit = dict(quote='非常安全', law_article='广告法第16条', reason='安全保证')
+            data = {r['axis']:[hit] for r in payload['rules']} if 'rules' in payload else {'hits':[hit]}
+            return dict(content=json.dumps(data), model='stub', prompt_tokens=1, completion_tokens=1, cost=0)
+    rules = [dict(axis=a, pattern='安全', law_article='广告法第16条') for a in 'abcdefgh']
+    results = []
+    for mode in ('multi', 'merged'):
+        model = Model()
+        result = ComplianceAuditAgent(lambda: rules, lambda q:[dict(code='广告法第16条')],
+                                     model, semantic_mode=mode).review('非常安全')
+        assert model.calls == (1 if mode == 'merged' else 8)
+        results.append(result['raw_hits'])
+    assert results[0] == results[1]

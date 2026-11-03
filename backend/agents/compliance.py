@@ -9,13 +9,12 @@ import unicodedata
 from dataclasses import fields
 from decimal import Decimal
 from time import perf_counter
-from backend.agents.base import Rule, DETECTORS, LLMJudgeDetector
+from backend.agents.base import Rule, DETECTORS, LLMJudgeDetector, merged_judgment
 from backend.core.config import DISCLAIMER_TEXT
 from backend.core.constants import to_refs, missing_docs, add_cost, match_refs, bind_chunk
 
 _SENTENCES = re.compile(r'[^。！？!?；;\n]+[。！？!?；;\n]?')
 _ZERO_WIDTH = frozenset('\u200b\u200c\u200d\ufeff\u2060')
-
 
 def normalize_text(original):
     """逐字符 NFKC 归一并返回每个归一字符在原文中的半开区间。"""
@@ -32,12 +31,10 @@ def normalize_text(original):
             offsets.append((index, index + 1))
     return ''.join(chars), offsets
 
-
 def normalize_with_map(original):
     """NFKC 文本及每字符原文起点；兼容保留区间映射的 normalize_text。"""
     normalized, spans = normalize_text(original)
     return normalized, [start for start, end in spans]
-
 
 def _score(hits):
     """同句多轴仅计一处，严重度取该句最大值。"""
@@ -45,7 +42,6 @@ def _score(hits):
     if any(h['severity'] == 'hard' for h in hits) or len(sentences) >= 2:
         return 0
     return 1 if sentences else 2
-
 
 def aggregate_claims(hits):
     """按句聚合显示，保留原始证据列表和每轴引用，不更改原始判分依据。"""
@@ -62,14 +58,14 @@ def aggregate_claims(hits):
             claim['severity'] = 'hard'
     return list(claims.values())
 
-
 class ComplianceAuditAgent:
     """组合规则加载、检索和检测器，接口不依赖数据库或模型供应商。"""
-    def __init__(self, rules_loader, search_law, model, detectors=None, known_docs=None, workers=None):
+    def __init__(self, rules_loader, search_law, model, detectors=None, known_docs=None, workers=None, semantic_mode="multi"):
         self.rules_loader, self.search_law, self.model = rules_loader, search_law, model
         self.workers = int(workers if workers is not None else os.environ.get("JUDGE_WORKERS", 4))
         if self.workers < 1:
             raise ValueError("JUDGE_WORKERS must be positive")
+        self.semantic_mode = semantic_mode
         self.known_docs = known_docs
         self.detectors = dict(DETECTORS if detectors is None else detectors)
         if detectors is None:
@@ -112,15 +108,7 @@ class ComplianceAuditAgent:
         result['timings_ms']['retrieve'] = (perf_counter() - before) * 1000
         before = perf_counter()
         semantic = [rule for rule in rules if rule.detector == 'llm_judge']
-        with ThreadPoolExecutor(max_workers=self.workers) as pool:
-            outcomes = list(pool.map(lambda rule: self._isolated_detect(normalized, rule), semantic))
-        for rows, partial in outcomes:
-            candidates.extend(rows)
-            result['traces'].extend(partial['traces'])
-            result['incomplete'] |= partial['incomplete']
-            for key in ('prompt_tokens', 'completion_tokens', 'cost'):
-                result[key] = add_cost(result[key], partial[key]) if key == 'cost' else result[key] + partial[key]
-            result['model'] = partial['model'] or result['model']
+        self._run_semantic(normalized, semantic, candidates, result)
         result['timings_ms']['detect'] = (perf_counter() - before) * 1000
         before = perf_counter()
         self._validate(text, normalized, offsets, candidates, result)  # N6–N7
@@ -132,6 +120,34 @@ class ComplianceAuditAgent:
         result['latency_ms'] = int((perf_counter() - started) * 1000)
         logging.getLogger(__name__).warning('audit_timings_ms=%s', result['timings_ms'])
         return result
+
+    def _run_semantic(self, text, rules, candidates, result):
+        """合并模式一次调用；多路保留独立用量容器，缺轴必须未完成。"""
+        if not rules:
+            return
+        if self.semantic_mode == 'merged':
+            try:
+                rows, usage, missing = merged_judgment(self.model, text, rules, result['law_refs'])
+                candidates.extend(rows)
+                for key in ('prompt_tokens', 'completion_tokens', 'cost'):
+                    result[key] = add_cost(result[key], usage[key]) if key == 'cost' else result[key] + usage[key]
+                result['model'] = usage['model']
+                if missing:
+                    result.update(incomplete=True, reason='missing_axis')
+                    result['traces'].append(dict(status='missing_axis', axes=missing))
+            except Exception as exc:
+                result['incomplete'] = True
+                result['traces'].append(dict(status='axis_failed', error=type(exc).__name__))
+            return
+        with ThreadPoolExecutor(max_workers=self.workers) as pool:
+            outcomes = list(pool.map(lambda rule: self._isolated_detect(text, rule), rules))
+        for rows, partial in outcomes:
+            candidates.extend(rows)
+            result['traces'].extend(partial['traces'])
+            result['incomplete'] |= partial['incomplete']
+            for key in ('prompt_tokens', 'completion_tokens', 'cost'):
+                result[key] = add_cost(result[key], partial[key]) if key == 'cost' else result[key] + partial[key]
+            result['model'] = partial['model'] or result['model']
 
     def _isolated_detect(self, text, rule):
         """每个任务独立检测器和用量容器，按输入顺序归并避免共享 last_usage。"""
@@ -197,6 +213,10 @@ class ComplianceAuditAgent:
             if start < 0:
                 result['traces'].append(dict(hit, status='invalid_quote'))
                 continue
+            cited_chunk = next((r for r in result['law_refs'] if r.get('chunk_id') == hit.get('law_article')), None)
+            if cited_chunk:
+                hit['chunk_id'] = cited_chunk['chunk_id']
+                hit['law_article'] = cited_chunk['code']
             codes = {r['code'] for r in result['law_refs']}
             if rule.detector != 'llm_judge' and hit.get('law_article') not in codes:
                 parent = hit.get('law_article', '').split('(')[0]
@@ -246,7 +266,6 @@ class ComplianceAuditAgent:
             return next((e for e in rule.exemptions or [] if
                          '经营理念' in e.get('text', '') or '主观愿望' in e.get('text', '')), None)
         return None
-
 
 class RewriteAgent:
     """A2 生成后调用同一个 A1，不接受模型自报通过。"""
