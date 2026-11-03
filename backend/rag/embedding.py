@@ -12,10 +12,14 @@ EMBED_BATCH_SIZE = 25
 EMBED_DIMENSIONS = 1024
 EMBED_MODEL = 'text-embedding-v3'
 DASHSCOPE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-NETWORK_TIMEOUT = 30
+JUDGE_TIMEOUT = int(os.getenv("JUDGE_TIMEOUT", "180"))
+NETWORK_TIMEOUT = JUDGE_TIMEOUT  # 兼容旧import；urllib为单次阻塞读操作超时，非总时长上限。
 
 
-class EmbeddingError(RuntimeError):
+from backend.core.errors import ModelCallError, model_error
+
+
+class EmbeddingError(ModelCallError):
     """明确表示向量服务不可用，调用方必须降级并留状态。"""
 
 
@@ -29,6 +33,7 @@ class DashScopeEmbeddingFunction:
 
     def __init__(self, api_key=None, transport=None):
         config = llm_config()
+        self.timeout = int(config.get("JUDGE_TIMEOUT", JUDGE_TIMEOUT))
         self.api_key = api_key or config.get('JUDGE_API_KEY')
         self.base_url = config.get('JUDGE_BASE_URL', DASHSCOPE_URL).rstrip('/')
         self.model = config.get('EMBEDDING_MODEL', EMBED_MODEL)
@@ -51,14 +56,13 @@ class DashScopeEmbeddingFunction:
                           headers={'Authorization': f'Bearer {self.api_key}',
                                    'Content-Type': 'application/json'})
         try:
-            with urlopen(request, timeout=NETWORK_TIMEOUT) as response:
+            with urlopen(request, timeout=self.timeout) as response:
                 payload = json.load(response)
                 record_usage(path, payload, llm_config())
                 return payload
-        except HTTPError as exc:
-            raise EmbeddingError(f'DashScope HTTP {exc.code}') from None
-        except (URLError, TimeoutError, ValueError, OSError):
-            raise EmbeddingError('DashScope 请求失败或响应非法') from None
+        except (HTTPError, URLError, TimeoutError, ValueError, OSError) as exc:
+            error=model_error(exc,self.timeout,'向量/改写服务')
+            raise EmbeddingError(str(error),error.kind,error.attempt_limit) from None
 
     def __call__(self, input):
         """接受文本列表；input 命名遵循 Chroma 协议，批量不超过 25。"""

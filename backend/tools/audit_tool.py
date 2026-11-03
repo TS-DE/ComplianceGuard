@@ -8,6 +8,7 @@ from urllib.request import Request, urlopen
 
 from backend.agents.base import ChatModel
 from backend.core.config import DISCLAIMER_TEXT
+from backend.core.errors import ModelCallError, model_error
 from backend.core.constants import MODEL_PRICES, compute_cost, add_cost, to_refs
 from backend.rag.embedding import DASHSCOPE_URL, NETWORK_TIMEOUT, EmbeddingError, llm_config
 
@@ -63,6 +64,7 @@ class AuditTool:
             raise NotFoundError("script", script_id)
         if script["client_id"] != client_id:
             raise BusinessValidationError("话术不属于指定机构")
+        call_offset=len(getattr(self.model,"calls",[])) if isinstance(getattr(self.model,"calls",None),list) else 0
         started = perf_counter()
         from backend.rag.embedding import usage_meter
         with usage_meter() as rag_usage:
@@ -81,7 +83,7 @@ class AuditTool:
         if hasattr(self.repository, "update_latency"):
             self.repository.update_latency(audit_id, result["latency_ms"])
         logging.getLogger(__name__).warning("audit_timings_ms=%s", result["timings_ms"])
-        result["llm_calls"] = getattr(self.model, "calls", [])
+        result["llm_calls"] = getattr(self.model, "calls", [])[call_offset:]
         return dict(result, id=audit_id, audit_id=audit_id, script_id=script_id)
 
     def rewrite_audit(self, audit_id):
@@ -141,6 +143,7 @@ class UrllibChatModel(ChatModel):
         self.output_price = config.get('JUDGE_OUTPUT_PRICE_PER_M') or fallback.get('out')
         compute_cost(0, 0, self.input_price, self.output_price)
         self.pricing_source = 'configured_or_model_table' if self.input_price is not None and self.output_price is not None else 'unpriced'
+        self.timeout = int(config.get("JUDGE_TIMEOUT", NETWORK_TIMEOUT))
         self.calls = []
         self.api_key = config.get("JUDGE_API_KEY")
         self.base_url = config.get("JUDGE_BASE_URL", DASHSCOPE_URL).rstrip("/")
@@ -153,31 +156,35 @@ class UrllibChatModel(ChatModel):
         request = Request(self.base_url + path, data=json.dumps(payload).encode("utf-8"),
                           headers={"Authorization": f"Bearer {self.api_key}",
                                    "Content-Type": "application/json"})
-        try:
-            with urlopen(request, timeout=NETWORK_TIMEOUT) as response:
-                return json.load(response)
-        except HTTPError as exc:
-            raise EmbeddingError(f"聊天服务 HTTP {exc.code}") from None
-        except (URLError, TimeoutError, ValueError, OSError):
-            raise EmbeddingError("聊天服务请求失败或响应非法") from None
+        # urllib timeout作用于单次阻塞读操作，不是请求总耗时截止时间。
+        with urlopen(request, timeout=self.timeout) as response:
+            return json.load(response)
 
     def complete(self, messages: list[dict]) -> dict:
         """输入聊天消息，返回供应商真实用量和 Decimal 成本；响应缺项抛异常。"""
         started = perf_counter()
+        attempts=[]
+        last_error=None
         for attempt in range(3):
+            before=perf_counter()
             try:
-                response = self.transport("/chat/completions", {
-                    "model": self.model, "messages": messages, "temperature": 0,
-                    "response_format": {"type": "json_object"}})
+                response = self.transport('/chat/completions', {
+                    'model':self.model,'messages':messages,'temperature':0,
+                    'response_format':{'type':'json_object'}})
+                if not isinstance(response,dict):
+                    response=json.loads(response)
+                attempts.append(dict(latency_ms=(perf_counter()-before)*1000,error=None))
                 break
-            except EmbeddingError:
-                if attempt == 2:
-                    raise
-        usage = response["usage"]
-        call = dict(latency_ms=(perf_counter()-started)*1000, attempt_count=attempt+1,
-                    retried=attempt>0, prompt_tokens=usage.get("prompt_tokens"), completion_tokens=usage.get("completion_tokens"))
-        logging.getLogger(__name__).warning("llm_call=%s", call)
-        self.calls.append(call)
+            except (ModelCallError, HTTPError, URLError, TimeoutError, ValueError, OSError) as exc:
+                error=model_error(exc,self.timeout)
+                last_error=error.kind
+                attempts.append(dict(latency_ms=(perf_counter()-before)*1000,error=error.kind))
+                logging.getLogger(__name__).warning('llm_attempt=%s',attempts[-1])
+                if attempt+1>=error.attempt_limit:
+                    self._record_call(started,attempts,last_error,None)
+                    raise error from None
+        self._record_call(started,attempts,last_error,response)
+        usage = response['usage']
         prompt, completion = usage["prompt_tokens"], usage["completion_tokens"]
         if any(type(value) is not int or value < 0 for value in (prompt, completion)):
             raise ValueError("模型用量必须是非负整数")
@@ -188,3 +195,16 @@ class UrllibChatModel(ChatModel):
                 "prompt_tokens": prompt, "completion_tokens": completion,
                 "cost": compute_cost(prompt, completion, self.input_price, self.output_price),
                 "pricing_source": self.pricing_source}
+
+
+    def _record_call(self, started, attempts, last_error, response):
+        """成功和最终失败均记录元数据，绝不记录消息内容。"""
+        usage=(response or {}).get('usage',{})
+        choices=(response or {}).get('choices') or [{}]
+        message=choices[0].get('message',{})
+        call=dict(latency_ms=(perf_counter()-started)*1000,attempt_count=len(attempts),
+                  retried=len(attempts)>1,last_error=last_error,attempts=attempts,
+                  prompt_tokens=usage.get('prompt_tokens'),completion_tokens=usage.get('completion_tokens'),
+                  reasoning_chars=len(message.get('reasoning_content') or ''),content_chars=len(message.get('content') or ''))
+        logging.getLogger(__name__).warning('llm_call=%s',call)
+        self.calls.append(call)
