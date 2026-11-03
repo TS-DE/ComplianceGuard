@@ -129,7 +129,10 @@ class AuditOut(BaseModel):
     model: str | None
     prompt_tokens: int
     completion_tokens: int
-    cost: Decimal
+    # 2026-11-03：audits.cost 已迁移为可空（NULL=未配置单价未计价，0=确为零成本）。
+    # 此处必须同步为可空，否则遇到 cost 为 NULL 的历史行会抛 ValidationError，
+    # 导致 GET /audits 列表整体 500（详情正常，因为那条恰好 cost 有值）。
+    cost: Decimal | None = Field(default=None, ge=0)
     latency_ms: int
     incomplete: bool
     created_at: datetime
@@ -170,6 +173,10 @@ class RuleOut(RuleBase):
     version: int
     created_at: datetime
     updated_at: datetime
+    # 检测手段与法定豁免是「规则即数据」的核心两列，前端规则库必须能看见：
+    # 否则用户无法解释「这条轴是词库查的还是模型判的」「哪些情形法律上不算违规」。
+    detector: str | None = None
+    exemptions: list[dict] | None = None
 
 class CaseRecord(BaseModel):
     """一条官方罚单案例。"""

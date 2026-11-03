@@ -130,3 +130,24 @@ GET /api/v1/reports/daily?date=YYYY-MM-DD 返回完整/未完成、按轴、成�
 GET /api/v1/reports/redteam/{run_id} 返回矩阵、FN/(TP+FN)、FP/(FP+TN)、(TP+TN)/generated及样本量免责声明。
 MCP仍6个：db_query_violation_history新增可选run_id；db_save_redteam_result category为TP/FN/FP/TN/unjudged，judge可带script_id精确指定样本，写回scripts.redteam_meta。
 全链路费用分judge_cost/rewrite_cost/embedding_cost/total_cost；任一未知total_cost=null，embedding token照常记录。价格及用量仅为估算，不是供应商账单。
+
+## D5-a 话术内容搜索
+GET /api/v1/scripts 新增可选 q（最多500字符），按content子串LIKE过滤，与client_id及分页同时生效；%/_按字面转义，不传q或空串保持原行为。
+
+## D5-a2 法条追溯（前端「法条依据」可点开）
+GET /api/v1/law/article?code=<命中法条的code>（JWT 鉴权，code 2–80 字符）
+
+返回：
+```json
+{"code":200,"msg":"ok","data":{
+  "doc":"医疗美容广告执法指南","source":"03_医疗美容广告执法指南.md",
+  "code":"医疗美容广告执法指南第5条","article_no":5,
+  "text":"<该条完整原文，含全部项>",
+  "articles":[{"code":"医疗美容广告执法指南第2条","article_no":2,"text":"..."}]},"total":null}
+```
+- `articles` 为该法规**全部已收录条文**，供前端同屏渲染并滚动高亮目标条，
+  避免只给一根孤立条文而失去「在整部法规中的位置」这一追溯价值；
+- 只读本地法规归档（`backend/rag/ingest.py::find_law_article`），
+  **不查向量库、不调模型**，因此可随时点开且不产生费用；
+- 未收录条文 → **404** `{"code":404,"msg":"法规归档中未收录该条文：xxx"}`，禁止编造条文；
+- 说明：`procedure` 类程序性条款按 `relevance` 约定不入库，故 `articles` 只含已收录条文。

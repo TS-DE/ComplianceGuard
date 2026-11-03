@@ -1,6 +1,7 @@
 """只读解析法规结构及官方罚单，不改写归档原文、不触发网络调用。"""
 import json
 import re
+from functools import lru_cache
 from pathlib import Path
 
 from scripts.verify_law import ARTICLE_PATTERN, GUIDE_PATTERN, body_text, chinese_number
@@ -155,3 +156,64 @@ def load_cases() -> list[dict]:
                         law_articles="；".join(case.get("law_articles", [])))
         records.append(dict(id=case["case_id"], text=text, metadata=metadata))
     return records
+
+
+@lru_cache(maxsize=1)
+def law_catalog() -> dict[str, dict]:
+    """返回「法规全称 -> {title, source, articles}」，每条含该条完整原文。
+
+    与 `load_laws()` 的区别：这里**不跳过 procedure 条款**。
+    原因：前端要的是「完整法规 + 定位到该条」，若沿用入库口径，广告法只会剩 41/74 条、
+    医美指南只剩 4/10 条，用户看到的就不是完整法规了。入库求精度，追溯求完整。
+    """
+    catalog: dict[str, dict] = {}
+    for path in sorted(LAW_DIR.glob("*.md")):
+        if path.name == "README.md":
+            continue
+        title = re.sub(r"^\d+_", "", path.stem)
+        articles = [dict(code=f"{title}第{number}条", article_no=number, text=parent)
+                    for number, parent in _articles(path.read_text(encoding="utf-8"))]
+        articles.sort(key=lambda item: item["article_no"])
+        catalog[title] = dict(title=title, source=path.name, articles=articles)
+    return catalog
+
+
+_ITEM_RE = re.compile(r"[（(]([一二三四五六七八九十]+)[）)]")
+
+
+def extract_item(parent: str, item_no: str | None) -> str | None:
+    """从整条原文里切出指定项，如 item_no="第五条(五)" -> "（五）利用……作证明的。"
+
+    命中粒度本来就是「条下的某一项」，只回整条会让用户拿不到到底触发了哪一项；
+    这里按全角/半角括号都兼容的方式定位，取到下一项起点或条末为止。
+    """
+    if not item_no:
+        return None
+    matched = _ITEM_RE.search(item_no)
+    if matched is None:
+        return None
+    label = matched.group(1)
+    spans = list(_ITEM_RE.finditer(parent))
+    for index, span in enumerate(spans):
+        if span.group(1) != label:
+            continue
+        end = spans[index + 1].start() if index + 1 < len(spans) else len(parent)
+        return parent[span.start():end].strip()
+    return None
+
+
+def find_law_article(code: str, item_no: str | None = None) -> dict | None:
+    """按条文 code 定位，可选带项号；返回该项原文与所属条全文；未收录返回 None。
+
+    返回 article_text 是为了让前端能「展开看整条」，但默认只呈现命中的那一项——
+    用户点的是「第五条(五)」，给他整条第 5 条九项是噪声。
+    """
+    for doc in law_catalog().values():
+        for article in doc["articles"]:
+            if article["code"] != code:
+                continue
+            return dict(doc=doc["title"], source=doc["source"], code=article["code"],
+                        article_no=article["article_no"], item_no=item_no,
+                        item_text=extract_item(article["text"], item_no),
+                        article_text=article["text"])
+    return None
