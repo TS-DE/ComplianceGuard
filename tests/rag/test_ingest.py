@@ -140,6 +140,28 @@ def test_corpus_labels_and_exact_original_parents():
     assert any(r["metadata"]["code"] == "广告法第68条" for r in records)
 
 
+def test_retrieval_body_does_not_repeat_structured_code():
+    from backend.rag.retrieve import HybridRetriever
+    laws, _ = ingest_module().load_laws()
+    retriever = HybridRetriever(laws, [], None, rewriter=lambda text: [text])
+    hits = retriever.search('卫生技术人员')
+    assert hits
+    for hit in hits:
+        assert not hit.text.startswith(hit.code + '\n')
+        assert hit.text in hit.parent_text
+
+
+def test_before_after_retrieval_accepts_alternative_legal_sources():
+    from backend.rag.retrieve import HybridRetriever
+    laws, _ = ingest_module().load_laws()
+    retriever = HybridRetriever(laws, [], None, rewriter=lambda text: [text])
+    acceptable = {'医疗广告管理办法第7条', '医疗美容广告执法指南第5条'}
+    assert acceptable & {hit.code for hit in retriever.search('利用患者名义形象作证明')}
+    # 区分度验证独立要求第七条，而非仅接受共享“患者”的宽泛法源。
+    assert '医疗广告管理办法第7条' in {
+        hit.code for hit in retriever.search('卫生技术人员')}
+
+
 def test_short_non_list_articles_stay_whole():
     rows, _ = ingest_module().load_laws()
     fourth = [r for r in rows if r["metadata"]["code"] == "广告法第4条"]
