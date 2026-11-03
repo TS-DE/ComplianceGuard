@@ -1,0 +1,11 @@
+{
+  "status": "generation_failed",
+  "exception": "EmbeddingError",
+  "message": "聊天服务请求失败或响应非法",
+  "retry_policy": "existing adapter max 3 attempts; no manual rerun",
+  "database": {
+    "scripts": 3,
+    "redteam_scripts": 0,
+    "audits": 7
+  }
+}
