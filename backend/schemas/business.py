@@ -129,7 +129,10 @@ class AuditOut(BaseModel):
     model: str | None
     prompt_tokens: int
     completion_tokens: int
-    cost: Decimal
+    # 2026-11-03：audits.cost 已迁移为可空（NULL=未配置单价未计价，0=确为零成本）。
+    # 此处必须同步为可空，否则遇到 cost 为 NULL 的历史行会抛 ValidationError，
+    # 导致 GET /audits 列表整体 500（详情正常，因为那条恰好 cost 有值）。
+    cost: Decimal | None = Field(default=None, ge=0)
     latency_ms: int
     incomplete: bool
     created_at: datetime
