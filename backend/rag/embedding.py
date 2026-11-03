@@ -52,7 +52,9 @@ class DashScopeEmbeddingFunction:
                                    'Content-Type': 'application/json'})
         try:
             with urlopen(request, timeout=NETWORK_TIMEOUT) as response:
-                return json.load(response)
+                payload = json.load(response)
+                record_usage(path, payload, llm_config())
+                return payload
         except HTTPError as exc:
             raise EmbeddingError(f'DashScope HTTP {exc.code}') from None
         except (URLError, TimeoutError, ValueError, OSError):
@@ -119,3 +121,46 @@ class ChromaStore:
 
     def count(self, name):
         return self.collections[name].count()
+
+
+# 请求级用量上下文，只记录实际响应token，不发起额外网络请求。
+from contextvars import ContextVar
+from contextlib import contextmanager
+from backend.core.constants import compute_cost, add_cost, MODEL_PRICES
+
+_USAGE = ContextVar('rag_usage',default=None)
+
+
+@contextmanager
+def usage_meter():
+    """隔离每次审查的RAG费用，不污染并行请求。"""
+    values={k:dict(prompt_tokens=0,completion_tokens=0,cost=0,calls=0) for k in ('rag_rewrite','embedding')}
+    token=_USAGE.set(values)
+    try:
+        yield values
+    finally:
+        _USAGE.reset(token)
+
+
+def record_usage(path, response, config):
+    """记录服务响应费用；缺token或单价为未知，不冒充零。"""
+    values=_USAGE.get()
+    if values is None: return
+    usage=response.get('usage',{})
+    kind='embedding' if path=='/embeddings' else 'rag_rewrite'
+    if kind=='embedding':
+        prompt=usage.get('total_tokens',usage.get('prompt_tokens'))
+        completion=0
+        price_in=config.get('EMBEDDING_PRICE_PER_M') or None
+        price_out=0
+    else:
+        prompt,completion=usage.get('prompt_tokens'),usage.get('completion_tokens')
+        fallback=MODEL_PRICES.get(config.get('JUDGE_MODEL'),{})
+        price_in=config.get('JUDGE_INPUT_PRICE_PER_M') or fallback.get('in')
+        price_out=config.get('JUDGE_OUTPUT_PRICE_PER_M') or fallback.get('out')
+    cost=compute_cost(prompt,completion,price_in,price_out) if prompt is not None and completion is not None else None
+    row=values[kind]
+    row['prompt_tokens']+=prompt or 0
+    row['completion_tokens']+=completion or 0
+    row['calls']+=1
+    row['cost']=add_cost(row['cost'],cost)

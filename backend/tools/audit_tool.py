@@ -64,7 +64,16 @@ class AuditTool:
         if script["client_id"] != client_id:
             raise BusinessValidationError("话术不属于指定机构")
         started = perf_counter()
-        result = self.auditor.review(script["content"], client_id=client_id)
+        from backend.rag.embedding import usage_meter
+        with usage_meter() as rag_usage:
+            result = self.auditor.review(script["content"], client_id=client_id)
+        result["cost_breakdown"] = dict(a1=dict(cost=result["cost"],prompt_tokens=result["prompt_tokens"],
+            completion_tokens=result["completion_tokens"]), **rag_usage)
+        result["cost"] = add_cost(add_cost(result["cost"],rag_usage["rag_rewrite"]["cost"]),rag_usage["embedding"]["cost"])
+        result["cost_label"] = "全链路估算，非供应商账单"
+        result.update(judge_cost=result["cost_breakdown"]["a1"]["cost"],
+                      rewrite_cost=rag_usage["rag_rewrite"]["cost"],embedding_cost=rag_usage["embedding"]["cost"],
+                      total_cost=result["cost"],cost_note="全链路估算，非供应商账单；未知项不计伪合计")
         before = perf_counter()
         audit_id = self.repository.save(script_id, result)
         result.setdefault("timings_ms", {})["persist"] = (perf_counter() - before) * 1000
