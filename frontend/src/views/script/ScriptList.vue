@@ -18,6 +18,10 @@ import {
 import ScriptDialog from './ScriptDialog.vue'
 import ArticleDrawer from '../law/ArticleDrawer.vue'
 
+interface ScriptNode extends ScriptRow {
+  rowKey: string
+  kind: 'script'
+}
 interface ClientNode {
   rowKey: string
   kind: 'client'
@@ -25,7 +29,7 @@ interface ClientNode {
   clientName: string
   count: number | null
   hasChildren: boolean
-  children?: ScriptRow[]
+  children: ScriptNode[]
 }
 
 const router = useRouter()
@@ -76,14 +80,26 @@ async function loadGroups() {
   try {
     if (!clients.value.length) clients.value = await allClients()
     const scoped = clientId.value ? clients.value.filter(c => c.id === clientId.value) : clients.value
-    // 话术数：只为展示，取 total 即可，故 page_size=1 减小负载。
-    const counts = await Promise.all(
-      scoped.map(c => scripts.list<ScriptRow>({ page: 1, page_size: 1, client_id: c.id })
-        .then(d => d.total).catch(() => null))
-    )
-    groupNodes.value = scoped.map((c, index) => ({
-      rowKey: `c-${c.id}`, kind: 'client', clientId: c.id, clientName: c.name,
-      count: counts[index], hasChildren: (counts[index] ?? 0) > 0
+    // 故意用预先加载而不是 el-table 的 lazy 回调：
+    // 全库话术量很小（几十条），一次取回直接填 children 更可靠——
+    // lazy 回调一旦签名或返回值处理有偏差，界面就会一直转圈且没有错误提示。
+    // page_size 上限 100（超过后端 400），单机构超过 100 条需改为子列表分页。
+    const pages = await Promise.all(scoped.map(client =>
+      scripts.list<ScriptRow>({ page: 1, page_size: 100, client_id: client.id })
+        .catch(() => ({ items: [] as ScriptRow[], total: 0 }))
+    ))
+    groupNodes.value = scoped.map((client, index) => ({
+      rowKey: `c-${client.id}`,
+      kind: 'client',
+      clientId: client.id,
+      clientName: client.name,
+      count: pages[index].total,
+      hasChildren: pages[index].items.length > 0,
+      // 子行必须带唯一 rowKey：el-table 的 row-key 取的是 row.rowKey，
+      // 缺失会让所有子行共用 undefined，展开状态互相串。
+      children: pages[index].items.map(item => ({
+        ...item, rowKey: `s-${item.id}`, kind: 'script' as const
+      }))
     }))
   } catch {
     // 分组失败时保持空态，不伪造数据。
@@ -92,17 +108,11 @@ async function loadGroups() {
   }
 }
 
-/** 展开某个机构时才请求它的话术，避免一次性拉全库。
- *  注意 page_size 上限是 100（超过后端直接 400 参数校验失败），所以这里取 100；
- *  单机构超过 100 条时后续需要给子列表加分页（当前数据量远小于该阈值）。
- */
-async function loadChildren(node: ClientNode, resolve: (rows: ScriptRow[]) => void) {
-  try {
-    const data = await scripts.list<ScriptRow>({ page: 1, page_size: 100, client_id: node.clientId })
-    resolve(data.items)
-  } catch {
-    resolve([])
-  }
+/** 展开/收起全部：children 已预加载，直接切换展开状态即可。 */
+function expandAll(expand: boolean) {
+  const table = tableRef.value
+  if (!table) return
+  groupNodes.value.forEach(node => table.toggleRowExpansion(node, expand))
 }
 
 async function refresh() {
@@ -125,12 +135,6 @@ async function switchMode(mode: 'group' | 'flat') {
   viewMode.value = mode
   page.value = 1
   await refresh()
-}
-
-function expandAll(expand: boolean) {
-  const table = tableRef.value
-  if (!table) return
-  groupNodes.value.forEach(node => table.toggleRowExpansion(node, expand))
 }
 
 function edit(row: ScriptRow | null) { selected.value = row; editing.value = true }
@@ -216,7 +220,7 @@ onMounted(async () => {
 
       <!-- 分组视图：机构 -> 话术，展开才加载 -->
       <el-table v-if="viewMode === 'group'" ref="tableRef" v-loading="groupLoading" :data="groupNodes"
-                row-key="rowKey" lazy :load="loadChildren" :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+                row-key="rowKey" :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
                 class="script-table" empty-text="暂无机构或机构下暂无话术">
         <el-table-column label="机构 / 话术" min-width="330">
           <template #default="{ row }">
