@@ -1,5 +1,6 @@
 """审查组合根与 urllib 模型边界；数据库操作仅经仓储执行。"""
 import json
+from functools import lru_cache
 from decimal import Decimal
 from time import perf_counter
 import logging
@@ -24,6 +25,7 @@ def search_law(query, top_k=3):
     return rag_search_law(query, top_k)
 
 
+@lru_cache(maxsize=1)
 def indexed_docs():
     """只读本地 Chroma 元数据，不创建集合、不触发 embedding 或网络。"""
     import chromadb
@@ -75,7 +77,9 @@ class AuditTool:
         result["cost_label"] = "全链路估算，非供应商账单"
         result.update(judge_cost=result["cost_breakdown"]["a1"]["cost"],
                       rewrite_cost=rag_usage["rag_rewrite"]["cost"],embedding_cost=rag_usage["embedding"]["cost"],
-                      total_cost=result["cost"],cost_note="全链路估算，非供应商账单；未知项不计伪合计")
+                      total_cost=result["cost"],cost_note=("全链路估算，非供应商账单；仅 embedding 已计价，其他未知项不计伪合计"
+                          if result["cost"] is None and rag_usage["embedding"]["cost"] is not None
+                          else "全链路估算，非供应商账单；未知项不计伪合计"))
         result["llm_calls"] = getattr(self.model,"calls",[])[call_offset:]
         before = perf_counter()
         audit_id = self.repository.save(script_id, result)

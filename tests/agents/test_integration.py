@@ -213,3 +213,72 @@ def test_authenticated_api_persists_and_mcp_rechecks_same_pipeline(db, client, a
     assert client.post("/api/v1/audit/run", headers=auth_headers,
         json={"script_id": script.id, "client_id": institution.id + 999999}).status_code == 404
     assert client.post("/api/v1/audit/999999/rewrite", headers=auth_headers).status_code == 404
+
+
+def test_indexed_docs_creates_one_client(monkeypatch):
+    import chromadb
+    from types import SimpleNamespace
+    from backend.tools.audit_tool import indexed_docs
+    if hasattr(indexed_docs, 'cache_clear'):
+        indexed_docs.cache_clear()
+    calls = []
+    collection = SimpleNamespace(get=lambda **kwargs: {
+        'metadatas': [{'code': '广告法第9条'}, {'code': '医美指南第五条'}]})
+    def client(**kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(get_collection=lambda name: collection)
+    monkeypatch.setattr(chromadb, 'PersistentClient', client)
+    try:
+        first, second = indexed_docs(), indexed_docs()
+        assert first == second == {'广告法', '医疗美容广告执法指南'}
+        assert len(calls) == 1
+        print(f'indexed_docs calls=2; PersistentClient creations={len(calls)}')
+    finally:
+        if hasattr(indexed_docs, 'cache_clear'):
+            indexed_docs.cache_clear()
+
+
+@pytest.mark.parametrize('judge_cost', [Decimal('0.001'), None])
+def test_embedding_official_price_and_total(monkeypatch, judge_cost):
+    from types import SimpleNamespace
+    from backend.rag.embedding import usage_meter, record_usage, ROOT
+    from dotenv import dotenv_values
+    from backend.tools.audit_tool import AuditTool
+    config = dotenv_values(ROOT / '.env.example')
+    assert config.get('EMBEDDING_PRICE_PER_M') == '0.5'
+    with usage_meter() as usage:
+        record_usage('/embeddings', {'usage': {'total_tokens': 1000}}, config)
+    assert usage['embedding']['cost'] == Decimal('0.000500')
+    tool = AuditTool.__new__(AuditTool)
+    tool.model = SimpleNamespace()
+    def review(*args, **kwargs):
+        record_usage('/embeddings', {'usage': {'total_tokens': 1000}}, config)
+        return dict(cost=judge_cost, prompt_tokens=10, completion_tokens=2)
+    tool.auditor = SimpleNamespace(review=review)
+    tool.repository = SimpleNamespace(client=lambda _: True,
+        script=lambda _: dict(client_id=1, content='固定测试'), save=lambda *args: 1)
+    result = tool.run_audit(1, 1)
+    assert result['embedding_cost'] == Decimal('0.000500')
+    if judge_cost is None:
+        assert result['total_cost'] is None
+        assert '仅 embedding 已计价' in result['cost_note']
+    else:
+        assert result['total_cost'] == Decimal('0.001500')
+    print(f"embedding_cost={result['embedding_cost']}; total_cost={result['total_cost']}; {result['cost_note']}")
+
+
+@pytest.mark.parametrize('judge_cost', ['0.001', None])
+def test_run_costs_note_tracks_embedding_pricing(judge_cost):
+    from backend.tools.db_tool import RedteamRepository
+    repo = RedteamRepository.__new__(RedteamRepository)
+    repo.samples = lambda _: [dict(meta=dict(verdict='TN', cost_breakdown={
+        'a1': dict(cost=judge_cost), 'rag_rewrite': dict(cost='0'),
+        'embedding': dict(cost='0.000500', prompt_tokens=1000)}))]
+    result = repo.run_costs('fixture')
+    assert result['embedding_cost'] == Decimal('0.000500')
+    assert 'embedding未计价' not in result['cost_note']
+    if judge_cost is None:
+        assert result['total_cost'] is None
+        assert '仅 embedding 已计价' in result['cost_note']
+    else:
+        assert result['total_cost'] == Decimal('0.001500')
