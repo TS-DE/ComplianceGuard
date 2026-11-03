@@ -284,5 +284,5 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 ## D4 v0.4.3：确定性命中规则法源
 **改动**：regex/keyword候选法条来自rules声明；检索只补chunk/item/ref，未召回也保留并标law_from_rule_table。LLM检索法条闸原样保留，pattern/项级归属仍检查，缺文档告警放行。
 **测试**：核心旧代码0命中，新增5测试3失败/2通过；修复5 passed。全量一度因MySQL1041内存错误阻塞，恢复后238 passed in 12.07s。无规则/检索/阈值改动。
-**验收范围**：仅新absolute_terms四条；其余12条沿用功效安全旧8条+上轮inducement4条；所有旧样本审计保留。真实单轮尚未执行。
+**验收范围**：仅新absolute_terms四条；其余12条沿用功效安全旧8条+上轮inducement4条；所有旧样本审计保留。真实单轮已执行：rt_20261103_155339_absolute_terms，42–45四条=3 TP_axis+1 TN；组合矩阵9/1/2/0/4，整体漏杀16.67%、轴级25%。证据data/d4_deterministic_report.md。
 **风险**：正则覆盖缺口只报告，不自行补词或改规则。T-007/T-008保留；embedding未知不伪合计。
