@@ -48,6 +48,7 @@ class AuditRepository:
         hits = [dict(hit, status="active") for hit in result["hits"]]
         hits.extend(dict(hit, status="raw") for hit in result.get("raw_hits", []))
         hits.extend(dict(trace, status=trace.get("status", "trace")) for trace in result.get("traces", []))
+        hits.append(dict(status="call_metadata",llm_calls=result.get("llm_calls",[])))
         metadata = {key: result[key] for key in AUDIT_METADATA}
         if metadata['incomplete']:
             metadata['score'] = SCORE_INCOMPLETE
