@@ -162,22 +162,19 @@ def load_cases() -> list[dict]:
 def law_catalog() -> dict[str, dict]:
     """返回「法规全称 -> {title, source, articles}」，每条含该条完整原文。
 
-    用途：前端命中某条法条后需要「直达完整法规并定位到该条」。
-    直接复用 load_laws() 的解析结果，不查向量库、不走网络，也不改归档原文。
-    同一 code 只保留一条（多子块共享同一 parent_text）。
+    与 `load_laws()` 的区别：这里**不跳过 procedure 条款**。
+    原因：前端要的是「完整法规 + 定位到该条」，若沿用入库口径，广告法只会剩 41/74 条、
+    医美指南只剩 4/10 条，用户看到的就不是完整法规了。入库求精度，追溯求完整。
     """
     catalog: dict[str, dict] = {}
-    laws, _ = load_laws()
-    for record in laws:
-        meta = record["metadata"]
-        title = re.sub(r"^\d+_", "", meta["source"].rsplit(".", 1)[0])
-        doc = catalog.setdefault(title, dict(title=title, source=meta["source"], articles=[]))
-        if any(item["code"] == meta["code"] for item in doc["articles"]):
+    for path in sorted(LAW_DIR.glob("*.md")):
+        if path.name == "README.md":
             continue
-        doc["articles"].append(dict(code=meta["code"], article_no=meta.get("article_no"),
-                                    text=meta.get("parent_text") or record["text"]))
-    for doc in catalog.values():
-        doc["articles"].sort(key=lambda item: item.get("article_no") or 0)
+        title = re.sub(r"^\d+_", "", path.stem)
+        articles = [dict(code=f"{title}第{number}条", article_no=number, text=parent)
+                    for number, parent in _articles(path.read_text(encoding="utf-8"))]
+        articles.sort(key=lambda item: item["article_no"])
+        catalog[title] = dict(title=title, source=path.name, articles=articles)
     return catalog
 
 
