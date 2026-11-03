@@ -18,7 +18,7 @@ def test_redteam_migration_preview_partial_skip():
 
 def sample_rows():
     return [dict(content=f'双眼皮咨询{a}{s}',scene='双眼皮',target_axis=a,strength=s,
-                 strategy='口语场景',expected_violation=s!='control')
+                 strategy='口语场景',pattern_ref='fixture pattern '+a,expected_violation=s!='control')
             for a in ['efficacy_claim','safety_guarantee','absolute_terms','inducement']
             for s in ['low','mid','high','control']]
 
@@ -33,7 +33,7 @@ def test_generator_one_call_and_rejects_missing_axis():
             return dict(content=json.dumps({'samples':sample_rows()}),cost=0.001,
                         prompt_tokens=1,completion_tokens=1)
     model = Model()
-    agent = RedTeamAgent(model)
+    agent = RedTeamAgent(model,lambda:[dict(axis=a,pattern="fixture pattern "+a,law_article="广告法第16条") for a in ["efficacy_claim","safety_guarantee","absolute_terms","inducement"]])
     result = agent.generate(['双眼皮'],['efficacy_claim','safety_guarantee','absolute_terms','inducement'])
     assert len(result['samples']) == 16 and model.calls == 1
     rows = sample_rows()
@@ -68,11 +68,11 @@ def test_redteam_persistence_and_report_numbers(db):
     assert row.source == 'redteam' and row.redteam_meta['run_id']=='fixture_run'
     assert row.redteam_meta['target_axis']=='efficacy_claim'
     for i,(verdict,score) in enumerate([('TP',0),('FN',2),('FP',0),('TN',2),('unjudged',-1)]):
-        repo.save_verdict(ids[i],dict(verdict=verdict,actual_axes=['efficacy_claim'] if score==0 else [],score=score))
+        repo.save_verdict(ids[i],dict(expected_violation=verdict not in ('FP','TN'),verdict=verdict,actual_axes=['efficacy_claim'] if score==0 else [],score=score))
         db.add(Audit(script_id=ids[i],score=score,hit_count=0,hits_json=[],incomplete=score==-1,cost=0.001,latency_ms=10))
     db.commit()
     gaps = repo.gaps('fixture_run')
-    assert gaps['counts']['TP']==1 and gaps['counts']['FN']==1
+    assert gaps['counts']['TP_axis']==1 and gaps['counts']['FN']==1
     assert gaps['counts']['FP']==1 and gaps['counts']['TN']==1
     assert gaps['counts']['unjudged']==12
     assert gaps['fn_rate']==0.5 and gaps['fp_rate']==0.5
@@ -134,6 +134,8 @@ def test_orchestration_judges_once_per_sample_and_reports(db,client,auth_headers
         def run_audit(self,script_id,client_id):
             self.calls.append(script_id)
             return dict(score=2,incomplete=False,hits=[],audit_id=None,cost=0,latency_ms=1)
+    from backend.db.models import Rule
+    db.add_all([Rule(axis=a,pattern='fixture pattern '+a,law_article='广告法第16条',level='hard',detector='llm_judge') for a in ['efficacy_claim','safety_guarantee','absolute_terms','inducement']]);db.commit()
     model,judge=Model(),Auditor()
     result=run_redteam(db,c.id,['双眼皮'],['efficacy_claim','safety_guarantee','absolute_terms','inducement'],model,judge)
     assert model.calls==1 and len(judge.calls)==16
@@ -141,7 +143,7 @@ def test_orchestration_judges_once_per_sample_and_reports(db,client,auth_headers
     from backend.agents.redteam import AuditReportAgent
     repo=RedteamRepository(db)
     report=AuditReportAgent(repo).redteam(result['run_id'])
-    assert report['counts']==dict(TP=0,FN=12,FP=0,TN=4,unjudged=0)
+    assert report['counts']==dict(TP_axis=0,TP_other=0,FN=12,FP=0,TN=4,unjudged=0)
     assert report['accuracy']==0.25
     monkeypatch.setattr(ai,'redteam_operations',lambda session:dict(repository=repo,report=AuditReportAgent(repo)))
     response=client.get('/api/v1/reports/redteam/'+result['run_id'],headers=auth_headers)

@@ -1,0 +1,56 @@
+{
+  "old_scripts": 16,
+  "old_audits": 16,
+  "new_audits": [
+    {
+      "id": 31,
+      "script_id": 38,
+      "score": 1,
+      "incomplete": 0,
+      "latency_ms": 9953,
+      "cost": null
+    },
+    {
+      "id": 32,
+      "script_id": 39,
+      "score": 1,
+      "incomplete": 0,
+      "latency_ms": 6179,
+      "cost": null
+    },
+    {
+      "id": 33,
+      "script_id": 40,
+      "score": 1,
+      "incomplete": 0,
+      "latency_ms": 8677,
+      "cost": null
+    },
+    {
+      "id": 34,
+      "script_id": 41,
+      "score": 2,
+      "incomplete": 0,
+      "latency_ms": 3969,
+      "cost": null
+    }
+  ],
+  "invalid": [
+    {
+      "id": 34,
+      "label_invalid": "true"
+    },
+    {
+      "id": 35,
+      "label_invalid": "true"
+    },
+    {
+      "id": 36,
+      "label_invalid": "true"
+    },
+    {
+      "id": 37,
+      "label_invalid": "true"
+    }
+  ]
+}
