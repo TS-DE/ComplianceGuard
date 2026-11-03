@@ -269,6 +269,6 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 
 ## D4 v0.4.1：按用途关闭判定思考、分批断点
 **改动**：JUDGE_ENABLE_THINKING=false、REDTEAM_ENABLE_THINKING=true，显式配置且透传开关允许才加入参数；改写走EMBEDDING_ENABLE_THINKING，真正embedding端点不发送不适用字段。调用元数据写入audits.hits_json的call_metadata，不新增列。脚本默认4条一批、--resume读取run_id，数据库已有任意verdict均跳过；每条checkpoint、每批耗时。
-**验证**：思考payload/调用字段/批执行旧代码4失败，修复后全量228 passed in 11.48s；生成保持true、false被网关忽略时明确报错另有fixture。真实新轮尚未执行。
+**验证**：思考payload/调用字段/批执行旧代码4失败，修复后全量228 passed in 11.48s；生成保持true、false被网关忽略时明确报错另有fixture。新授权单轮rt_20261103_151028全部16条完成，TP7/FN5/FP0/TN4/unjudged0；审查平均5921ms，completion平均143.75，A1全部thinking=false/reasoning0；总141251ms，四批均<26秒。完整证据data/d4_thinking_off_acceptance_report.md。未重跑。
 **风险**：分批本身不减少总运行时间；本轮仍一次命令顺序跑完，不以重启规避420秒限制。旧失败证据不删不覆盖。
 **规则评测**：未改A1判定规则、法规或冻结评测集，仅基础设施参数与执行恢复能力。

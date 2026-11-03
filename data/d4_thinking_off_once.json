@@ -1,0 +1,2592 @@
+{
+  "judged": [
+    {
+      "script_id": 22,
+      "verdict": "FN",
+      "actual_axes": [],
+      "score": 2,
+      "audit_id": 15,
+      "cost": null,
+      "latency_ms": 6459,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.008367",
+          "prompt_tokens": 10222,
+          "completion_tokens": 70
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 100,
+          "completion_tokens": 10,
+          "cost": "0.000107",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 60,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.09870000212686136,
+        "rules": 8.41249999939464,
+        "retrieve": 4166.9893999969645,
+        "detect": 2248.9047999988543,
+        "aggregate": 0.02510000194888562,
+        "persist": 29.303699997399235
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 2239.8818000001484,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 2239.860300000146,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 10222,
+          "completion_tokens": 70,
+          "reasoning_chars": 0,
+          "content_chars": 195
+        }
+      ]
+    },
+    {
+      "script_id": 23,
+      "verdict": "TP",
+      "actual_axes": [
+        "efficacy_claim"
+      ],
+      "score": 0,
+      "audit_id": 16,
+      "cost": null,
+      "latency_ms": 8459,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.008848",
+          "prompt_tokens": 10253,
+          "completion_tokens": 239
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 104,
+          "completion_tokens": 11,
+          "cost": "0.000113",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 78,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.06380000195349567,
+        "rules": 3.6549999967974145,
+        "retrieve": 3520.8827999995265,
+        "detect": 4911.703900001157,
+        "aggregate": 0.3843000013148412,
+        "persist": 18.103600003087195
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 4903.179000000819,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 4903.159000001324,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 10253,
+          "completion_tokens": 239,
+          "reasoning_chars": 0,
+          "content_chars": 529
+        }
+      ]
+    },
+    {
+      "script_id": 24,
+      "verdict": "TP",
+      "actual_axes": [
+        "efficacy_claim"
+      ],
+      "score": 0,
+      "audit_id": 17,
+      "cost": null,
+      "latency_ms": 6088,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.007857",
+          "prompt_tokens": 9204,
+          "completion_tokens": 183
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 99,
+          "completion_tokens": 11,
+          "cost": "0.000109",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 64,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.056400000175926834,
+        "rules": 3.5943000002589542,
+        "retrieve": 2469.19490000073,
+        "detect": 3593.9085999998497,
+        "aggregate": 0.24090000079013407,
+        "persist": 17.024599997967016
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 3585.8107000021846,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 3585.7952000005753,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 9204,
+          "completion_tokens": 183,
+          "reasoning_chars": 0,
+          "content_chars": 413
+        }
+      ]
+    },
+    {
+      "script_id": 25,
+      "verdict": "TN",
+      "actual_axes": [],
+      "score": 2,
+      "audit_id": 18,
+      "cost": null,
+      "latency_ms": 3551,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.007809",
+          "prompt_tokens": 9525,
+          "completion_tokens": 70
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 104,
+          "completion_tokens": 4,
+          "cost": "0.000094",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 64,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 4
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.06410000059986487,
+        "rules": 3.2959999989543576,
+        "retrieve": 1691.2525000007008,
+        "detect": 1836.9171000013012,
+        "aggregate": 0.03590000051190145,
+        "persist": 15.490300000237767
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 1829.7019000019645,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 1829.6897000000172,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 9525,
+          "completion_tokens": 70,
+          "reasoning_chars": 0,
+          "content_chars": 195
+        }
+      ]
+    },
+    {
+      "script_id": 26,
+      "verdict": "FN",
+      "actual_axes": [],
+      "score": 2,
+      "audit_id": 19,
+      "cost": null,
+      "latency_ms": 5433,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.008109",
+          "prompt_tokens": 9563,
+          "completion_tokens": 170
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 98,
+          "completion_tokens": 9,
+          "cost": "0.000103",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 54,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.05610000152955763,
+        "rules": 3.390699999727076,
+        "retrieve": 2301.4508000014757,
+        "detect": 3114.657199999783,
+        "aggregate": 0.0911999995878432,
+        "persist": 12.138199999753851
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 3108.5190000012517,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 3108.5105999991356,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 9563,
+          "completion_tokens": 170,
+          "reasoning_chars": 0,
+          "content_chars": 393
+        }
+      ]
+    },
+    {
+      "script_id": 27,
+      "verdict": "TP",
+      "actual_axes": [
+        "efficacy_claim"
+      ],
+      "score": 0,
+      "audit_id": 20,
+      "cost": null,
+      "latency_ms": 5960,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.008721",
+          "prompt_tokens": 10230,
+          "completion_tokens": 199
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 99,
+          "completion_tokens": 10,
+          "cost": "0.000106",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 56,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.05709999823011458,
+        "rules": 3.357400000822963,
+        "retrieve": 2255.4165000001376,
+        "detect": 3677.142399999866,
+        "aggregate": 0.22009999884176068,
+        "persist": 19.543200000043726
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 3669.1599000005226,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 3669.147900000098,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 10230,
+          "completion_tokens": 199,
+          "reasoning_chars": 0,
+          "content_chars": 438
+        }
+      ]
+    },
+    {
+      "script_id": 28,
+      "verdict": "TP",
+      "actual_axes": [
+        "efficacy_claim",
+        "safety_guarantee"
+      ],
+      "score": 0,
+      "audit_id": 21,
+      "cost": null,
+      "latency_ms": 8203,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.007520",
+          "prompt_tokens": 8570,
+          "completion_tokens": 246
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 95,
+          "completion_tokens": 10,
+          "cost": "0.000103",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 94,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 10
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.05149999924469739,
+        "rules": 3.4166000004915986,
+        "retrieve": 3846.1434000018926,
+        "detect": 4330.44130000053,
+        "aggregate": 0.369400000636233,
+        "persist": 18.824499999027466
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 4322.500999998738,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 4322.486000000936,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 8570,
+          "completion_tokens": 246,
+          "reasoning_chars": 0,
+          "content_chars": 556
+        }
+      ]
+    },
+    {
+      "script_id": 29,
+      "verdict": "TN",
+      "actual_axes": [],
+      "score": 2,
+      "audit_id": 22,
+      "cost": null,
+      "latency_ms": 5592,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.007117",
+          "prompt_tokens": 8660,
+          "completion_tokens": 70
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 103,
+          "completion_tokens": 11,
+          "cost": "0.000112",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 114,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 10
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.06790000043110922,
+        "rules": 3.0210000004444737,
+        "retrieve": 3639.743100000487,
+        "detect": 1925.9963999975298,
+        "aggregate": 0.02609999864944257,
+        "persist": 18.483799998648465
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 1917.5090999997337,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 1917.4951999993937,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 8660,
+          "completion_tokens": 70,
+          "reasoning_chars": 0,
+          "content_chars": 195
+        }
+      ]
+    },
+    {
+      "script_id": 30,
+      "verdict": "TP",
+      "actual_axes": [
+        "efficacy_claim"
+      ],
+      "score": 0,
+      "audit_id": 23,
+      "cost": null,
+      "latency_ms": 5321,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.008066",
+          "prompt_tokens": 9560,
+          "completion_tokens": 155
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 95,
+          "completion_tokens": 9,
+          "cost": "0.000100",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 48,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.05600000076810829,
+        "rules": 3.8805000003776513,
+        "retrieve": 2836.3731000026746,
+        "detect": 2463.506000000052,
+        "aggregate": 0.16599999798927456,
+        "persist": 13.112399999954505
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 2456.1890000004496,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 2456.1780000003637,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 9560,
+          "completion_tokens": 155,
+          "reasoning_chars": 0,
+          "content_chars": 375
+        }
+      ]
+    },
+    {
+      "script_id": 31,
+      "verdict": "TP",
+      "actual_axes": [
+        "efficacy_claim"
+      ],
+      "score": 0,
+      "audit_id": 24,
+      "cost": null,
+      "latency_ms": 5277,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.008050",
+          "prompt_tokens": 9576,
+          "completion_tokens": 144
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 93,
+          "completion_tokens": 10,
+          "cost": "0.000101",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 50,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.05219999729888514,
+        "rules": 3.404300001420779,
+        "retrieve": 2341.67030000026,
+        "detect": 2911.454600001889,
+        "aggregate": 0.14409999857889488,
+        "persist": 17.512900001747767
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 2904.3578000018897,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 2904.34599999935,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 9576,
+          "completion_tokens": 144,
+          "reasoning_chars": 0,
+          "content_chars": 344
+        }
+      ]
+    },
+    {
+      "script_id": 32,
+      "verdict": "TP",
+      "actual_axes": [
+        "derogatory_compare",
+        "efficacy_claim"
+      ],
+      "score": 0,
+      "audit_id": 25,
+      "cost": null,
+      "latency_ms": 8689,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.008900",
+          "prompt_tokens": 10089,
+          "completion_tokens": 307
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 93,
+          "completion_tokens": 11,
+          "cost": "0.000104",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 48,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.04749999789055437,
+        "rules": 3.1715000004624017,
+        "retrieve": 2423.4606999998505,
+        "detect": 6239.905100002943,
+        "aggregate": 0.5608999999822117,
+        "persist": 17.619899997953326
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 6233.177000001888,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 6233.16590000104,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 10089,
+          "completion_tokens": 307,
+          "reasoning_chars": 0,
+          "content_chars": 673
+        }
+      ]
+    },
+    {
+      "script_id": 33,
+      "verdict": "TN",
+      "actual_axes": [],
+      "score": 2,
+      "audit_id": 26,
+      "cost": null,
+      "latency_ms": 6235,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.007190",
+          "prompt_tokens": 8751,
+          "completion_tokens": 70
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 96,
+          "completion_tokens": 9,
+          "cost": "0.000101",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 50,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.0652999988233205,
+        "rules": 3.2992000014928635,
+        "retrieve": 4330.732599999465,
+        "detect": 1883.0673000011302,
+        "aggregate": 0.04450000051292591,
+        "persist": 13.754199997492833
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 1875.4580000022543,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 1875.4451999993762,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 8751,
+          "completion_tokens": 70,
+          "reasoning_chars": 0,
+          "content_chars": 195
+        }
+      ]
+    },
+    {
+      "script_id": 34,
+      "verdict": "FN",
+      "actual_axes": [],
+      "score": 2,
+      "audit_id": 27,
+      "cost": null,
+      "latency_ms": 4585,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.006794",
+          "prompt_tokens": 8256,
+          "completion_tokens": 70
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 95,
+          "completion_tokens": 9,
+          "cost": "0.000100",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 46,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.04329999865149148,
+        "rules": 3.2859000020835083,
+        "retrieve": 2692.949899999803,
+        "detect": 1863.8890000001993,
+        "aggregate": 0.02769999991869554,
+        "persist": 20.10849999714992
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 1855.7837000007567,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 1855.7695999988937,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 8256,
+          "completion_tokens": 70,
+          "reasoning_chars": 0,
+          "content_chars": 195
+        }
+      ]
+    },
+    {
+      "script_id": 35,
+      "verdict": "FN",
+      "actual_axes": [],
+      "score": 2,
+      "audit_id": 28,
+      "cost": null,
+      "latency_ms": 4502,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.006184",
+          "prompt_tokens": 7494,
+          "completion_tokens": 70
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 98,
+          "completion_tokens": 9,
+          "cost": "0.000103",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 54,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.0548999996681232,
+        "rules": 3.348099999129772,
+        "retrieve": 2449.602299999242,
+        "detect": 2027.1000000029744,
+        "aggregate": 0.02680000034160912,
+        "persist": 18.03710000240244
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 2018.1967999997141,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 2018.1783000007272,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 7494,
+          "completion_tokens": 70,
+          "reasoning_chars": 0,
+          "content_chars": 195
+        }
+      ]
+    },
+    {
+      "script_id": 36,
+      "verdict": "FN",
+      "actual_axes": [],
+      "score": 2,
+      "audit_id": 29,
+      "cost": null,
+      "latency_ms": 6414,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.008364",
+          "prompt_tokens": 9891,
+          "completion_tokens": 167
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 101,
+          "completion_tokens": 13,
+          "cost": "0.000116",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 62,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 8
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.05480000254465267,
+        "rules": 3.185400000802474,
+        "retrieve": 3157.46450000006,
+        "detect": 3233.6844000019482,
+        "aggregate": 0.19249999968451448,
+        "persist": 14.969799998652888
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 3226.2794000016584,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 3226.268100002926,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 9891,
+          "completion_tokens": 167,
+          "reasoning_chars": 0,
+          "content_chars": 381
+        }
+      ]
+    },
+    {
+      "script_id": 37,
+      "verdict": "TN",
+      "actual_axes": [],
+      "score": 2,
+      "audit_id": 30,
+      "cost": null,
+      "latency_ms": 3968,
+      "cost_breakdown": {
+        "a1": {
+          "cost": "0.006551",
+          "prompt_tokens": 7953,
+          "completion_tokens": 70
+        },
+        "rag_rewrite": {
+          "prompt_tokens": 99,
+          "completion_tokens": 9,
+          "cost": "0.000104",
+          "calls": 1
+        },
+        "embedding": {
+          "prompt_tokens": 56,
+          "completion_tokens": 0,
+          "cost": null,
+          "calls": 6
+        }
+      },
+      "timings_ms": {
+        "normalize": 0.05869999949936755,
+        "rules": 3.492200001346646,
+        "retrieve": 2296.454999999696,
+        "detect": 1650.0863999972353,
+        "aggregate": 0.02559999848017469,
+        "persist": 13.41099999990547
+      },
+      "llm_calls": [
+        {
+          "thinking": false,
+          "latency_ms": 1642.036299999745,
+          "attempt_count": 1,
+          "retried": false,
+          "last_error": null,
+          "attempts": [
+            {
+              "latency_ms": 1642.0231000010972,
+              "error": null
+            }
+          ],
+          "prompt_tokens": 7953,
+          "completion_tokens": 70,
+          "reasoning_chars": 0,
+          "content_chars": 195
+        }
+      ]
+    }
+  ],
+  "batches": [
+    {
+      "completed": 4,
+      "total": 16,
+      "latency_ms": 24689.609900000505
+    },
+    {
+      "completed": 8,
+      "total": 16,
+      "latency_ms": 25305.785399999877
+    },
+    {
+      "completed": 12,
+      "total": 16,
+      "latency_ms": 25635.02399999925
+    },
+    {
+      "completed": 16,
+      "total": 16,
+      "latency_ms": 19601.551600000676
+    }
+  ],
+  "run_id": "rt_20261103_151028",
+  "client_id": 9,
+  "generation": {
+    "samples": [
+      {
+        "content": "姐妹，双眼皮做完一般会显得眼睛更有神一点，不过具体还是要看你的眼型基础。",
+        "scene": "双眼皮",
+        "target_axis": "efficacy_claim",
+        "strength": "low",
+        "strategy": "轻微暗示改善效果，弱化承诺",
+        "expected_violation": true
+      },
+      {
+        "content": "很多做完双眼皮的姐妹反馈，恢复后线条会更清晰，睁眼也更自然，整体气质会提升不少。",
+        "scene": "双眼皮",
+        "target_axis": "efficacy_claim",
+        "strength": "mid",
+        "strategy": "用反馈明确暗示效果提升",
+        "expected_violation": true
+      },
+      {
+        "content": "放心，这款双眼皮方案做完眼睛一定放大，线条一定自然，绝对看不出是做的。",
+        "scene": "双眼皮",
+        "target_axis": "efficacy_claim",
+        "strength": "high",
+        "strategy": "显式承诺确定效果",
+        "expected_violation": true
+      },
+      {
+        "content": "双眼皮效果因人而异，需要结合你的皮肤、脂肪和眼型面诊评估，我们不会提前承诺具体变化。",
+        "scene": "双眼皮",
+        "target_axis": "efficacy_claim",
+        "strength": "control",
+        "strategy": "合规说明个体差异，不承诺效果",
+        "expected_violation": false
+      },
+      {
+        "content": "正规医生操作的话，双眼皮的风险通常会比外面小一些，术前也会帮你评估。",
+        "scene": "双眼皮",
+        "target_axis": "safety_guarantee",
+        "strength": "low",
+        "strategy": "轻微暗示风险较低",
+        "expected_violation": true
+      },
+      {
+        "content": "我们医生经验比较熟，会尽量把双眼皮恢复期不舒服和并发症概率降下来。",
+        "scene": "双眼皮",
+        "target_axis": "safety_guarantee",
+        "strength": "mid",
+        "strategy": "明确暗示安全保障",
+        "expected_violation": true
+      },
+      {
+        "content": "这个双眼皮项目零风险，绝对安全，术后不会出现任何失败情况。",
+        "scene": "双眼皮",
+        "target_axis": "safety_guarantee",
+        "strength": "high",
+        "strategy": "显式承诺绝对安全",
+        "expected_violation": true
+      },
+      {
+        "content": "任何手术都存在一定风险，双眼皮也需要术前检查、医生评估和术后护理，不能简单说绝对安全。",
+        "scene": "双眼皮",
+        "target_axis": "safety_guarantee",
+        "strength": "control",
+        "strategy": "合规提示风险，不作安全保证",
+        "expected_violation": false
+      },
+      {
+        "content": "从你照片看，这种双眼皮方案是比较稳妥的选择，适合大多数人。",
+        "scene": "双眼皮",
+        "target_axis": "absolute_terms",
+        "strength": "low",
+        "strategy": "使用较稳妥等轻微绝对化倾向",
+        "expected_violation": true
+      },
+      {
+        "content": "这款双眼皮就是最适合你的方案，做完基本不会有后悔的情况。",
+        "scene": "双眼皮",
+        "target_axis": "absolute_terms",
+        "strength": "mid",
+        "strategy": "明确使用最适合并暗示唯一性",
+        "expected_violation": true
+      },
+      {
+        "content": "这是市面上最好的双眼皮技术，唯一不会变形，永远自然。",
+        "scene": "双眼皮",
+        "target_axis": "absolute_terms",
+        "strength": "high",
+        "strategy": "显式使用最好、唯一、永远等绝对化承诺",
+        "expected_violation": true
+      },
+      {
+        "content": "没有绝对最好的双眼皮方案，只有面诊后更适合你基础条件的选择。",
+        "scene": "双眼皮",
+        "target_axis": "absolute_terms",
+        "strength": "control",
+        "strategy": "避免绝对化，强调适合性",
+        "expected_violation": false
+      },
+      {
+        "content": "现在预约双眼皮面诊，可以优先安排医生，不用等太久。",
+        "scene": "双眼皮",
+        "target_axis": "inducement",
+        "strength": "low",
+        "strategy": "轻微预约引导",
+        "expected_violation": true
+      },
+      {
+        "content": "这个双眼皮名额不多了，今天定下来还能帮你保留优惠，建议尽快锁定。",
+        "scene": "双眼皮",
+        "target_axis": "inducement",
+        "strength": "mid",
+        "strategy": "制造稀缺并推动尽快决策",
+        "expected_violation": true
+      },
+      {
+        "content": "今天不交定金就抢不到这个双眼皮优惠了，马上安排，错过就没有变美机会。",
+        "scene": "双眼皮",
+        "target_axis": "inducement",
+        "strength": "high",
+        "strategy": "强诱导、限时紧迫感并暗示错过后果",
+        "expected_violation": true
+      },
+      {
+        "content": "你可以先预约咨询，了解双眼皮方案后再理性决定，是否预约完全由你自己判断。",
+        "scene": "双眼皮",
+        "target_axis": "inducement",
+        "strength": "control",
+        "strategy": "合规提供咨询路径，不制造紧迫感",
+        "expected_violation": false
+      }
+    ],
+    "usage": {
+      "model": "qwen3.8-flash",
+      "prompt_tokens": 222,
+      "completion_tokens": 2097,
+      "cost": "0.005840"
+    },
+    "llm_calls": [
+      {
+        "thinking": true,
+        "latency_ms": 42690.89829999939,
+        "attempt_count": 1,
+        "retried": false,
+        "last_error": null,
+        "attempts": [
+          {
+            "latency_ms": 42690.88220000049,
+            "error": null
+          }
+        ],
+        "prompt_tokens": 222,
+        "completion_tokens": 2097,
+        "reasoning_chars": 1820,
+        "content_chars": 3555
+      }
+    ]
+  },
+  "script_ids": [
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37
+  ],
+  "daily": {
+    "total": 25,
+    "incomplete": 0,
+    "compliant": 12,
+    "violations": 13,
+    "average_latency_ms": "23869.5600",
+    "cost": null,
+    "unpriced": 22,
+    "known_cost_subtotal": "0.058300",
+    "date": "2026-11-03",
+    "by_axis": {
+      "efficacy_claim": 11,
+      "safety_guarantee": 5,
+      "before_after": 1,
+      "inducement": 1,
+      "derogatory_compare": 1
+    },
+    "violation_rate": 0.52,
+    "summary": "今日审查25条，未完成0条。",
+    "disclaimer": "本系统输出为合规风险辅助提示，不构成法律意见，也不能替代《医疗广告审查证明》的行政前置审查。"
+  },
+  "report": {
+    "costs": {
+      "judge_cost": "0.124447",
+      "rewrite_cost": "0.001676",
+      "embedding_cost": null,
+      "judge_tokens": 150097,
+      "rewrite_tokens": 1727,
+      "embedding_tokens": 998,
+      "total_cost": null,
+      "generation_cost": "0.005840",
+      "run_total_cost": null,
+      "latency_ms": 94736,
+      "embedding_token_ratio": 0.00664903362492255,
+      "cost_note": "全链路估算，非供应商账单；embedding未计价，token占比不等于费用占比"
+    },
+    "run_id": "rt_20261103_151028",
+    "generated": 16,
+    "counts": {
+      "TP": 7,
+      "FN": 5,
+      "FP": 0,
+      "TN": 4,
+      "unjudged": 0
+    },
+    "fn_rate": 0.4166666666666667,
+    "fp_rate": 0.0,
+    "accuracy": 0.6875,
+    "by_axis": {
+      "efficacy_claim": {
+        "expected_violations": 3,
+        "TP": 2,
+        "FN": 1,
+        "FP": 0,
+        "TN": 1,
+        "unjudged": 0,
+        "fn_rate": 0.3333333333333333
+      },
+      "safety_guarantee": {
+        "expected_violations": 3,
+        "TP": 2,
+        "FN": 1,
+        "FP": 0,
+        "TN": 1,
+        "unjudged": 0,
+        "fn_rate": 0.3333333333333333
+      },
+      "absolute_terms": {
+        "expected_violations": 3,
+        "TP": 3,
+        "FN": 0,
+        "FP": 0,
+        "TN": 1,
+        "unjudged": 0,
+        "fn_rate": 0.0
+      },
+      "inducement": {
+        "expected_violations": 3,
+        "TP": 0,
+        "FN": 3,
+        "FP": 0,
+        "TN": 1,
+        "unjudged": 0,
+        "fn_rate": 1.0
+      }
+    },
+    "FN": [
+      {
+        "id": 22,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "姐妹，双眼皮做完一般会显得眼睛更有神一点，不过具体还是要看你的眼型基础。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 15,
+          "strategy": "轻微暗示改善效果，弱化承诺",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 2239.860300000146
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 2239.8818000001484,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 10222,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 6459,
+          "timings_ms": {
+            "rules": 8.41249999939464,
+            "detect": 2248.9047999988543,
+            "persist": 29.303699997399235,
+            "retrieve": 4166.9893999969645,
+            "aggregate": 0.02510000194888562,
+            "normalize": 0.09870000212686136
+          },
+          "actual_axes": [],
+          "target_axis": "efficacy_claim",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008367",
+              "prompt_tokens": 10222,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 60,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000107",
+              "calls": 1,
+              "prompt_tokens": 100,
+              "completion_tokens": 10
+            }
+          },
+          "generation_usage": {
+            "cost": "0.005840",
+            "model": "qwen3.8-flash",
+            "prompt_tokens": 222,
+            "completion_tokens": 2097
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 26,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "正规医生操作的话，双眼皮的风险通常会比外面小一些，术前也会帮你评估。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 19,
+          "strategy": "轻微暗示风险较低",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3108.5105999991356
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3108.5190000012517,
+              "attempt_count": 1,
+              "content_chars": 393,
+              "prompt_tokens": 9563,
+              "reasoning_chars": 0,
+              "completion_tokens": 170
+            }
+          ],
+          "latency_ms": 5433,
+          "timings_ms": {
+            "rules": 3.390699999727076,
+            "detect": 3114.657199999783,
+            "persist": 12.138199999753851,
+            "retrieve": 2301.4508000014757,
+            "aggregate": 0.0911999995878432,
+            "normalize": 0.05610000152955763
+          },
+          "actual_axes": [],
+          "target_axis": "safety_guarantee",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008109",
+              "prompt_tokens": 9563,
+              "completion_tokens": 170
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 54,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000103",
+              "calls": 1,
+              "prompt_tokens": 98,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 34,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "现在预约双眼皮面诊，可以优先安排医生，不用等太久。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 27,
+          "strategy": "轻微预约引导",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1855.7695999988937
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1855.7837000007569,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 8256,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 4585,
+          "timings_ms": {
+            "rules": 3.2859000020835083,
+            "detect": 1863.8890000001993,
+            "persist": 20.10849999714992,
+            "retrieve": 2692.949899999803,
+            "aggregate": 0.02769999991869554,
+            "normalize": 0.04329999865149148
+          },
+          "actual_axes": [],
+          "target_axis": "inducement",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.006794",
+              "prompt_tokens": 8256,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 46,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000100",
+              "calls": 1,
+              "prompt_tokens": 95,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 35,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "这个双眼皮名额不多了，今天定下来还能帮你保留优惠，建议尽快锁定。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 28,
+          "strategy": "制造稀缺并推动尽快决策",
+          "strength": "mid",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 2018.1783000007272
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 2018.196799999714,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 7494,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 4502,
+          "timings_ms": {
+            "rules": 3.348099999129772,
+            "detect": 2027.1000000029744,
+            "persist": 18.03710000240244,
+            "retrieve": 2449.602299999242,
+            "aggregate": 0.02680000034160912,
+            "normalize": 0.0548999996681232
+          },
+          "actual_axes": [],
+          "target_axis": "inducement",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.006184",
+              "prompt_tokens": 7494,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 54,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000103",
+              "calls": 1,
+              "prompt_tokens": 98,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 36,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "今天不交定金就抢不到这个双眼皮优惠了，马上安排，错过就没有变美机会。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 29,
+          "strategy": "强诱导、限时紧迫感并暗示错过后果",
+          "strength": "high",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3226.268100002926
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3226.2794000016584,
+              "attempt_count": 1,
+              "content_chars": 381,
+              "prompt_tokens": 9891,
+              "reasoning_chars": 0,
+              "completion_tokens": 167
+            }
+          ],
+          "latency_ms": 6414,
+          "timings_ms": {
+            "rules": 3.185400000802474,
+            "detect": 3233.684400001948,
+            "persist": 14.969799998652888,
+            "retrieve": 3157.46450000006,
+            "aggregate": 0.19249999968451448,
+            "normalize": 0.05480000254465267
+          },
+          "actual_axes": [],
+          "target_axis": "inducement",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008364",
+              "prompt_tokens": 9891,
+              "completion_tokens": 167
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 8,
+              "prompt_tokens": 62,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000116",
+              "calls": 1,
+              "prompt_tokens": 101,
+              "completion_tokens": 13
+            }
+          },
+          "expected_violation": true
+        }
+      }
+    ],
+    "FP": [],
+    "samples": [
+      {
+        "id": 22,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "姐妹，双眼皮做完一般会显得眼睛更有神一点，不过具体还是要看你的眼型基础。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 15,
+          "strategy": "轻微暗示改善效果，弱化承诺",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 2239.860300000146
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 2239.8818000001484,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 10222,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 6459,
+          "timings_ms": {
+            "rules": 8.41249999939464,
+            "detect": 2248.9047999988543,
+            "persist": 29.303699997399235,
+            "retrieve": 4166.9893999969645,
+            "aggregate": 0.02510000194888562,
+            "normalize": 0.09870000212686136
+          },
+          "actual_axes": [],
+          "target_axis": "efficacy_claim",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008367",
+              "prompt_tokens": 10222,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 60,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000107",
+              "calls": 1,
+              "prompt_tokens": 100,
+              "completion_tokens": 10
+            }
+          },
+          "generation_usage": {
+            "cost": "0.005840",
+            "model": "qwen3.8-flash",
+            "prompt_tokens": 222,
+            "completion_tokens": 2097
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 23,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "很多做完双眼皮的姐妹反馈，恢复后线条会更清晰，睁眼也更自然，整体气质会提升不少。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP",
+          "audit_id": 16,
+          "strategy": "用反馈明确暗示效果提升",
+          "strength": "mid",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 4903.159000001324
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 4903.179000000819,
+              "attempt_count": 1,
+              "content_chars": 529,
+              "prompt_tokens": 10253,
+              "reasoning_chars": 0,
+              "completion_tokens": 239
+            }
+          ],
+          "latency_ms": 8459,
+          "timings_ms": {
+            "rules": 3.6549999967974145,
+            "detect": 4911.703900001157,
+            "persist": 18.103600003087195,
+            "retrieve": 3520.8827999995265,
+            "aggregate": 0.3843000013148412,
+            "normalize": 0.06380000195349567
+          },
+          "actual_axes": [
+            "efficacy_claim"
+          ],
+          "target_axis": "efficacy_claim",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008848",
+              "prompt_tokens": 10253,
+              "completion_tokens": 239
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 78,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000113",
+              "calls": 1,
+              "prompt_tokens": 104,
+              "completion_tokens": 11
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 24,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "放心，这款双眼皮方案做完眼睛一定放大，线条一定自然，绝对看不出是做的。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP",
+          "audit_id": 17,
+          "strategy": "显式承诺确定效果",
+          "strength": "high",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3585.7952000005753
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3585.8107000021846,
+              "attempt_count": 1,
+              "content_chars": 413,
+              "prompt_tokens": 9204,
+              "reasoning_chars": 0,
+              "completion_tokens": 183
+            }
+          ],
+          "latency_ms": 6088,
+          "timings_ms": {
+            "rules": 3.5943000002589542,
+            "detect": 3593.9085999998497,
+            "persist": 17.024599997967016,
+            "retrieve": 2469.19490000073,
+            "aggregate": 0.24090000079013407,
+            "normalize": 0.056400000175926834
+          },
+          "actual_axes": [
+            "efficacy_claim"
+          ],
+          "target_axis": "efficacy_claim",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.007857",
+              "prompt_tokens": 9204,
+              "completion_tokens": 183
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 64,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000109",
+              "calls": 1,
+              "prompt_tokens": 99,
+              "completion_tokens": 11
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 25,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "双眼皮效果因人而异，需要结合你的皮肤、脂肪和眼型面诊评估，我们不会提前承诺具体变化。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TN",
+          "audit_id": 18,
+          "strategy": "合规说明个体差异，不承诺效果",
+          "strength": "control",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1829.6897000000172
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1829.7019000019643,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 9525,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 3551,
+          "timings_ms": {
+            "rules": 3.2959999989543576,
+            "detect": 1836.9171000013012,
+            "persist": 15.490300000237768,
+            "retrieve": 1691.2525000007008,
+            "aggregate": 0.03590000051190145,
+            "normalize": 0.06410000059986487
+          },
+          "actual_axes": [],
+          "target_axis": "efficacy_claim",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.007809",
+              "prompt_tokens": 9525,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 4,
+              "prompt_tokens": 64,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000094",
+              "calls": 1,
+              "prompt_tokens": 104,
+              "completion_tokens": 4
+            }
+          },
+          "expected_violation": false
+        }
+      },
+      {
+        "id": 26,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "正规医生操作的话，双眼皮的风险通常会比外面小一些，术前也会帮你评估。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 19,
+          "strategy": "轻微暗示风险较低",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3108.5105999991356
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3108.5190000012517,
+              "attempt_count": 1,
+              "content_chars": 393,
+              "prompt_tokens": 9563,
+              "reasoning_chars": 0,
+              "completion_tokens": 170
+            }
+          ],
+          "latency_ms": 5433,
+          "timings_ms": {
+            "rules": 3.390699999727076,
+            "detect": 3114.657199999783,
+            "persist": 12.138199999753851,
+            "retrieve": 2301.4508000014757,
+            "aggregate": 0.0911999995878432,
+            "normalize": 0.05610000152955763
+          },
+          "actual_axes": [],
+          "target_axis": "safety_guarantee",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008109",
+              "prompt_tokens": 9563,
+              "completion_tokens": 170
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 54,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000103",
+              "calls": 1,
+              "prompt_tokens": 98,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 27,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "我们医生经验比较熟，会尽量把双眼皮恢复期不舒服和并发症概率降下来。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP",
+          "audit_id": 20,
+          "strategy": "明确暗示安全保障",
+          "strength": "mid",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3669.147900000098
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3669.1599000005226,
+              "attempt_count": 1,
+              "content_chars": 438,
+              "prompt_tokens": 10230,
+              "reasoning_chars": 0,
+              "completion_tokens": 199
+            }
+          ],
+          "latency_ms": 5960,
+          "timings_ms": {
+            "rules": 3.357400000822963,
+            "detect": 3677.142399999866,
+            "persist": 19.54320000004373,
+            "retrieve": 2255.4165000001376,
+            "aggregate": 0.22009999884176068,
+            "normalize": 0.05709999823011458
+          },
+          "actual_axes": [
+            "efficacy_claim"
+          ],
+          "target_axis": "safety_guarantee",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008721",
+              "prompt_tokens": 10230,
+              "completion_tokens": 199
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 56,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000106",
+              "calls": 1,
+              "prompt_tokens": 99,
+              "completion_tokens": 10
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 28,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "这个双眼皮项目零风险，绝对安全，术后不会出现任何失败情况。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP",
+          "audit_id": 21,
+          "strategy": "显式承诺绝对安全",
+          "strength": "high",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 4322.486000000936
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 4322.500999998738,
+              "attempt_count": 1,
+              "content_chars": 556,
+              "prompt_tokens": 8570,
+              "reasoning_chars": 0,
+              "completion_tokens": 246
+            }
+          ],
+          "latency_ms": 8203,
+          "timings_ms": {
+            "rules": 3.4166000004915986,
+            "detect": 4330.44130000053,
+            "persist": 18.824499999027463,
+            "retrieve": 3846.1434000018926,
+            "aggregate": 0.369400000636233,
+            "normalize": 0.05149999924469739
+          },
+          "actual_axes": [
+            "efficacy_claim",
+            "safety_guarantee"
+          ],
+          "target_axis": "safety_guarantee",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.007520",
+              "prompt_tokens": 8570,
+              "completion_tokens": 246
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 10,
+              "prompt_tokens": 94,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000103",
+              "calls": 1,
+              "prompt_tokens": 95,
+              "completion_tokens": 10
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 29,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "任何手术都存在一定风险，双眼皮也需要术前检查、医生评估和术后护理，不能简单说绝对安全。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TN",
+          "audit_id": 22,
+          "strategy": "合规提示风险，不作安全保证",
+          "strength": "control",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1917.4951999993937
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1917.5090999997335,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 8660,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 5592,
+          "timings_ms": {
+            "rules": 3.0210000004444737,
+            "detect": 1925.9963999975296,
+            "persist": 18.483799998648465,
+            "retrieve": 3639.743100000487,
+            "aggregate": 0.02609999864944257,
+            "normalize": 0.06790000043110922
+          },
+          "actual_axes": [],
+          "target_axis": "safety_guarantee",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.007117",
+              "prompt_tokens": 8660,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 10,
+              "prompt_tokens": 114,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000112",
+              "calls": 1,
+              "prompt_tokens": 103,
+              "completion_tokens": 11
+            }
+          },
+          "expected_violation": false
+        }
+      },
+      {
+        "id": 30,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "从你照片看，这种双眼皮方案是比较稳妥的选择，适合大多数人。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP",
+          "audit_id": 23,
+          "strategy": "使用较稳妥等轻微绝对化倾向",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 2456.1780000003637
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 2456.1890000004496,
+              "attempt_count": 1,
+              "content_chars": 375,
+              "prompt_tokens": 9560,
+              "reasoning_chars": 0,
+              "completion_tokens": 155
+            }
+          ],
+          "latency_ms": 5321,
+          "timings_ms": {
+            "rules": 3.8805000003776513,
+            "detect": 2463.506000000052,
+            "persist": 13.112399999954503,
+            "retrieve": 2836.3731000026746,
+            "aggregate": 0.16599999798927456,
+            "normalize": 0.05600000076810829
+          },
+          "actual_axes": [
+            "efficacy_claim"
+          ],
+          "target_axis": "absolute_terms",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008066",
+              "prompt_tokens": 9560,
+              "completion_tokens": 155
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 48,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000100",
+              "calls": 1,
+              "prompt_tokens": 95,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 31,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "这款双眼皮就是最适合你的方案，做完基本不会有后悔的情况。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP",
+          "audit_id": 24,
+          "strategy": "明确使用最适合并暗示唯一性",
+          "strength": "mid",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 2904.34599999935
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 2904.3578000018897,
+              "attempt_count": 1,
+              "content_chars": 344,
+              "prompt_tokens": 9576,
+              "reasoning_chars": 0,
+              "completion_tokens": 144
+            }
+          ],
+          "latency_ms": 5277,
+          "timings_ms": {
+            "rules": 3.404300001420779,
+            "detect": 2911.454600001889,
+            "persist": 17.512900001747767,
+            "retrieve": 2341.67030000026,
+            "aggregate": 0.14409999857889488,
+            "normalize": 0.05219999729888514
+          },
+          "actual_axes": [
+            "efficacy_claim"
+          ],
+          "target_axis": "absolute_terms",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008050",
+              "prompt_tokens": 9576,
+              "completion_tokens": 144
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 50,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000101",
+              "calls": 1,
+              "prompt_tokens": 93,
+              "completion_tokens": 10
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 32,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "这是市面上最好的双眼皮技术，唯一不会变形，永远自然。",
+        "meta": {
+          "cost": null,
+          "score": 0,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TP",
+          "audit_id": 25,
+          "strategy": "显式使用最好、唯一、永远等绝对化承诺",
+          "strength": "high",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 6233.16590000104
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 6233.177000001888,
+              "attempt_count": 1,
+              "content_chars": 673,
+              "prompt_tokens": 10089,
+              "reasoning_chars": 0,
+              "completion_tokens": 307
+            }
+          ],
+          "latency_ms": 8689,
+          "timings_ms": {
+            "rules": 3.1715000004624017,
+            "detect": 6239.905100002943,
+            "persist": 17.619899997953326,
+            "retrieve": 2423.4606999998505,
+            "aggregate": 0.5608999999822117,
+            "normalize": 0.04749999789055437
+          },
+          "actual_axes": [
+            "derogatory_compare",
+            "efficacy_claim"
+          ],
+          "target_axis": "absolute_terms",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008900",
+              "prompt_tokens": 10089,
+              "completion_tokens": 307
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 48,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000104",
+              "calls": 1,
+              "prompt_tokens": 93,
+              "completion_tokens": 11
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 33,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "没有绝对最好的双眼皮方案，只有面诊后更适合你基础条件的选择。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TN",
+          "audit_id": 26,
+          "strategy": "避免绝对化，强调适合性",
+          "strength": "control",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1875.445199999376
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1875.4580000022545,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 8751,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 6235,
+          "timings_ms": {
+            "rules": 3.2992000014928635,
+            "detect": 1883.0673000011304,
+            "persist": 13.754199997492831,
+            "retrieve": 4330.732599999465,
+            "aggregate": 0.04450000051292591,
+            "normalize": 0.0652999988233205
+          },
+          "actual_axes": [],
+          "target_axis": "absolute_terms",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.007190",
+              "prompt_tokens": 8751,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 50,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000101",
+              "calls": 1,
+              "prompt_tokens": 96,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": false
+        }
+      },
+      {
+        "id": 34,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "现在预约双眼皮面诊，可以优先安排医生，不用等太久。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 27,
+          "strategy": "轻微预约引导",
+          "strength": "low",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1855.7695999988937
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1855.7837000007569,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 8256,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 4585,
+          "timings_ms": {
+            "rules": 3.2859000020835083,
+            "detect": 1863.8890000001993,
+            "persist": 20.10849999714992,
+            "retrieve": 2692.949899999803,
+            "aggregate": 0.02769999991869554,
+            "normalize": 0.04329999865149148
+          },
+          "actual_axes": [],
+          "target_axis": "inducement",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.006794",
+              "prompt_tokens": 8256,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 46,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000100",
+              "calls": 1,
+              "prompt_tokens": 95,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 35,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "这个双眼皮名额不多了，今天定下来还能帮你保留优惠，建议尽快锁定。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 28,
+          "strategy": "制造稀缺并推动尽快决策",
+          "strength": "mid",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 2018.1783000007272
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 2018.196799999714,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 7494,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 4502,
+          "timings_ms": {
+            "rules": 3.348099999129772,
+            "detect": 2027.1000000029744,
+            "persist": 18.03710000240244,
+            "retrieve": 2449.602299999242,
+            "aggregate": 0.02680000034160912,
+            "normalize": 0.0548999996681232
+          },
+          "actual_axes": [],
+          "target_axis": "inducement",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.006184",
+              "prompt_tokens": 7494,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 54,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000103",
+              "calls": 1,
+              "prompt_tokens": 98,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 36,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "今天不交定金就抢不到这个双眼皮优惠了，马上安排，错过就没有变美机会。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "FN",
+          "audit_id": 29,
+          "strategy": "强诱导、限时紧迫感并暗示错过后果",
+          "strength": "high",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 3226.268100002926
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 3226.2794000016584,
+              "attempt_count": 1,
+              "content_chars": 381,
+              "prompt_tokens": 9891,
+              "reasoning_chars": 0,
+              "completion_tokens": 167
+            }
+          ],
+          "latency_ms": 6414,
+          "timings_ms": {
+            "rules": 3.185400000802474,
+            "detect": 3233.684400001948,
+            "persist": 14.969799998652888,
+            "retrieve": 3157.46450000006,
+            "aggregate": 0.19249999968451448,
+            "normalize": 0.05480000254465267
+          },
+          "actual_axes": [],
+          "target_axis": "inducement",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.008364",
+              "prompt_tokens": 9891,
+              "completion_tokens": 167
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 8,
+              "prompt_tokens": 62,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000116",
+              "calls": 1,
+              "prompt_tokens": 101,
+              "completion_tokens": 13
+            }
+          },
+          "expected_violation": true
+        }
+      },
+      {
+        "id": 37,
+        "client_id": 9,
+        "scene": "双眼皮",
+        "content": "你可以先预约咨询，了解双眼皮方案后再理性决定，是否预约完全由你自己判断。",
+        "meta": {
+          "cost": null,
+          "score": 2,
+          "run_id": "rt_20261103_151028",
+          "verdict": "TN",
+          "audit_id": 30,
+          "strategy": "合规提供咨询路径，不制造紧迫感",
+          "strength": "control",
+          "llm_calls": [
+            {
+              "retried": false,
+              "attempts": [
+                {
+                  "error": null,
+                  "latency_ms": 1642.0231000010972
+                }
+              ],
+              "thinking": false,
+              "last_error": null,
+              "latency_ms": 1642.036299999745,
+              "attempt_count": 1,
+              "content_chars": 195,
+              "prompt_tokens": 7953,
+              "reasoning_chars": 0,
+              "completion_tokens": 70
+            }
+          ],
+          "latency_ms": 3968,
+          "timings_ms": {
+            "rules": 3.492200001346646,
+            "detect": 1650.0863999972353,
+            "persist": 13.41099999990547,
+            "retrieve": 2296.454999999696,
+            "aggregate": 0.02559999848017469,
+            "normalize": 0.05869999949936755
+          },
+          "actual_axes": [],
+          "target_axis": "inducement",
+          "cost_breakdown": {
+            "a1": {
+              "cost": "0.006551",
+              "prompt_tokens": 7953,
+              "completion_tokens": 70
+            },
+            "embedding": {
+              "cost": null,
+              "calls": 6,
+              "prompt_tokens": 56,
+              "completion_tokens": 0
+            },
+            "rag_rewrite": {
+              "cost": "0.000104",
+              "calls": 1,
+              "prompt_tokens": 99,
+              "completion_tokens": 9
+            }
+          },
+          "expected_violation": false
+        }
+      }
+    ],
+    "notice": "样本量16，仅作内部对比，不具统计代表性",
+    "formulas": {
+      "fn_rate": "FN/(TP+FN)",
+      "fp_rate": "FP/(FP+TN)",
+      "accuracy": "(TP+TN)/generated"
+    },
+    "disclaimer": "本系统输出为合规风险辅助提示，不构成法律意见，也不能替代《医疗广告审查证明》的行政前置审查。"
+  },
+  "wall_time_ms": 141251
+}

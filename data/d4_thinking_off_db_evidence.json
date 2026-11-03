@@ -1,0 +1,156 @@
+{
+  "audits": [
+    {
+      "id": 15,
+      "script_id": 22,
+      "score": 2,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 6459
+    },
+    {
+      "id": 16,
+      "script_id": 23,
+      "score": 0,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 8459
+    },
+    {
+      "id": 17,
+      "script_id": 24,
+      "score": 0,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 6088
+    },
+    {
+      "id": 18,
+      "script_id": 25,
+      "score": 2,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 3551
+    },
+    {
+      "id": 19,
+      "script_id": 26,
+      "score": 2,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 5433
+    },
+    {
+      "id": 20,
+      "script_id": 27,
+      "score": 0,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 5960
+    },
+    {
+      "id": 21,
+      "script_id": 28,
+      "score": 0,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 8203
+    },
+    {
+      "id": 22,
+      "script_id": 29,
+      "score": 2,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 5592
+    },
+    {
+      "id": 23,
+      "script_id": 30,
+      "score": 0,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 5321
+    },
+    {
+      "id": 24,
+      "script_id": 31,
+      "score": 0,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 5277
+    },
+    {
+      "id": 25,
+      "script_id": 32,
+      "score": 0,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 8689
+    },
+    {
+      "id": 26,
+      "script_id": 33,
+      "score": 2,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 6235
+    },
+    {
+      "id": 27,
+      "script_id": 34,
+      "score": 2,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 4585
+    },
+    {
+      "id": 28,
+      "script_id": 35,
+      "score": 2,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 4502
+    },
+    {
+      "id": 29,
+      "script_id": 36,
+      "score": 2,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 6414
+    },
+    {
+      "id": 30,
+      "script_id": 37,
+      "score": 2,
+      "incomplete": 0,
+      "cost": null,
+      "latency_ms": 3968
+    }
+  ],
+  "call_metadata": [
+    {
+      "status": "call_metadata",
+      "llm_calls": [
+        {
+          "retried": false,
+          "attempts": [
+            {
+              "error": null,
+              "latency_ms": 2239.860300000146
+            }
+          ],
+          "thinking": false,
+          "last_error": null,
+          "latency_ms": 2239.8818000001484,
+          "attempt_count": 1,
+          "content_chars": 195,
+          "prompt_tokens": 10222,
+          "reasoning_chars": 0,
+          "completion_tokens": 70
+        }
+      ]
+    }
+  ]
+}
