@@ -17,3 +17,40 @@ def test_quotes_are_original_after_nfkc():
                                      None, {'echo': Echo()}).review(source)
         assert result['hits']
         assert all(source.find(h['quote']) >= 0 for h in result['hits'])
+
+
+class Candidate(Detector):
+    def __init__(self, pattern, law):
+        self.pattern, self.law = pattern, law
+
+    def detect(self, text, rule):
+        return [dict(quote=text, pattern=self.pattern, law_article=self.law)]
+
+
+def check_axis(pattern, declared, cited, known):
+    rule = dict(axis='safety_guarantee', pattern='安全', law_article=declared, detector='probe')
+    return ComplianceAuditAgent(lambda: [rule], lambda q: [dict(code=cited)], None,
+                               {'probe': Candidate(pattern, cited)}, known_docs=known).review('非常安全')
+
+
+def test_wrong_axis_pattern_rejected():
+    result = check_axis('功效', '广告法第16条', '广告法第16条', {'广告法'})
+    assert not result['hits']
+    assert result['traces'][0]['status'] == 'cross_axis_rejected'
+
+
+def test_article_level_membership_passes():
+    result = check_axis('安全', '医疗广告管理办法第7条(六)', '医疗广告管理办法第7条', {'医疗广告管理办法'})
+    assert result['hits']
+
+
+def test_missing_document_warns_only():
+    result = check_axis('安全', '缺失法规第7条', '广告法第16条', {'广告法'})
+    assert result['hits']
+    assert any(t['status'] == 'law_ref_missing' for t in result['traces'])
+
+
+def test_other_axis_law_rejected():
+    result = check_axis('安全', '广告法第16条', '广告法第9条', {'广告法'})
+    assert not result['hits']
+    assert result['traces'][0]['status'] == 'cross_axis_rejected'

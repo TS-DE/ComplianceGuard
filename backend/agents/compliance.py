@@ -7,6 +7,7 @@ from decimal import Decimal
 from time import perf_counter
 from backend.agents.base import Rule, DETECTORS, LLMJudgeDetector
 from backend.core.config import DISCLAIMER_TEXT
+from backend.core.constants import to_refs, missing_docs
 
 _SENTENCES = re.compile(r'[^。！？!?；;\n]+[。！？!?；;\n]?')
 _ZERO_WIDTH = frozenset('\u200b\u200c\u200d\ufeff\u2060')
@@ -44,8 +45,9 @@ def _score(hits):
 
 class ComplianceAuditAgent:
     """组合规则加载、检索和检测器，接口不依赖数据库或模型供应商。"""
-    def __init__(self, rules_loader, search_law, model, detectors=None):
+    def __init__(self, rules_loader, search_law, model, detectors=None, known_docs=None):
         self.rules_loader, self.search_law, self.model = rules_loader, search_law, model
+        self.known_docs = known_docs
         self.detectors = dict(DETECTORS if detectors is None else detectors)
         if detectors is None:
             self.detectors['llm_judge'] = LLMJudgeDetector(model)
@@ -140,7 +142,8 @@ class ComplianceAuditAgent:
         sentences = list(_SENTENCES.finditer(text))
         for rule, candidate in candidates:
             hit = dict(candidate, axis=rule.axis, severity=rule.level, detector=rule.detector,
-                       pattern=rule.pattern, exempted_by=None)
+                       exempted_by=None)
+            hit.setdefault("pattern", rule.pattern)
             quote = hit.get('quote')
             start = text.find(quote) if isinstance(quote, str) and quote else -1
             if start < 0:
@@ -153,6 +156,15 @@ class ComplianceAuditAgent:
                     hit['law_article'] = parent
             if hit.get('law_article') not in codes:
                 result['traces'].append(dict(hit, status='invalid_law_ref'))
+                continue
+            declared = to_refs(rule.law_article) if rule.law_article else set()
+            known = self.known_docs
+            absent = missing_docs(declared, known) if known is not None else set()
+            if absent:
+                result['traces'].append(dict(hit, status='law_ref_missing', documents=sorted(absent)))
+            if (re.sub(r'\s+', '', hit['pattern']) != re.sub(r'\s+', '', rule.pattern)
+                    or (declared and not absent and not (to_refs(hit['law_article']) & declared))):
+                result['traces'].append(dict(hit, status='cross_axis_rejected'))
                 continue
             end = start + len(quote)
             a, b = offsets[start][0], offsets[end - 1][1]
