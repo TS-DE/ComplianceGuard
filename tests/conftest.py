@@ -73,6 +73,8 @@ def test_dsn() -> str:
                               "NOT NULL DEFAULT 'llm_judge'"))
         if "exemptions" not in columns:
             conn.execute(text("ALTER TABLE rules ADD COLUMN exemptions JSON NULL"))
+    from scripts.migrate_audits_cost_nullable import migrate
+    migrate(engine, apply=True)
     engine.dispose()
     yield dsn
 

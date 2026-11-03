@@ -138,8 +138,8 @@ class Audit(Base):
     completion_tokens: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default=text("0")
     )
-    cost: Mapped[Decimal] = mapped_column(
-        Numeric(COST_PRECISION, COST_SCALE), nullable=False, server_default=text("0")
+    cost: Mapped[Decimal | None] = mapped_column(
+        Numeric(COST_PRECISION, COST_SCALE).evaluates_none(), nullable=True, server_default=text("NULL")
     )
     latency_ms: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default=text("0")

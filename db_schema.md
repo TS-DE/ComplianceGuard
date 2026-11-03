@@ -59,7 +59,7 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 | model | VARCHAR(50) | NULL | 判定模型名 |
 | prompt_tokens | INT | NOT NULL, DEFAULT 0 | 成本计量 |
 | completion_tokens | INT | NOT NULL, DEFAULT 0 | |
-| cost | DECIMAL(10,6) | NOT NULL, DEFAULT 0 | 估算元 |
+| cost | DECIMAL(10,6) | NULL, DEFAULT NULL | NULL=未配置单价未计价；0=确为零成本；估算元 |
 | latency_ms | INT | NOT NULL, DEFAULT 0 | 端到端耗时 |
 | incomplete | TINYINT(1) | NOT NULL, DEFAULT 0 | 1=有轴调用失败，**不许当合规** |
 | created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP, INDEX `ix_audits_created_at` | 报告按时间窗聚合 |
