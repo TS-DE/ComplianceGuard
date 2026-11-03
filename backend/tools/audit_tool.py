@@ -76,6 +76,7 @@ class AuditTool:
         result.update(judge_cost=result["cost_breakdown"]["a1"]["cost"],
                       rewrite_cost=rag_usage["rag_rewrite"]["cost"],embedding_cost=rag_usage["embedding"]["cost"],
                       total_cost=result["cost"],cost_note="全链路估算，非供应商账单；未知项不计伪合计")
+        result["llm_calls"] = getattr(self.model,"calls",[])[call_offset:]
         before = perf_counter()
         audit_id = self.repository.save(script_id, result)
         result.setdefault("timings_ms", {})["persist"] = (perf_counter() - before) * 1000
@@ -134,7 +135,7 @@ def recheck(text, client_id):
 class UrllibChatModel(ChatModel):
     """兼容 OpenAI 的同步聊天适配器；支持注入 transport 做离线测试。"""
 
-    def __init__(self, transport=None):
+    def __init__(self, transport=None, purpose="judge"):
         """读取 JUDGE_* 配置；密钥只由网络适配器保存，不进入响应。"""
         config = llm_config()
         self.model = config.get("JUDGE_MODEL", "qwen-plus")
@@ -144,6 +145,10 @@ class UrllibChatModel(ChatModel):
         compute_cost(0, 0, self.input_price, self.output_price)
         self.pricing_source = 'configured_or_model_table' if self.input_price is not None and self.output_price is not None else 'unpriced'
         self.timeout = int(config.get("JUDGE_TIMEOUT", NETWORK_TIMEOUT))
+        key = "REDTEAM_ENABLE_THINKING" if purpose == "redteam" else "JUDGE_ENABLE_THINKING"
+        self.thinking = (str(config[key]).lower() == "true") if key in config else None
+        self.pass_thinking = str(config.get("JUDGE_PASS_THINKING_PARAM", "true")).lower() == "true"
+        self.actual_thinking = self.thinking if self.pass_thinking else None
         self.calls = []
         self.api_key = config.get("JUDGE_API_KEY")
         self.base_url = config.get("JUDGE_BASE_URL", DASHSCOPE_URL).rstrip("/")
@@ -168,9 +173,10 @@ class UrllibChatModel(ChatModel):
         for attempt in range(3):
             before=perf_counter()
             try:
-                response = self.transport('/chat/completions', {
-                    'model':self.model,'messages':messages,'temperature':0,
-                    'response_format':{'type':'json_object'}})
+                payload=dict(model=self.model,messages=messages,temperature=0,response_format={'type':'json_object'})
+                if self.actual_thinking is not None:
+                    payload['enable_thinking']=self.actual_thinking
+                response = self.transport('/chat/completions', payload)
                 if not isinstance(response,dict):
                     response=json.loads(response)
                 attempts.append(dict(latency_ms=(perf_counter()-before)*1000,error=None))
@@ -202,9 +208,11 @@ class UrllibChatModel(ChatModel):
         usage=(response or {}).get('usage',{})
         choices=(response or {}).get('choices') or [{}]
         message=choices[0].get('message',{})
-        call=dict(latency_ms=(perf_counter()-started)*1000,attempt_count=len(attempts),
+        call=dict(thinking=self.actual_thinking,latency_ms=(perf_counter()-started)*1000,attempt_count=len(attempts),
                   retried=len(attempts)>1,last_error=last_error,attempts=attempts,
                   prompt_tokens=usage.get('prompt_tokens'),completion_tokens=usage.get('completion_tokens'),
                   reasoning_chars=len(message.get('reasoning_content') or ''),content_chars=len(message.get('content') or ''))
         logging.getLogger(__name__).warning('llm_call=%s',call)
         self.calls.append(call)
+        if self.actual_thinking is False and call["reasoning_chars"]:
+            raise ModelCallError("关闭思考但reasoning非空，参数未生效", "thinking_not_applied", 1)

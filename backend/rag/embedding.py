@@ -52,6 +52,9 @@ class DashScopeEmbeddingFunction:
         """请求兼容端点；异常只包含状态码，不回显响应或密钥。"""
         if not self.api_key:
             raise EmbeddingError('缺少 JUDGE_API_KEY；请在本地 .env 配置')
+        config=llm_config()
+        if path == '/chat/completions' and str(config.get('JUDGE_PASS_THINKING_PARAM','true')).lower()=='true' and 'EMBEDDING_ENABLE_THINKING' in config:
+            payload=dict(payload,enable_thinking=str(config['EMBEDDING_ENABLE_THINKING']).lower()=='true')
         request = Request(self.base_url + path, data=json.dumps(payload).encode('utf-8'),
                           headers={'Authorization': f'Bearer {self.api_key}',
                                    'Content-Type': 'application/json'})

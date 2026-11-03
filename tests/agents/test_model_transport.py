@@ -103,3 +103,53 @@ def test_both_urlopen_use_configured_timeout(monkeypatch):
     audit_tool.UrllibChatModel()._request('/chat/completions',{})
     embedding.DashScopeEmbeddingFunction()._request('/embeddings',{})
     assert seen==[217,217]
+
+
+
+@pytest.mark.parametrize('thinking,passing,expected', [('false','true',False),('true','true',True),('false','false',None)])
+def test_thinking_payload_explicit(monkeypatch,thinking,passing,expected):
+    from backend.tools import audit_tool
+    monkeypatch.setattr(audit_tool,'llm_config',lambda:dict(JUDGE_ENABLE_THINKING=thinking,JUDGE_PASS_THINKING_PARAM=passing))
+    seen=[]
+    def transport(path,payload):
+        seen.append(payload)
+        return dict(choices=[dict(message=dict(content='{}'))],usage=dict(prompt_tokens=1,completion_tokens=1))
+    model=audit_tool.UrllibChatModel(transport)
+    model.complete([])
+    if expected is None: assert 'enable_thinking' not in seen[0]
+    else: assert seen[0]['enable_thinking'] is expected
+    assert model.calls[-1]['thinking'] is expected
+    assert model.calls[-1]['reasoning_chars']==0
+
+
+def test_batches_skip_any_existing_verdict():
+    from scripts.run_d4_once import execute_batches
+    calls=[]
+    class Repo:
+        def samples(self,run): return [dict(id=i,meta={'verdict':'TN'} if i<4 else {}) for i in range(16)]
+        def save_verdict(self,i,result): pass
+    class Judge:
+        def judge(self,sample):
+            calls.append(sample['id'])
+            return dict(verdict='TN')
+    batches=execute_batches(Repo(),Judge(),'run',4,lambda *args:None)
+    assert calls==list(range(4,16))
+    assert len(batches)==3
+    class Empty(Repo):
+        def samples(self,run): return [dict(id=i,meta={}) for i in range(16)]
+    assert len(execute_batches(Empty(),Judge(),'run',4,lambda *args:None))==4
+
+
+
+def test_generation_keeps_thinking_and_ignored_false_is_reported(monkeypatch):
+    from backend.tools import audit_tool
+    monkeypatch.setattr(audit_tool,'llm_config',lambda:dict(JUDGE_ENABLE_THINKING='false',REDTEAM_ENABLE_THINKING='true'))
+    payloads=[]
+    def transport(path,payload):
+        payloads.append(payload)
+        return dict(choices=[dict(message=dict(content='{}',reasoning_content='不应出现'))],
+                    usage=dict(prompt_tokens=1,completion_tokens=1))
+    audit_tool.UrllibChatModel(transport,purpose='redteam').complete([])
+    assert payloads[0]['enable_thinking'] is True
+    with pytest.raises(RuntimeError,match='参数未生效'):
+        audit_tool.UrllibChatModel(transport).complete([])
