@@ -39,7 +39,8 @@ class RedTeamAgent:
             found.add(key)
         expected = {(s,a,t) for s in scenes for a in axes for t in ('low','mid','high','control')}
         if found != expected: raise ValueError('incomplete sample matrix')
-        return dict(samples=rows,usage={k:response.get(k) for k in ('model','prompt_tokens','completion_tokens','cost')})
+        return dict(samples=rows,usage={k:response.get(k) for k in ('model','prompt_tokens','completion_tokens','cost')},
+                    llm_calls=list(self.model.calls) if isinstance(getattr(self.model,'calls',None),list) else [])
 
 
 class JudgeAgent:
@@ -62,7 +63,8 @@ class JudgeAgent:
         axes = sorted({a for h in result.get('hits',[]) for a in h.get('axes',[h.get('axis')]) if a})
         return dict(verdict=self.classify(sample['meta']['expected_violation'],result),actual_axes=axes,
                     score=result['score'],audit_id=result.get('audit_id'),cost=result.get('cost'),
-                    latency_ms=result.get('latency_ms'),cost_breakdown=result.get('cost_breakdown'))
+                    latency_ms=result.get('latency_ms'),cost_breakdown=result.get('cost_breakdown'),
+                    timings_ms=result.get('timings_ms'),llm_calls=list(result.get('llm_calls',[])))
 
 
 class AuditReportAgent:

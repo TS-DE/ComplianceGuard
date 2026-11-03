@@ -9,7 +9,7 @@ from backend.services.compliance import redteam_operations
 
 
 def main():
-    output=Path('data/d4_live_once.json')
+    output=Path('data/d4_timeout_fixed_once.json')
     with output.open('x',encoding='utf-8') as stream:
         stream.write('{}')
     started=perf_counter()
