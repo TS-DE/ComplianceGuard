@@ -92,10 +92,13 @@ async function loadGroups() {
   }
 }
 
-/** 展开某个机构时才请求它的话术，避免一次性拉全库。 */
+/** 展开某个机构时才请求它的话术，避免一次性拉全库。
+ *  注意 page_size 上限是 100（超过后端直接 400 参数校验失败），所以这里取 100；
+ *  单机构超过 100 条时后续需要给子列表加分页（当前数据量远小于该阈值）。
+ */
 async function loadChildren(node: ClientNode, resolve: (rows: ScriptRow[]) => void) {
   try {
-    const data = await scripts.list<ScriptRow>({ page: 1, page_size: 200, client_id: node.clientId })
+    const data = await scripts.list<ScriptRow>({ page: 1, page_size: 100, client_id: node.clientId })
     resolve(data.items)
   } catch {
     resolve([])
