@@ -19,6 +19,7 @@ def rag_search_law(query: str, top_k: int = 3) -> list[dict]:
     from backend.rag.retrieve import search
     return [{key: getattr(hit, key) for key in
              ("text", "code", "source", "score", "route", "parent_text", "doc_type")}
+            | {key: getattr(hit, key) for key in ('chunk_id', 'item_no') if hasattr(hit, key)}
             for hit in search(query, top_k=top_k)]
 
 
