@@ -1,0 +1,49 @@
+{
+  "positions": [
+    0,
+    21
+  ],
+  "candidates": [
+    {
+      "axis": "efficacy_claim",
+      "code": "医疗美容广告执法指南第5条",
+      "item_no": "第五条(四)",
+      "ref": "医疗美容广告执法指南.5.4",
+      "declared": [
+        "医疗美容广告执法指南.5.4",
+        "广告法.16.1"
+      ],
+      "exact": true,
+      "rejected": false,
+      "reason": null
+    },
+    {
+      "axis": "safety_guarantee",
+      "code": "广告法第16条",
+      "item_no": "第十六条(一)",
+      "ref": "广告法.16.1",
+      "declared": [
+        "医疗美容广告执法指南.5.4",
+        "广告法.16.1"
+      ],
+      "exact": true,
+      "rejected": false,
+      "reason": null
+    }
+  ],
+  "database": {
+    "id": 8,
+    "script_id": 3,
+    "score": 0,
+    "hit_count": 2,
+    "incomplete": 0,
+    "model": "qwen3.8-flash",
+    "prompt_tokens": 10063,
+    "completion_tokens": 2109,
+    "cost": "0.013745",
+    "latency_ms": 40311,
+    "created_at": "2026-11-03 11:21:55",
+    "hits_json_length": 4
+  },
+  "traces": []
+}

@@ -90,7 +90,8 @@
     },
     {
       "axis": "efficacy_claim",
-      "law_article": "广告法第16条(一)",
+      "law_article": "广告法第16条(一)、医美指南第五条(四)",
+      "version": 2,
       "pattern": "对医疗美容的诊疗效果或安全性作出保证性承诺，包括“保证…能…”“一定…”“做完就能…”等断言式表述，无论是否含违禁词。",
       "level": "hard",
       "detector": "llm_judge",
@@ -99,7 +100,8 @@
     },
     {
       "axis": "safety_guarantee",
-      "law_article": "广告法第16条(一)",
+      "law_article": "广告法第16条(一)、医美指南第五条(四)",
+      "version": 2,
       "pattern": "对医疗服务的安全性作出断言或保证，如“非常安全”“绝对安全”“零风险”“无副作用”“没有任何副作用”“无毒副作用”“稳如泰山”。",
       "level": "hard",
       "detector": "llm_judge",
@@ -126,7 +128,8 @@
     },
     {
       "axis": "cure_rate",
-      "law_article": "广告法第16条(二)",
+      "law_article": "广告法第16条(二)、医疗广告管理办法第7条(三)",
+      "version": 2,
       "pattern": "说明治愈率或者有效率，包括以数字、百分比、分数、举例等形式给出的疗效统计，如“治愈率95%”“有效率99%”“十个人九个好”。",
       "level": "hard",
       "detector": "regex",
