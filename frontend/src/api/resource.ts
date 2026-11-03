@@ -12,6 +12,44 @@ export const resources = (name: 'clients' | 'scripts' | 'audits' | 'rules') => (
   remove: (id: number) => request<{ id: number }>('DELETE', `/${name}/${id}`)
 })
 export const scripts = resources('scripts')
+export const audits = resources('audits')
+export const rules = resources('rules')
+export const clients = resources('clients')
+
+// 审查记录行：cost 由后端 Decimal 序列化为字符串或 null（null=未配置单价未计价，不等于 0 元）。
+export interface AuditRow {
+  id: number; script_id: number; score: number; hit_count: number
+  hits_json: Hit[] | null; law_refs_json: { code?: string }[] | null
+  rewritten_text: string | null; rewrite_passed: boolean | null
+  model: string | null; prompt_tokens: number; completion_tokens: number
+  cost: string | null; latency_ms: number; incomplete: boolean; created_at: string
+}
+export interface RuleRow {
+  id: number; axis: string; law_article: string; pattern: string
+  level: string; example_bad: string | null; enabled: boolean; version: number
+  detector: string | null; exemptions: { text?: string; source?: string }[] | null
+  created_at: string; updated_at: string
+}
+export interface ClientRow {
+  id: number; name: string; industry: string | null
+  contact: string | null; plan: string | null; created_at: string
+}
+export interface DailyReport {
+  total: number; incomplete: number; compliant: number; violations: number
+  average_latency_ms: string; cost: string | null; unpriced: number
+  known_cost_subtotal: string | null; date: string
+  by_axis: Record<string, number>; violation_rate: number; summary: string; disclaimer: string
+}
+export const rewriteAudit = (id: number) =>
+  request<{ rewritten_text?: string | null; rewrite_passed?: boolean | null; recheck?: unknown }>('POST', `/audit/${id}/rewrite`)
+// 日报接口的 date 是必填（不传返回 400），前端默认传本地当天，避免一进工作台就报错。
+const pad = (n: number) => String(n).padStart(2, '0')
+const today = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+export const dailyReport = (date?: string) =>
+  request<DailyReport>('GET', '/reports/daily', undefined, { date: date || today() })
 export async function allClients() {
   const items: Client[] = []
   let index = 1, total = 0

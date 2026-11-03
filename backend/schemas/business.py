@@ -173,6 +173,10 @@ class RuleOut(RuleBase):
     version: int
     created_at: datetime
     updated_at: datetime
+    # 检测手段与法定豁免是「规则即数据」的核心两列，前端规则库必须能看见：
+    # 否则用户无法解释「这条轴是词库查的还是模型判的」「哪些情形法律上不算违规」。
+    detector: str | None = None
+    exemptions: list[dict] | None = None
 
 class CaseRecord(BaseModel):
     """一条官方罚单案例。"""
