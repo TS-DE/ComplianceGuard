@@ -251,3 +251,17 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **风险**：T-007语义空闸、T-008索引code前缀、T-009费用不含RAG继续保留。未改判定器代码或项级匹配粒度。
 
 **规则/评测变更**：依据早于验收的原文和归档映射补齐法源；三个轴版本1→2且历史保留，评测集未改，不按模型输出临时放宽。
+
+
+## D4 红队与报告
+**改动**：scripts授权新增source/redteam_meta，默认预览幂等迁移；A3一次调用生成4轴×3违规档+4合规对照；A4顺序复用A1并写TP/FN/FP/TN/unjudged；A5 SQL聚合及模板；四个JWT接口；MCP保持6个。费用记录A1/RAG改写/embedding实际响应token，缺价null不冒充零。
+**验证**：迁移前后3条均保留且source=manual；DDL证据data/d4_migration_before/after.json。迁移/生成/仓储/MCP/计量均先观察失败再实现；全量216 passed in 11.17s。唯一真实阶段E在A3生成调用失败，EmbeddingError：聊天服务请求失败或响应非法；没有生成样本、未进入A4。数据库scripts3/redteam0/audits7，均未新增红队审计；未人工重跑。失败证据data/d4_live_failure.json，日报data/d4_daily_after_failure.json为既有D3记录，不冒充D4结果。
+**风险**：生成expected_violation是模型自报测试标签，不是官方锚点；embedding单价未知，total_cost=null。token占比不等价于费用占比，不能声称费用影响<0.3%。
+**规则/评测**：A1判定逻辑、法规及冻结评测未改；本轮16样本仅内部比较，不具统计代表性。
+
+
+## D4 读超时修复
+**改动**：按统筹方已证实根因，不重复诊断；JUDGE_TIMEOUT默认180秒，urllib单次阻塞读操作而非总时长。ModelCallError分类HTTP/timeout/invalid_json/connection/network，EmbeddingError兼容继承；4xx1次、5xx2次、超时2次、连接3次尝试上限；脱敏日志含每次尝试耗时和错误类型，成功/失败均留明细，reasoning_chars仅计字符不改计费。
+**验证**：8个transport测试先全部RED，修复8 passed；覆盖超时/非JSON/401/连接/兼容性/脱敏/reasoning/5xx及两urlopen配置一致。旧D4失败证据保留，新授权轮使用独立排他证据文件，不覆盖旧失败。
+**风险**：reasoning_content仅记录长度，completion_tokens沿用供应商用量，重试失败尝试无usage仍不可计量。新授权真实轮A3成功16条，完成6条后终端工具420s终止进程；TP3/FN2/FP0/TN1/unjudged10，未重跑。实测embedding382/A169084token约0.553%，不支持<0.3%说法。完整证据data/d4_timeout_fixed_report.json。
+**规则评测**：未改A1判定、规则、法规、索引或冻结评测集。

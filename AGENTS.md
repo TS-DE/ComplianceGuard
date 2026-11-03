@@ -45,19 +45,19 @@
 ### A3 红队攻击 Agent（RedTeamAgent）
 - **职责**：扮销售生成三级递进擦边话术
 - **工具**：`db_query_scenes`
-- **流程**：TODO（D4 补）
+- **流程**：一次生成三档违规+合规对照→严格矩阵校验→scripts来源/meta持久化。
 - **边界**：只做广告法域；不生成涉政涉黄涉暴
 
 ### A4 监管裁判 Agent（JudgeAgent）
 - **职责**：独立判定红队样本 → 漏杀清单
 - **工具**：`rag_search_law`、`db_query_rules`、`db_save_redteam_result`
-- **流程**：TODO（D4 补）
+- **流程**：逐条复用A1并落audits→TP/FN/FP/TN或unjudged→回写meta→按run聚合。
 - **铁律**：判定前先跑人类锚点集，锚点上崩了本轮作废
 
 ### A5 审计报告 Agent（AuditReportAgent）
 - **职责**：聚合 MySQL 记录 → 日报/压测报告
-- **工具**：`db_query_stats`
-- **流程**：TODO（D4 补）
+- **工具**：内部仓储聚合（非新增MCP工具）
+- **流程**：仓储SQL聚合→固定模板日报/压测报告；默认零模型成本，数字不由模型生成。
 - **铁律**：只解释已有数字，**禁止生成新事实**
 
 ---

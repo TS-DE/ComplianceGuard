@@ -78,6 +78,8 @@ class Script(Base):
         index=True,
     )
     scene: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    source: Mapped[str] = mapped_column(Enum("manual", "redteam"), nullable=False, server_default=text("'manual'"))
+    redteam_meta: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(
         Enum(ScriptStatus, values_callable=lambda e: [m.value for m in e]),

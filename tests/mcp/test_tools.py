@@ -23,7 +23,7 @@ def test_exact_registration_and_offline_selftest():
     expected = {
         "rag_search_law": ["query", "top_k"],
         "db_query_rules": ["axis"],
-        "db_query_violation_history": ["client_id", "limit"],
+        "db_query_violation_history": ["client_id", "limit", "run_id"],
         "db_query_scenes": [],
         "db_save_redteam_result": ["run_id", "sample", "judge", "category"],
         "audit_recheck": ["text", "client_id"],
@@ -164,17 +164,14 @@ def test_database_validation_before_connection(name, args):
 def test_redteam_durable_append_and_failure(monkeypatch, tmp_path):
     from backend.mcp_server import server
     from backend.tools import db_tool
-
-    path = tmp_path / "internal" / "results.jsonl"
-    monkeypatch.setattr(db_tool, "REDTEAM_PATH", path)
-    for sample in ("样本甲", "样本乙"):
-        assert server.db_save_redteam_result("run/1", sample, {"score": 0}, "功效") == {"ok": True}
-    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
-    assert [r["sample"] for r in rows] == ["样本甲", "样本乙"]
-    assert rows[0] == {"run_id": "run/1", "sample": "样本甲", "judge": {"score": 0}, "category": "功效"}
-    monkeypatch.setattr(db_tool, "REDTEAM_PATH", tmp_path)
-    with pytest.raises(OSError):
-        server.db_save_redteam_result("run", "样本", {}, "功效")
+    calls=[]
+    monkeypatch.setattr(db_tool.RedteamRepository,'samples',lambda self,run:[dict(id=1,content='样本甲')])
+    monkeypatch.setattr(db_tool.RedteamRepository,'save_verdict',lambda self,script_id,result:calls.append((script_id,result)))
+    assert server.db_save_redteam_result('run/1','样本甲',{'score':0},'TP') == {'ok':True}
+    assert calls==[(1,{'score':0,'verdict':'TP'})]
+    def broken(*args): raise OSError('write failure')
+    monkeypatch.setattr(db_tool.RedteamRepository,'save_verdict',broken)
+    with pytest.raises(OSError): server.db_save_redteam_result('run/1','样本甲',{},'TP')
 
 
 @pytest.mark.parametrize("args", [

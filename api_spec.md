@@ -121,3 +121,12 @@
 | 日期 | 变更 | 原因 |
 |---|---|---|
 | 2026-11-01 | 建立通用约定 + auth + 4 套 CRUD 形状 + 待实现登记 | D1 开工依据 |
+
+
+## D4 红队与报告
+全部JWT鉴权；POST /api/v1/redteam/run 请求client_id/scenes/axes/strength=all，一次生成每轴low/mid/high违规样本及control合规对照（默认4轴共16条），顺序调用A1后返回run_id/generated/script_ids。
+GET /api/v1/redteam/{run_id}/gaps 返回TP/FN/FP/TN/unjudged矩阵、清单和分轴率。
+GET /api/v1/reports/daily?date=YYYY-MM-DD 返回完整/未完成、按轴、成本和耗时。
+GET /api/v1/reports/redteam/{run_id} 返回矩阵、FN/(TP+FN)、FP/(FP+TN)、(TP+TN)/generated及样本量免责声明。
+MCP仍6个：db_query_violation_history新增可选run_id；db_save_redteam_result category为TP/FN/FP/TN/unjudged，judge可带script_id精确指定样本，写回scripts.redteam_meta。
+全链路费用分judge_cost/rewrite_cost/embedding_cost/total_cost；任一未知total_cost=null，embedding token照常记录。价格及用量仅为估算，不是供应商账单。

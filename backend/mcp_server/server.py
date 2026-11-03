@@ -31,10 +31,10 @@ def db_query_rules(axis: str | None = None) -> list[dict]:
 
 
 @mcp.tool()
-def db_query_violation_history(client_id: int, limit: int = 5) -> list[dict]:
+def db_query_violation_history(client_id: int, limit: int = 5, run_id: str | None = None) -> list[dict]:
     """读取机构最近违规审查；非法机构或条数报错。"""
     from backend.tools.db_tool import db_query_violation_history as query
-    return query(client_id, limit)
+    return query(client_id, limit, run_id)
 
 
 @mcp.tool()

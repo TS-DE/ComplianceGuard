@@ -1,0 +1,10 @@
+{
+  "ddl": "CREATE TABLE `scripts` (\n  `id` bigint NOT NULL AUTO_INCREMENT,\n  `client_id` bigint NOT NULL,\n  `scene` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `source` enum('manual','redteam') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'manual',\n  `redteam_meta` json DEFAULT NULL,\n  `content` text COLLATE utf8mb4_unicode_ci NOT NULL,\n  `status` enum('pending','audited','archived') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',\n  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY (`id`),\n  KEY `ix_scripts_client_id` (`client_id`),\n  CONSTRAINT `scripts_ibfk_1` FOREIGN KEY (`client_id`) REFERENCES `clients` (`id`) ON DELETE RESTRICT\n) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+  "count": 3,
+  "sources": [
+    {
+      "source": "manual",
+      "count": 3
+    }
+  ]
+}

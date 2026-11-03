@@ -184,3 +184,31 @@ class rules:
     def delete(db: Session, rule_id: int) -> None:
         """删除规则（物理删）。"""
         repos.rules.delete(db, rules.get(db, rule_id))
+
+
+
+def redteam_operations(db, model=None, auditor=None):
+    """D4组合根；复用A1，不在API或Agent内执行SQL。"""
+    from backend.agents.redteam import RedTeamAgent, JudgeAgent, AuditReportAgent
+    from backend.tools.db_tool import RedteamRepository
+    from backend.tools.audit_tool import UrllibChatModel
+    return dict(repository=RedteamRepository(db),generator=RedTeamAgent(model or UrllibChatModel()),
+                judge=JudgeAgent(auditor or audit_operations(db)),report=AuditReportAgent(RedteamRepository(db),
+                    (model or UrllibChatModel()) if __import__('os').environ.get('REPORT_USE_LLM','false').lower()=='true' else None))
+
+
+def run_redteam(db, client_id, scenes, axes, model=None, auditor=None):
+    """生成后顺序逐条审查，不重跑；连续四条未判定时停止并保留余项待判定。"""
+    from uuid import uuid4
+    from datetime import datetime
+    ops=redteam_operations(db,model,auditor)
+    run_id='rt_'+datetime.now().strftime('%Y%m%d_')+uuid4().hex[:8]
+    batch=ops['generator'].generate(scenes,axes)
+    ids=ops['repository'].save_samples(run_id,client_id,batch['samples'],batch['usage'])
+    failed=0
+    for row in ops['repository'].samples(run_id):
+        result=ops['judge'].judge(row)
+        ops['repository'].save_verdict(row['id'],result)
+        failed=failed+1 if result['verdict']=='unjudged' else 0
+        if failed>3: break
+    return dict(run_id=run_id,generated=len(ids),script_ids=ids)

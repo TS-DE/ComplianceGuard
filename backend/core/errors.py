@@ -115,3 +115,27 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(IntegrityError, _integrity_handler)
     app.add_exception_handler(SQLAlchemyError, _db_error_handler)
     app.add_exception_handler(Exception, _unhandled_handler)
+
+
+
+class ModelCallError(RuntimeError):
+    """脱敏的模型边界错误，kind及attempt_limit驱动重试而非解析消息。"""
+    def __init__(self, message, kind='connection', attempt_limit=3):
+        super().__init__(message)
+        self.kind=kind
+        self.attempt_limit=attempt_limit
+
+
+def model_error(exc, timeout, service='聊天服务'):
+    """保留HTTP码但不回显URL、reason原文、密钥、响应或用户文本。"""
+    from urllib.error import HTTPError, URLError
+    if isinstance(exc,ModelCallError): return exc
+    if isinstance(exc,HTTPError):
+        return ModelCallError(f'{service} HTTP {exc.code}','http',2 if exc.code>=500 else 1)
+    if isinstance(exc,TimeoutError) or (isinstance(exc,URLError) and isinstance(exc.reason,TimeoutError)):
+        return ModelCallError(f'{service}读超时（{timeout}s）','timeout',2)
+    if isinstance(exc,ValueError):
+        return ModelCallError('聊天响应非合法 JSON','invalid_json',1)
+    if isinstance(exc,URLError):
+        return ModelCallError(f'{service}连接失败（原因已脱敏）','connection',3)
+    return ModelCallError(f'{service}网络错误','network',3)
