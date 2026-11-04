@@ -76,6 +76,23 @@ export const runRedTeam = (clientId: number, scene: string, axes: string[]) =>
     undefined, 300000)
 export const redTeamGaps = (runId: string) =>
   request<RedTeamGaps>('GET', `/redteam/${encodeURIComponent(runId)}/gaps`)
+
+// 压测前先问后端"这一轮会用哪些轴/哪版规则/哪个模型"，
+// 否则界面只显示"16 条"，没人知道到底在测什么，结果也无法与规则改动对应。
+export interface RedTeamAxisOption {
+  axis: string; available: boolean
+  version: number | null; detector: string | null
+  law_article: string | null; pattern: string | null
+}
+export interface RedTeamOptions {
+  model: string | null
+  axes: RedTeamAxisOption[]
+  plan: {
+    per_axis_samples: number; description: string
+    sample_total_for_all_axes: number; expected_seconds: string; note: string
+  }
+}
+export const redTeamOptions = () => request<RedTeamOptions>('GET', '/redteam/options')
 // 日报接口的 date 是必填（不传返回 400），前端默认传本地当天，避免一进工作台就报错。
 const pad = (n: number) => String(n).padStart(2, '0')
 const today = () => {

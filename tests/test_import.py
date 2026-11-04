@@ -144,3 +144,29 @@ def test_import_api_rejects_unsupported_file(client: TestClient, auth_headers: d
     )
     assert resp.status_code == 422
     assert "不支持" in resp.json()["msg"]
+
+
+def test_redteam_options_exposes_what_will_be_tested(client: TestClient, auth_headers: dict, db) -> None:
+    """压测页必须能说明"这一轮测什么"：模型、各轴规则版本、检测手段与样本计划。
+
+    没有这份元信息，界面上只有"16 条"，管理员既不知道测的是哪些轴，
+    也无法把漏杀结果和某次规则改动对应起来。
+    """
+    from backend.db.models import Rule
+
+    db.add(Rule(axis="efficacy_claim", law_article="广告法第16条(一)",
+                pattern="对诊疗效果作保证性承诺", level="hard", detector="llm_judge",
+                example_bad=None, version=3, enabled=True))
+    db.commit()
+
+    resp = client.get(f"{API}/redteam/options", headers=auth_headers)
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+
+    assert data["model"], "必须暴露本轮使用的模型名"
+    axes = {item["axis"]: item for item in data["axes"]}
+    assert set(axes) == {"efficacy_claim", "safety_guarantee", "absolute_terms", "inducement"}
+    assert axes["efficacy_claim"]["version"] == 3
+    assert axes["efficacy_claim"]["detector"] == "llm_judge"
+    assert data["plan"]["per_axis_samples"] == 4
+    assert "合规对照" in data["plan"]["description"]

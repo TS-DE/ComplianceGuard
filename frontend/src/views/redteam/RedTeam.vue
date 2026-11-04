@@ -12,8 +12,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  allClients, runRedTeam, redTeamGaps, REDTEAM_AXES,
-  type Client, type RedTeamGaps
+  allClients, runRedTeam, redTeamGaps, redTeamOptions, REDTEAM_AXES,
+  type Client, type RedTeamGaps, type RedTeamOptions
 } from '../../api/resource'
 import RedTeamResult from './RedTeamResult.vue'
 
@@ -27,8 +27,16 @@ const loadingGaps = ref(false)
 const gaps = ref<RedTeamGaps | null>(null)
 const runIdInput = ref('')
 const history = ref<{ runId: string; at: string; generated: number }[]>([])
+const options = ref<RedTeamOptions | null>(null)
 
 const estimate = computed(() => axes.value.length * 3 + 4)
+
+const DETECTOR_TEXT: Record<string, string> = {
+  keyword: '词库匹配', regex: '正则规则', semantic: '向量相似', llm_judge: '模型语义判定'
+}
+const detectorText = (value: string | null) => DETECTOR_TEXT[value ?? ''] ?? (value ?? '—')
+const axisLabel = (value: string) =>
+  REDTEAM_AXES.find(axis => axis.value === value)?.label ?? value
 
 function loadHistory() {
   try {
@@ -88,6 +96,11 @@ onMounted(async () => {
   } catch {
     // 机构接口失败不白屏。
   }
+  try {
+    options.value = await redTeamOptions()
+  } catch {
+    // 拿不到元信息时页面仍可发起压测，只是不显示本轮配置。
+  }
 })
 </script>
 
@@ -99,6 +112,38 @@ onMounted(async () => {
       攻击智能体按目标轴生成递进话术（low / mid / high + 1 条合规对照），裁判智能体逐条判定，
       产出漏杀与误杀清单。
     </p>
+
+    <el-card v-if="options" shadow="never" class="meta-card">
+      <template #header>
+        <span class="meta-title">本轮将使用什么</span>
+        <span class="muted">（压测结果要能和规则改动对应起来，所以先把配置摊开）</span>
+      </template>
+      <el-descriptions :column="2" size="small" border>
+        <el-descriptions-item label="判定模型">{{ options.model ?? '—' }}</el-descriptions-item>
+        <el-descriptions-item label="样本计划">
+          {{ options.plan.description }}（全部轴 {{ options.plan.sample_total_for_all_axes }} 条，
+          {{ options.plan.expected_seconds }}）
+        </el-descriptions-item>
+      </el-descriptions>
+      <el-table :data="options.axes" size="small" style="margin-top: 12px">
+        <el-table-column label="目标轴" width="180">
+          <template #default="{ row }">
+            {{ axisLabel(row.axis) }}
+            <el-tag v-if="!row.available" type="info" size="small" style="margin-left: 6px">未启用</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="规则版本" width="100">
+          <template #default="{ row }">{{ row.version ? `v${row.version}` : '—' }}</template>
+        </el-table-column>
+        <el-table-column label="检测手段" width="120">
+          <template #default="{ row }">{{ detectorText(row.detector) }}</template>
+        </el-table-column>
+        <el-table-column label="法条依据" min-width="260" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.law_article ?? '—' }}</template>
+        </el-table-column>
+      </el-table>
+      <p class="muted" style="margin: 10px 0 0">{{ options.plan.note }}</p>
+    </el-card>
 
     <el-card shadow="never">
       <div class="form">
@@ -163,4 +208,6 @@ onMounted(async () => {
 .lookup { display: flex; gap: 12px; align-items: center; }
 .history { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .hist-tag { cursor: pointer; }
+.meta-card { margin-bottom: 16px; }
+.meta-title { font-weight: 600; font-size: 14px; margin-right: 8px; }
 </style>

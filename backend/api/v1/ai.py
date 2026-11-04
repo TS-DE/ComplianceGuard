@@ -85,3 +85,40 @@ def daily_report(date: date, db: DbSession, current_user: CurrentUser):
 def redteam_report(run_id: str, db: DbSession, current_user: CurrentUser):
     """固定模板压测报告，不生成任何新事实。"""
     return ok(redteam_operations(db)['report'].redteam(run_id))
+
+
+REDTEAM_AXES = ('efficacy_claim', 'safety_guarantee', 'absolute_terms', 'inducement')
+
+
+@router.get('/redteam/options', tags=['redteam'])
+def redteam_options(db: DbSession, current_user: CurrentUser):
+    """返回本轮压测将使用的轴定义、模型与样本计划。
+
+    没有这个接口时，管理员只看到"16 条"，不知道测的是什么轴、用的哪版规则——
+    压测结果就没法解释，也没法和规则改动对应起来。
+    """
+    from backend.rag.embedding import llm_config
+    from backend.services.compliance import rules as rule_service
+
+    rows, _ = rule_service.list_paged(db, 1, 100)
+    enabled = {row.axis: row for row in rows if row.enabled and row.axis in REDTEAM_AXES}
+    axes = [{
+        "axis": axis,
+        "available": axis in enabled,
+        "version": enabled[axis].version if axis in enabled else None,
+        "detector": enabled[axis].detector if axis in enabled else None,
+        "law_article": enabled[axis].law_article if axis in enabled else None,
+        "pattern": enabled[axis].pattern if axis in enabled else None,
+    } for axis in REDTEAM_AXES]
+    available = sum(1 for item in axes if item["available"])
+    return ok({
+        "model": llm_config().get("JUDGE_MODEL"),
+        "axes": axes,
+        "plan": {
+            "per_axis_samples": 4,
+            "description": "每个目标轴生成 low / mid / high 三档递进话术 + 1 条合规对照",
+            "sample_total_for_all_axes": available * 4,
+            "expected_seconds": "约 2-3 分钟",
+            "note": "合规对照用于计算误杀率：全部样本都是‘预期违规’时，误杀率没有分母。",
+        },
+    })
