@@ -16,6 +16,7 @@ import {
   type Client, type ScriptRow, type AuditResult
 } from '../../api/resource'
 import ScriptDialog from './ScriptDialog.vue'
+import ScriptImport from './ScriptImport.vue'
 import ArticleDrawer from '../law/ArticleDrawer.vue'
 
 interface ScriptNode extends ScriptRow {
@@ -41,6 +42,7 @@ const keyword = ref('')
 const clientId = ref<number>()
 const loading = ref(false)
 const editing = ref(false)
+const importOpen = ref(false)
 const selected = ref<ScriptRow | null>(null)
 const auditing = ref<number | null>(null)
 const auditScriptId = ref(0)
@@ -212,6 +214,8 @@ onMounted(async () => {
         </el-select>
         <el-button @click="search">搜索</el-button>
         <el-button type="primary" @click="edit(null)">新建话术</el-button>
+        <!-- 商家素材通常是一整页文档，逐条手录不现实，因此提供批量导入入口 -->
+        <el-button @click="importOpen = true">批量导入</el-button>
         <template v-if="viewMode === 'group'">
           <el-button @click="expandAll(true)">展开全部</el-button>
           <el-button @click="expandAll(false)">收起全部</el-button>
@@ -326,6 +330,7 @@ onMounted(async () => {
     </el-card>
 
     <ScriptDialog v-model="editing" :clients="clients" :item="selected" @saved="refresh" />
+    <ScriptImport v-model="importOpen" :clients="clients" @imported="refresh" />
 
     <el-dialog v-model="resultOpen" title="审查结果" width="760px">
       <template v-if="result">

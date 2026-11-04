@@ -103,3 +103,11 @@ export interface LawArticle {
 }
 export const lawArticle = (code: string, itemNo?: string | null) =>
   request<LawArticle>('GET', '/law/article', undefined, itemNo ? { code, item_no: itemNo } : { code })
+
+// 批量导入：商家给的是整页文档而不是一条条数据，所以走 multipart 上传 / 粘贴切分。
+// 两段式（先预览再入库）在界面上强制：切分不可能百分百正确，必须允许人工剔除误切片段。
+export interface ImportResult {
+  source: string; count: number; items: string[]; created: number; script_ids: number[]
+}
+export const importScripts = (form: FormData) =>
+  request<ImportResult>('POST', '/scripts/import', form, undefined, 180000)

@@ -1,7 +1,10 @@
 """同构资源路由工厂，保持路径、参数与返回体契约。"""
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query
-from backend.core.security import DbSession, get_current_user
+import json
+
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from backend.core.errors import BusinessValidationError
+from backend.core.security import CurrentUser, DbSession, get_current_user
 from backend.core.config import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from backend.schemas.common import PageParams, ok
 from backend.schemas.business import (
@@ -9,6 +12,7 @@ from backend.schemas.business import (
     AuditCreate, AuditOut, AuditUpdate, RuleCreate, RuleOut, RuleUpdate,
 )
 from backend.services.compliance import clients, scripts, audits, rules
+from backend.tools.extract_tool import MAX_CHUNKS, extract_text, split_scripts
 
 
 def page_params(
@@ -82,6 +86,73 @@ def resource_router(name, service, create_schema, update_schema, out_schema, fil
 
 
 router = APIRouter()
+
+
+@router.post("/scripts/import", tags=["scripts"])
+def import_scripts(
+    db: DbSession,
+    current_user: CurrentUser,
+    client_id: Annotated[int, Form(gt=0)],
+    scene: Annotated[str | None, Form(max_length=50)] = None,
+    commit: Annotated[bool, Form()] = False,
+    mode: Annotated[str, Form(pattern="^(blank|line)$")] = "blank",
+    text: Annotated[str | None, Form()] = None,
+    items: Annotated[str | None, Form()] = None,
+    file: UploadFile | None = File(default=None),
+) -> dict:
+    """商家文案批量导入：粘贴整段文本或上传文档，切成多条后预览 / 入库。
+
+    两段式（先预览后入库）是刻意的：切分结果必须让人确认，
+    否则一次传错文件就把脏数据写进库里，后面所有审计统计都被污染。
+    """
+    if file is not None:
+        raw = file.file.read()
+        source = f"file:{file.filename}"
+        try:
+            content = extract_text(file.filename or "", raw)
+        except ValueError as exc:
+            raise BusinessValidationError(str(exc)) from None
+    elif text and text.strip():
+        source = "text"
+        content = text
+    else:
+        raise BusinessValidationError("请上传文件或粘贴文本")
+
+    # 入库时可以只提交用户在预览里勾选的条目：切分不可能百分百正确，
+    # 必须允许人工在写库前剔除误切片段，否则脏数据会污染后面所有审计统计。
+    if items:
+        try:
+            parsed = json.loads(items)
+        except ValueError:
+            raise BusinessValidationError("items 必须是 JSON 字符串数组") from None
+        if not isinstance(parsed, list) or not all(isinstance(x, str) for x in parsed):
+            raise BusinessValidationError("items 必须是 JSON 字符串数组")
+        pieces = [x.strip() for x in parsed if x.strip()][:MAX_CHUNKS]
+        if not pieces:
+            raise BusinessValidationError("勾选的条目为空")
+    else:
+        try:
+            pieces = split_scripts(content, mode)
+        except ValueError as exc:
+            raise BusinessValidationError(str(exc)) from None
+    if not pieces:
+        raise BusinessValidationError("未从内容中切分出有效话术（可能过短或格式不支持）")
+
+    created: list[int] = []
+    if commit:
+        for piece in pieces:
+            row = scripts.create(db, ScriptCreate(
+                client_id=client_id, scene=scene or None, content=piece))
+            created.append(row.id)
+    return ok({
+        "source": source,
+        "count": len(pieces),
+        "items": pieces,
+        "created": len(created),
+        "script_ids": created,
+    })
+
+
 for spec in [
     ("clients", clients, ClientCreate, ClientUpdate, ClientOut, False),
     ("scripts", scripts, ScriptCreate, ScriptUpdate, ScriptOut, True),
