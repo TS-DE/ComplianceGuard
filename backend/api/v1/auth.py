@@ -20,7 +20,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def register(payload: RegisterRequest, db: DbSession) -> dict:
     """注册账号；用户名重复返回 409。"""
     user = auth_service.register(
-        db, payload.username, payload.password, payload.role.value
+        db, payload.username, payload.password, payload.role.value, payload.client_name
     )
     return ok(UserBrief.model_validate(user).model_dump())
 

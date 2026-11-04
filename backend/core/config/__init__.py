@@ -144,6 +144,8 @@ class UserRole(str, Enum):
 
     ADMIN = "admin"
     OPERATOR = "operator"
+    # 商家：自助上传与查看自己机构的审查结果，看不到平台级规则与压测
+    MERCHANT = "merchant"
 
 
 class ScriptStatus(str, Enum):

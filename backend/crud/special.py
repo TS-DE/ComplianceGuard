@@ -168,9 +168,15 @@ class users:
         return db.execute(stmt).scalar_one_or_none()
 
     @staticmethod
-    def create(db: Session, username: str, password_hash: str, role: str) -> User:
-        """插入用户并提交，返回带自增 id 的实例。"""
-        user = User(username=username, password_hash=password_hash, role=role)
+    def create(db: Session, username: str, password_hash: str, role: str,
+               client_id: int | None = None) -> User:
+        """插入用户并提交，返回带自增 id 的实例。
+
+        client_id 仅商家账号有值：它决定该账号能看到哪些机构的数据，
+        平台管理员留空表示可看全部。
+        """
+        user = User(username=username, password_hash=password_hash, role=role,
+                    client_id=client_id)
         db.add(user)
         db.commit()
         db.refresh(user)

@@ -26,6 +26,10 @@ class User(Base):
         nullable=False,
         server_default=text("'operator'"),
     )
+    # 商家账号绑定到具体机构；平台管理员为 NULL（可看全部）
+    client_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True
+    )
     # TINYINT(1)：MySQL 里 Boolean 会生成为 TINYINT(1)
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("1")

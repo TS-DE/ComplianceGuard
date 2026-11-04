@@ -18,6 +18,8 @@ class RegisterRequest(BaseModel):
     username: Username
     password: Password
     role: UserRole = UserRole.OPERATOR
+    # 商家注册时用该名称建机构并绑定；管理员忽略此字段
+    client_name: str | None = Field(default=None, max_length=100)
 
     @field_validator("username")
     @classmethod
@@ -44,6 +46,7 @@ class UserBrief(BaseModel):
     id: int
     username: str
     role: str
+    client_id: int | None = None
 
 
 class UserDetail(UserBrief):

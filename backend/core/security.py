@@ -129,3 +129,16 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def data_scope(user: User) -> int | None:
+    """返回该账号的数据可见范围：None=全部，整数=仅该机构。
+
+    商家账号（merchant）只能看自己绑定机构的数据；管理员与运营看全部。
+    统一在这里判断，避免每个路由各写一遍、漏一个就形成越权。
+    商家账号若没有绑定机构（历史数据），返回 -1 使其看不到任何业务数据，
+    宁可空列表也不要越权。
+    """
+    if getattr(user, "role", None) == "merchant":
+        return user.client_id if user.client_id is not None else -1
+    return None

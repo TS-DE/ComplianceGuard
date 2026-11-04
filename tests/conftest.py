@@ -77,6 +77,10 @@ def test_dsn() -> str:
     migrate(engine, apply=True)
     from scripts.migrate_scripts_redteam import migrate as migrate_redteam
     migrate_redteam(engine, apply=True)
+    # users 的多租户字段与 merchant 角色：create_all 不会给已存在的表补列，
+    # 老测试库因此缺 users.client_id，会让所有登录相关用例 500。
+    from scripts.migrate_users_tenant import migrate as migrate_tenant
+    migrate_tenant(engine, apply=True)
     engine.dispose()
     yield dsn
 
