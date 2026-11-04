@@ -12,7 +12,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  allClients, scripts, runAudit,
+  allClients, scripts, runAudit, axisLabel,
   type Client, type ScriptRow, type AuditResult
 } from '../../api/resource'
 import ScriptDialog from './ScriptDialog.vue'
@@ -332,22 +332,38 @@ onMounted(async () => {
     <ScriptDialog v-model="editing" :clients="clients" :item="selected" @saved="refresh" />
     <ScriptImport v-model="importOpen" :clients="clients" @imported="refresh" />
 
-    <el-dialog v-model="resultOpen" title="审查结果" width="760px">
+    <el-dialog v-model="resultOpen" title="审查结果" width="900px">
       <template v-if="result">
         <el-alert :title="`${result.incomplete ? '判定未完成' : label(result.score)} · score=${result.score}`"
                   :type="alertType(result)" :closable="false" show-icon />
         <p class="muted" style="margin-top: 12px">命中条数：{{ result.hit_count }}</p>
         <el-table :data="result.hits" empty-text="无有效命中">
-          <el-table-column prop="axis" label="风险轴" width="150" />
-          <el-table-column label="法条依据" width="230">
+          <el-table-column label="风险类型" width="130">
+            <template #default="{ row }">{{ axisLabel(row.axis) }}</template>
+          </el-table-column>
+          <el-table-column label="法条依据" width="210">
             <template #default="{ row }">
               <el-link type="primary" :underline="false" @click="openArticle(row.law_article, row.item_no)">
                 {{ row.law_article }}<span v-if="row.item_no" class="item-hint">{{ row.item_no.slice(row.item_no.indexOf('条') + 1) }}</span>
               </el-link>
             </template>
           </el-table-column>
-          <el-table-column prop="quote" label="原文引文" min-width="220" />
+          <el-table-column prop="quote" label="原文引文" min-width="180" />
+          <el-table-column label="判定理由" min-width="220">
+            <template #default="{ row }">
+              <span class="reason">{{ row.reason || '—' }}</span>
+            </template>
+          </el-table-column>
         </el-table>
+        <el-alert type="info" :closable="false" style="margin-top: 12px"
+                  title="为什么「介绍效果」也会违规？">
+          <p class="explain">
+            医美广告属于医疗广告：《医疗广告管理办法》第六条规定医疗广告内容<b>仅限于</b>机构名称、地址、
+            所有制形式、类别、诊疗科目、床位数、接诊时间、联系电话这 8 项，<b>不含任何效果描述</b>；
+            《广告法》第十六条(一) 同时禁止"表示功效、安全性的断言"。因此"能除皱""能提拉""恢复年轻状态"
+            这类陈述本身即构成违规，不需要出现"保证""一定"等字眼。
+          </p>
+        </el-alert>
         <p class="muted" style="margin-top: 12px">
           {{ result.disclaimer || '本系统输出为合规风险辅助提示，不构成法律意见' }}
         </p>
@@ -368,6 +384,8 @@ onMounted(async () => {
 .toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
 .muted { color: var(--el-text-color-secondary); font-size: 13px; }
 .item-hint { margin-left: 2px; color: var(--el-color-warning-dark-2); }
+.reason { font-size: 12px; line-height: 1.6; color: var(--el-text-color-regular); }
+.explain { margin: 6px 0 0; font-size: 12px; line-height: 1.7; color: var(--el-text-color-regular); }
 .goto { font-size: 20px; line-height: 1; font-weight: 700; }
 .client-code { display: inline-block; min-width: 26px; font-weight: 700; color: var(--el-color-primary); }
 .client-name { font-weight: 600; }

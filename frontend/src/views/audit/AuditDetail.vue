@@ -9,7 +9,7 @@
  */
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { rewriteAudit, type AuditRow, type Hit } from '../../api/resource'
+import { rewriteAudit, axisLabel, type AuditRow, type Hit } from '../../api/resource'
 import ArticleDrawer from '../law/ArticleDrawer.vue'
 
 const props = defineProps<{ modelValue: boolean; row: AuditRow | null }>()
@@ -77,8 +77,10 @@ async function doRewrite() {
 
       <h4>命中明细（{{ hits(row).length }}）</h4>
       <el-table :data="hits(row)" empty-text="无有效命中" size="small">
-        <el-table-column prop="axis" label="风险轴" width="150" />
-        <el-table-column label="法条依据" width="210">
+        <el-table-column label="风险类型" width="120">
+          <template #default="{ row: hit }">{{ axisLabel(hit.axis) }}</template>
+        </el-table-column>
+        <el-table-column label="法条依据" width="200">
           <template #default="{ row: hit }">
             <el-link type="primary" :underline="false" @click="openArticle(hit)">
               {{ hit.law_article }}
@@ -86,7 +88,10 @@ async function doRewrite() {
             </el-link>
           </template>
         </el-table-column>
-        <el-table-column prop="quote" label="原文引文" min-width="220" />
+        <el-table-column prop="quote" label="原文引文" min-width="180" />
+        <el-table-column label="判定理由" min-width="200">
+          <template #default="{ row: hit }"><span class="reason">{{ hit.reason || '—' }}</span></template>
+        </el-table-column>
       </el-table>
 
       <template v-if="row.rewritten_text">
@@ -111,6 +116,7 @@ async function doRewrite() {
 <style scoped>
 h4 { margin: 18px 0 10px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .item-hint { margin-left: 2px; color: var(--el-color-warning-dark-2); }
+.reason { font-size: 12px; line-height: 1.6; color: var(--el-text-color-regular); }
 .unpriced { color: var(--el-color-warning-dark-2); }
 .muted { color: var(--el-text-color-secondary); font-size: 12px; }
 .rewritten { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: 13px;

@@ -2,7 +2,24 @@ import { page, request } from './http'
 export interface Client { id: number; name: string }
 export interface ScriptRow { id: number; client_id: number; scene: string | null; content: string; status: string; created_at: string }
 export interface ScriptInput { client_id: number; scene: string | null; content: string }
-export interface Hit { axis: string; law_article: string; quote: string; item_no?: string | null }
+export interface Hit { axis: string; law_article: string; quote: string; item_no?: string | null; reason?: string | null }
+
+// 风险轴中文名：界面上直接显示英文变量名（efficacy_claim）商家看不懂，
+// 而"看不懂为什么违规"会直接被当成误杀。
+export const AXIS_LABELS: Record<string, string> = {
+  absolute_terms: '绝对化用语',
+  efficacy_claim: '功效断言',
+  safety_guarantee: '安全性保证',
+  disease_treatment: '疾病治疗功能',
+  false_quantify: '虚假量化承诺',
+  cure_rate: '治愈率/有效率',
+  derogatory_compare: '贬低同行',
+  endorsement: '代言推荐',
+  before_after: '前后效果对比',
+  inducement: '容貌焦虑诱导',
+  false_authority: '虚构权威'
+}
+export const axisLabel = (axis: string) => AXIS_LABELS[axis] ?? axis
 export interface AuditResult { score: number; hit_count: number; hits: Hit[]; incomplete: boolean; disclaimer: string }
 export const resources = (name: 'clients' | 'scripts' | 'audits' | 'rules') => ({
   list: <T>(params?: object) => page<T>(`/${name}`, params),
