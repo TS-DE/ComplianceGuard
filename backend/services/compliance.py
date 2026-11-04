@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from backend.core.config import DEFAULT_RULE_VERSION, RuleAxis
 from backend.core.errors import BusinessValidationError, ConflictError
 from backend.crud import special as repos
-from backend.db.models import Client, Script, Audit, Rule
+from backend.db.models import Client, Script, Audit, Rule, Source
 from backend.schemas.business import ClientCreate, ClientUpdate, ScriptCreate, ScriptUpdate, AuditCreate, AuditUpdate, RuleCreate, RuleUpdate
 from backend.services.common import get_or_404, update_fields
 VERSIONED_FIELDS = frozenset({"axis", "law_article", "pattern", "level", "example_bad"})
@@ -217,3 +217,83 @@ def run_redteam(db, client_id, scenes, axes, model=None, auditor=None):
         failed=failed+1 if result['verdict']=='unjudged' else 0
         if failed>3: break
     return dict(run_id=run_id,generated=len(ids),script_ids=ids)
+
+
+class ingest:
+    """商家素材摄取编排：解析 → 预览 → 勾选入库。
+
+    两个真实决定必须留在服务层：原始文件只在确认入库时落盘；溯源一律由服务端重算。
+    """
+
+    @staticmethod
+    def preview(filename: str, raw: bytes, mode: str, text: str | None = None) -> dict:
+        """只解析不写库。失败原因原样上抛给 422，让页面能说清"为什么吃不下"。"""
+        from backend.parse import ParseError
+        from backend.tools import ingest_tool
+
+        try:
+            result = (ingest_tool.text_result(text, mode) if text and text.strip()
+                      else ingest_tool.parse(filename, raw, mode))
+        except ParseError as exc:
+            raise BusinessValidationError(str(exc)) from None
+        return result.preview()
+
+    @staticmethod
+    def commit(db: Session, client_id: int, scene: str | None, user_id: int | None,
+               filename: str, raw: bytes, mode: str, items: list[str] | None = None,
+               text: str | None = None) -> dict:
+        """确认入库：落盘原始素材 → 建 sources 行 → 逐条建带溯源的 scripts 行。"""
+        from backend.parse import ParseError
+        from backend.tools import ingest_tool
+
+        if repos.clients.get(db, client_id) is None:
+            raise BusinessValidationError(f"client_id={client_id} 对应的机构不存在")
+        try:
+            result = (ingest_tool.text_result(text, mode) if text and text.strip()
+                      else ingest_tool.parse(filename, raw, mode))
+            # 重复检测必须在新建之前查：建完再查，指纹命中的第一条就是刚插入的自己
+            earlier = repos.sources.find_by_sha(db, client_id, result.sha256)
+            payload = ingest_tool.commit(db, result, client_id, scene, user_id, items)
+        except ParseError as exc:
+            raise BusinessValidationError(str(exc)) from None
+        if earlier is not None and earlier.id != payload["source_id"]:
+            payload["duplicate_of"] = earlier.id
+        return payload
+
+
+class sources:
+    """素材档案读取：商家只看得见自己机构上传的东西。"""
+
+    @staticmethod
+    def get(db: Session, source_id: int) -> Source:
+        """取素材记录，不存在 404。"""
+        return get_or_404(repos.sources.get, db, 'source', source_id)
+
+    @staticmethod
+    def list_paged(db: Session, page: int, page_size: int,
+                   client_id: int | None = None) -> tuple[list[Source], int]:
+        """分页列表；client_id 由路由层的 data_scope 决定，商家永远拿不到别人的。"""
+        return repos.sources.list_paged(db, page, page_size, client_id)
+
+    @staticmethod
+    def file_path(db: Session, source_id: int) -> "Path":
+        """原始素材的磁盘路径，供预览/下载。
+
+        路径校验放在这里而不是路由：任何入口（HTTP、MCP、脚本）想用文件都得过同一道闸，
+        少写一处就是一个任意文件读取。
+        """
+        from backend.parse import ParseError
+        from backend.tools.ingest_tool import resolve_stored
+
+        obj = sources.get(db, source_id)
+        if not obj.stored_path:
+            raise BusinessValidationError("该素材没有落盘（只做过预览），无原始文件可看")
+        try:
+            return resolve_stored(obj.stored_path)
+        except ParseError as exc:
+            raise BusinessValidationError(str(exc)) from None
+
+    @staticmethod
+    def scripts(db: Session, source_id: int) -> list[Script]:
+        """这份素材切出来的话术（含各自位置与置信度），供溯源抽屉展开。"""
+        return repos.scripts.list_by_source(db, source_id)

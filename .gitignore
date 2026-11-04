@@ -23,6 +23,12 @@ dist/
 data/chroma/
 data/redteam/
 data/raw/
+# 商家上传的原始素材（含个人机构文案，绝不入库）
+data/uploads/
+# OCR/ASR 权重：几百 MB，装在项目盘且不入库
+data/models/
+# 解析能力实测的临时产物
+data/verify/
 *.db
 *.sqlite
 *.sqlite3

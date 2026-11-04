@@ -81,6 +81,11 @@ def test_dsn() -> str:
     # 老测试库因此缺 users.client_id，会让所有登录相关用例 500。
     from scripts.migrate_users_tenant import migrate as migrate_tenant
     migrate_tenant(engine, apply=True)
+    # 素材溯源：老测试库没有 sources 表、也没有 scripts 的四个溯源列。
+    # create_all 不补已存在表的列，缺列时任何写 scripts 的用例都会 1054，
+    # 那是"文档说有、库里没有"的假契约，不是逻辑错误。
+    from scripts.migrate_sources_provenance import migrate as migrate_provenance
+    migrate_provenance(engine, apply=True)
     engine.dispose()
     yield dsn
 
@@ -120,12 +125,28 @@ def clean_tables(app_with_test_db) -> Generator[None, None, None]:
 
     session = SessionLocal()
     try:
-        for table in ("audits", "scripts", "clients", "rules", "users"):
+        # sources 必须在 clients 之前删；scripts 又在 sources 之前
+        for table in ("audits", "scripts", "sources", "clients", "rules", "users"):
             session.execute(text(f"DELETE FROM {table}"))
         session.commit()
     finally:
         session.close()
     yield
+
+
+@pytest.fixture(autouse=True)
+def isolate_upload_dir(tmp_path_factory) -> Generator[None, None, None]:
+    """素材落盘改写到 pytest 临时目录。
+
+    摄取是真的往磁盘写原始文件；不清走的话，跑一遍测试就在 data/uploads 里
+    多出几十个 hash 命名的素材，既污染开发环境又没法判断哪些是测试产物。
+    """
+    from backend.core.config import settings
+
+    original = settings.upload_dir
+    settings.upload_dir = str(tmp_path_factory.mktemp("uploads"))
+    yield
+    settings.upload_dir = original
 
 
 @pytest.fixture()

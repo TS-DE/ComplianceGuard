@@ -13,7 +13,7 @@
 |---|---|---|---|
 | **DB Agent** | 表结构、迁移、种子数据 | `backend/models/`、`backend/db/`、`scripts/`、`db_schema.md` | 改业务逻辑 |
 | **Backend Agent** | 路由 / schema / service / crud | `backend/api/`、`backend/schemas/`、`backend/crud/`、`backend/services/` | 改表结构、改前端 |
-| **Agent Agent** | 5 个智能体 + MCP 工具 | `backend/agents/`、`backend/tools/`、`backend/mcp_server/`、`backend/rag/` | 改 CRUD 接口 |
+| **Agent Agent** | 5 个智能体 + MCP 工具 | `backend/agents/`、`backend/tools/`、`backend/mcp_server/`、`backend/rag/`、`backend/parse/` | 改 CRUD 接口 |
 | **Frontend Agent** | Vue3 页面与联调 | `frontend/` | 改后端 |
 | **Test Agent** | pytest 用例与验收脚本 | `tests/` | 改被测代码 |
 | **Doc Agent**（后台/定期） | 文档审校：删过时、并重复、标过时 | 根目录 `*.md` | 改代码 |
@@ -32,7 +32,9 @@
 
 ### A1 合规审查 Agent（ComplianceAuditAgent）★核心
 - **职责**：一段话术 → 两层判定 → 命中法条+原文引文+分数
-- **工具**：`rag_search_law`、`db_query_rules`、`db_query_violation_history`
+- **工具**：`rag_search_law`、`db_query_rules`、`db_query_violation_history`、`parse_source`
+- **入口有两个**：① 文本（人工粘贴 / 话术库）；② `source_id` —— 商家递来海报、扫描件、录音时，
+  A1 用 `parse_source` 自己取回逐条话术与溯源，不依赖有人先复制粘贴
 - **流程**：TODO（D3 补：归一→硬规则→规则加载→RAG→语义判定→引文校验→聚合→落库）
 - **铁律**：分数由代码算；每条命中双引文（用户原文 + 法条）；引不出法条即作废
 

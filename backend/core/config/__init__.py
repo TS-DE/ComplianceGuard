@@ -1,9 +1,14 @@
 """应用配置：唯一来源是 .env，代码里禁止硬编码密钥与 DSN。"""
 
+import os
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# backend/core/config/__init__.py → 上三级是项目根（data/ 与 .env 都在这里）
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
@@ -44,10 +49,46 @@ class Settings(BaseSettings):
     # ---- 安全 ----
     bcrypt_rounds: int = 12
 
+    # ---- 文档解析（商家素材摄取）----
+    # 相对路径一律相对项目根解析；写绝对路径也行（换机器部署时只改 .env）。
+    upload_dir: str = "data/uploads"
+    # 模型权重刻意放项目盘：默认会写进 C:\Users\<user>\.cache，而 C 盘只剩几 GB。
+    model_dir: str = "data/models"
+    parse_ocr_enabled: bool = True
+    parse_asr_enabled: bool = True
+
     @property
     def cors_origin_list(self) -> list[str]:
         """把 CORS_ORIGINS 拆成列表，忽略空白项。"""
         return [item.strip() for item in self.cors_origins.split(",") if item.strip()]
+
+    @staticmethod
+    def resolve_path(value: str) -> "Path":
+        """相对路径挂到项目根下，绝对路径原样使用。"""
+        candidate = Path(value)
+        return candidate if candidate.is_absolute() else PROJECT_ROOT / candidate
+
+    @property
+    def upload_path(self) -> "Path":
+        return self.resolve_path(self.upload_dir)
+
+    @property
+    def model_path(self) -> "Path":
+        return self.resolve_path(self.model_dir)
+
+
+def configure_model_cache() -> None:
+    """把各家模型缓存目录指到项目盘，必须在任何会下载模型的库被导入前调用。
+
+    不这么做的话：onnxruntime/modelscope/transformers 会把几百 MB 权重写进
+    C:\\Users\\<user>\\.cache 与 .modelscope，而本机 C 盘只剩 2 GB——
+    表现是"下载中途磁盘满、报错还看不出为什么"。
+    """
+    root = get_settings().model_path
+    root.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("MODELSCOPE_CACHE", str(root / "modelscope"))
+    os.environ.setdefault("HF_HOME", str(root / "huggingface"))
+    os.environ.setdefault("TORCH_HOME", str(root / "torch"))
 
 
 @lru_cache(maxsize=1)
@@ -57,6 +98,9 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
+# 导入即生效：任何下游模块再 import modelscope/transformers 时缓存路径已经指到项目盘。
+configure_model_cache()
 
 
 

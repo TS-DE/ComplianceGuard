@@ -1,4 +1,4 @@
-"""六个独立 MCP 工具；stdio 服务及不访问数据的离线自检。"""
+"""八个独立 MCP 工具（RAG / 业务库 / 复核 / 素材解析）；stdio 服务及不访问数据的离线自检。"""
 
 import argparse
 import asyncio
@@ -59,6 +59,26 @@ def audit_recheck(text: str, client_id: int) -> dict:
     require_positive(client_id, "client_id")
     from backend.tools.audit_tool import recheck
     return recheck(text, client_id)
+
+
+@mcp.tool()
+def parse_source(source_id: int, mode: str = "blank") -> dict:
+    """按素材档案 id 重解析原始文件，返回逐条话术与溯源（页码/段落/置信度）。
+
+    A1 的输入不必是"已经打在文本框里的一句话"：商家递来的是整份海报或录音，
+    这个工具让智能体自己把内容取出来，而不是等人事先复制粘贴。
+    """
+    from backend.tools.db_tool import require_positive
+    require_positive(source_id, "source_id")
+    from backend.tools.ingest_tool import parse_stored
+    return parse_stored(source_id, mode)
+
+
+@mcp.tool()
+def parse_document(rel_path: str, mode: str = "blank") -> dict:
+    """解析项目 data/ 内的素材文件（示例海报、罚单附件、自检样本）。"""
+    from backend.tools.ingest_tool import parse_local
+    return parse_local(rel_path, mode)
 
 
 async def selftest() -> None:

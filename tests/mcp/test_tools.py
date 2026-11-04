@@ -27,6 +27,10 @@ def test_exact_registration_and_offline_selftest():
         "db_query_scenes": [],
         "db_save_redteam_result": ["run_id", "sample", "judge", "category"],
         "audit_recheck": ["text", "client_id"],
+        # 素材解析：让智能体能自己把海报/录音/扫描件里的文字取出来，
+        # 而不是依赖有人先把内容复制进文本框
+        "parse_source": ["source_id", "mode"],
+        "parse_document": ["rel_path", "mode"],
     }
     assert {t.name: list(t.inputSchema["properties"]) for t in tools} == expected
     result = subprocess.run(

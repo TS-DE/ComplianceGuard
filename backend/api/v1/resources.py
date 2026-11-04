@@ -6,18 +6,23 @@
 """
 from typing import Annotated
 import json
+import mimetypes
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi.responses import FileResponse
 from backend.core.errors import AppError, BusinessValidationError
 from backend.core.security import CurrentUser, DbSession, data_scope, get_current_user
 from backend.core.config import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from backend.parse import MAX_CHUNKS, MODES, capabilities
 from backend.schemas.common import PageParams, ok
 from backend.schemas.business import (
     ClientCreate, ClientOut, ClientUpdate, ScriptCreate, ScriptOut, ScriptUpdate,
-    AuditCreate, AuditOut, AuditUpdate, RuleCreate, RuleOut, RuleUpdate,
+    AuditCreate, AuditOut, AuditUpdate, RuleCreate, RuleOut, RuleUpdate, SourceOut,
 )
-from backend.services.compliance import clients, scripts, audits, rules
-from backend.tools.extract_tool import MAX_CHUNKS, extract_text, split_scripts
+from backend.services.compliance import clients, scripts, audits, rules, ingest, sources
+
+# 切分模式取自解析层注册表：写死 "blank|line" 会在新增模式那天悄悄漏掉一档
+IMPORT_MODE_PATTERN = f"^({'|'.join(MODES)})$"
 
 
 def page_params(
@@ -182,6 +187,24 @@ def resource_router(name, service, create_schema, update_schema, out_schema,
 router = APIRouter()
 
 
+def _picked_items(items: str | None) -> list[str] | None:
+    """解析勾选回来的条目。刻意只收文本、不收前端传来的页码与置信度：溯源一律服务端重算，
+    否则"第 3 页"就成了客户端想写什么就写什么的数据。
+    """
+    if not items:
+        return None
+    try:
+        parsed = json.loads(items)
+    except ValueError:
+        raise BusinessValidationError("items 必须是 JSON 字符串数组") from None
+    if not isinstance(parsed, list) or not all(isinstance(x, str) for x in parsed):
+        raise BusinessValidationError("items 必须是 JSON 字符串数组")
+    picked = [x.strip() for x in parsed if x.strip()][:MAX_CHUNKS]
+    if not picked:
+        raise BusinessValidationError("勾选的条目为空")
+    return picked
+
+
 @router.post("/scripts/import", tags=["scripts"])
 def import_scripts(
     db: DbSession,
@@ -189,66 +212,90 @@ def import_scripts(
     client_id: Annotated[int, Form(gt=0)],
     scene: Annotated[str | None, Form(max_length=50)] = None,
     commit: Annotated[bool, Form()] = False,
-    mode: Annotated[str, Form(pattern="^(blank|line)$")] = "blank",
+    mode: Annotated[str, Form(pattern=IMPORT_MODE_PATTERN)] = "blank",
     text: Annotated[str | None, Form()] = None,
     items: Annotated[str | None, Form()] = None,
     file: UploadFile | None = File(default=None),
 ) -> dict:
-    """商家文案批量导入：粘贴整段文本或上传文档，切成多条后预览 / 入库。
+    """商家素材摄取：粘贴或上传（文档/表格/PPT/PDF/海报图/录音）→ 预览 → 勾选入库。
 
-    两段式（先预览后入库）是刻意的：切分结果必须让人确认，
-    否则一次传错文件就把脏数据写进库里，后面所有审计统计都被污染。
+    两段式是刻意的：切分不可能百分百正确，一键写库等于让脏数据污染审计统计。
+    预览阶段既不写库也不落盘，只有 commit=true 才留下原始素材。
     """
     scoped = data_scope(current_user)
     if scoped is not None:
         client_id = scoped  # 商家只能往自己机构导
 
+    raw = b""
+    filename = ""
     if file is not None:
         raw = file.file.read()
-        source = f"file:{file.filename}"
-        try:
-            content = extract_text(file.filename or "", raw)
-        except ValueError as exc:
-            raise BusinessValidationError(str(exc)) from None
-    elif text and text.strip():
-        source = "text"
-        content = text
-    else:
+        filename = file.filename or ""
+    elif not (text and text.strip()):
         raise BusinessValidationError("请上传文件或粘贴文本")
 
-    # 入库时可以只提交用户在预览里勾选的条目：切分不可能百分百正确，
-    # 必须允许人工在写库前剔除误切片段，否则脏数据会污染后面所有审计统计。
-    if items:
-        try:
-            parsed = json.loads(items)
-        except ValueError:
-            raise BusinessValidationError("items 必须是 JSON 字符串数组") from None
-        if not isinstance(parsed, list) or not all(isinstance(x, str) for x in parsed):
-            raise BusinessValidationError("items 必须是 JSON 字符串数组")
-        pieces = [x.strip() for x in parsed if x.strip()][:MAX_CHUNKS]
-        if not pieces:
-            raise BusinessValidationError("勾选的条目为空")
-    else:
-        try:
-            pieces = split_scripts(content, mode)
-        except ValueError as exc:
-            raise BusinessValidationError(str(exc)) from None
-    if not pieces:
-        raise BusinessValidationError("未从内容中切分出有效话术（可能过短或格式不支持）")
+    picked = _picked_items(items)
+    if not commit:
+        return ok(ingest.preview(filename, raw, mode, text))
+    return ok(ingest.commit(db, client_id, scene or None, current_user.id,
+                            filename, raw, mode, picked, text))
 
-    created: list[int] = []
-    if commit:
-        for piece in pieces:
-            row = scripts.create(db, ScriptCreate(
-                client_id=client_id, scene=scene or None, content=piece))
-            created.append(row.id)
-    return ok({
-        "source": source,
-        "count": len(pieces),
-        "items": pieces,
-        "created": len(created),
-        "script_ids": created,
-    })
+
+def _owned_source(db: DbSession, source_id: int, current_user):
+    """商家只能碰自己机构的素材；对不上一律按 404 处理，不暴露"它存在但不是你"。"""
+    obj = sources.get(db, source_id)
+    scoped = data_scope(current_user)
+    if scoped is not None and obj.client_id != scoped:
+        raise AppError(404, f"source {source_id} 不存在")
+    return obj
+
+
+@router.get("/sources/formats", tags=["sources"])
+def source_formats(current_user: CurrentUser) -> dict:
+    """上传页的能力清单：能吃哪些扩展名、缺什么引擎、有几种切分模式。
+
+    由解析注册表现算而不是手写清单：手写的一定会和代码不同步，
+    不同步的结果是用户传上来才知道"其实不支持"。
+    """
+    return ok(capabilities())
+
+
+@router.get("/sources", tags=["sources"])
+def list_sources(db: DbSession, page: Page, current_user: CurrentUser,
+                 client_id: Annotated[int | None, Query(gt=0)] = None) -> dict:
+    """素材档案列表；商家只能看到自己机构上传的。"""
+    scoped = data_scope(current_user)
+    rows, total = sources.list_paged(
+        db, page.page, page.page_size, scoped if scoped is not None else client_id)
+    return ok([SourceOut.model_validate(row).model_dump(mode="json") for row in rows],
+              total=total)
+
+
+@router.get("/sources/{source_id}", tags=["sources"])
+def get_source(source_id: int, db: DbSession, current_user: CurrentUser) -> dict:
+    """素材详情 + 它切出来的话术：溯源抽屉一次拿全。"""
+    obj = _owned_source(db, source_id, current_user)
+    payload = SourceOut.model_validate(obj).model_dump(mode="json")
+    payload["scripts"] = [
+        {"id": row.id, "content": row.content, "status": row.status,
+         "ref": row.source_ref, "confidence": row.parse_confidence}
+        for row in sources.scripts(db, source_id)]
+    return ok(payload)
+
+
+@router.get("/sources/{source_id}/file", tags=["sources"])
+def get_source_file(source_id: int, db: DbSession,
+                    current_user: CurrentUser) -> FileResponse:
+    """原始素材内联预览：海报直接显示、录音直接播、PDF 直接翻。
+
+    inline 而不是 attachment：商家点开是为了核对"海报上到底印的哪句"，
+    每次弹下载就等于没给核对入口。
+    """
+    obj = _owned_source(db, source_id, current_user)
+    path = sources.file_path(db, obj.id)
+    media_type, _encoding = mimetypes.guess_type(obj.filename)
+    return FileResponse(path, media_type=media_type or "application/octet-stream",
+                        filename=obj.filename, content_disposition_type="inline")
 
 
 for spec in [

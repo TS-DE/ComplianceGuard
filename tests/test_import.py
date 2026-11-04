@@ -9,7 +9,7 @@ import json
 
 from fastapi.testclient import TestClient
 
-from backend.tools.extract_tool import MAX_BYTES, extract_text, split_scripts
+from backend.parse import MAX_BYTES, extract_text, split_scripts
 
 API = "/api/v1"
 
@@ -66,14 +66,24 @@ def test_extract_text_handles_utf8_and_gb18030() -> None:
 
 
 def test_extract_text_rejects_unsupported_and_oversized() -> None:
-    """不支持的类型/超大文件明确拒绝，不做模糊处理。"""
-    for name in ("a.png", "a.exe", "a"):
+    """不支持的类型/超大文件明确拒绝，不做模糊处理。
+
+    注意契约变更：图片从"不支持"变成"支持但要 OCR"，
+    所以这里改用 exe 与无扩展名来验拒绝路径，损坏图片单独验"解不开"这条路径。
+    """
+    for name in ("a.exe", "a"):
         try:
             extract_text(name, b"x")
         except ValueError as exc:
             assert "不支持" in str(exc)
         else:  # pragma: no cover
             raise AssertionError(f"{name} 应当被拒绝")
+    try:
+        extract_text("broken.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 32)
+    except ValueError as exc:
+        assert "无法解码" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("损坏图片应当被拒绝")
     try:
         extract_text("big.txt", b"x" * (MAX_BYTES + 1))
     except ValueError as exc:
@@ -129,7 +139,10 @@ def test_import_api_preview_then_commit(client: TestClient, auth_headers: dict, 
 
 
 def test_import_api_rejects_unsupported_file(client: TestClient, auth_headers: dict, db) -> None:
-    """不支持的类型返回 422 且说明支持哪些格式。"""
+    """接口层拒绝要有区分度：没登记的类型说"支持哪些"，登记了但打不开的要说"为什么打不开"。
+
+    两种情况都必须 422，绝不能返回 count=0 —— 那在页面上长得和"这页文案没问题"一模一样。
+    """
     from backend.db.models import Client
 
     account = Client(name="导入测试机构2", industry="medical_beauty", contact=None, plan="free")
@@ -139,11 +152,20 @@ def test_import_api_rejects_unsupported_file(client: TestClient, auth_headers: d
     resp = client.post(
         f"{API}/scripts/import",
         data={"client_id": str(account.id), "commit": "false"},
-        files={"file": ("a.png", b"\x89PNG\r\n\x1a\n", "image/png")},
+        files={"file": ("a.exe", b"MZ\x90\x00binary", "application/octet-stream")},
         headers=auth_headers,
     )
     assert resp.status_code == 422
     assert "不支持" in resp.json()["msg"]
+
+    broken = client.post(
+        f"{API}/scripts/import",
+        data={"client_id": str(account.id), "commit": "false"},
+        files={"file": ("broken.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 32, "image/png")},
+        headers=auth_headers,
+    )
+    assert broken.status_code == 422
+    assert "无法解码" in broken.json()["msg"]
 
 
 def test_redteam_options_exposes_what_will_be_tested(client: TestClient, auth_headers: dict, db) -> None:

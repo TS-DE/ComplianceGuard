@@ -320,3 +320,13 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 - T-009 关闭（面向新记录）：embedding价格已接入，三项均已知时可合计；历史NULL不追溯。估算不是供应商账单，未来缺token或缺其他价格仍传播NULL。
 - T-010 embedding模型可升级：qwen3.7-text-embedding-flash，0.125元/百万、128K上下文、100万免费额度至2026-11-30（统筹方提供，执行升级前需再核实）；需重建索引+重跑评测，勿在有交付压力时执行。本轮未升级。
 - T-011 外部资源生命周期：直接重复实例化ChromaStore仍会构造client；后续统一资源工厂/关闭策略。indexed_docs缓存为进程级元数据快照，重建索引后需重启或cache_clear；lru_cache不保证并发冷启动只执行一次，不将本次顺序调用测试扩大为并发/内存泄漏根治证明。
+
+## D6-b · 素材摄取层：图片/扫描件/语音/Office 全格式 + 溯源落库
+
+**改动**：新建 `backend/parse/`（base 抽象+注册表 / documents 文档结构层 / media 模型层），支持 txt·md·csv、docx（正文真实顺序）、xlsx·xls（按文件头判格式）、pptx（含备注）、pdf（文字层；无文字层的页经 pypdfium2 渲染后走 RapidOCR）、海报图片（RapidOCR，按阅读顺序重排 + 平均置信度 + 低置信度警告）、录音（FunASR SenseVoiceSmall，懒加载，未装则如实报错并给出安装命令）；`.doc/.ppt/.odt` 等明确拒绝并说"另存为"。新增 `sources` 表与 `scripts` 四列溯源，原始素材按内容指纹落盘 `data/uploads/YYYYMM/`，**只在确认入库时写盘**。接口：`/scripts/import` 返回 kind/engine/confidence/warnings/items_detail；新增 `GET /sources`、`/sources/formats`、`/sources/{id}`、`/sources/{id}/file`（内联回看，越权 404）。MCP 工具增至 8 个：`parse_source`、`parse_document`（路径锁死 data/）。`backend/tools/extract_tool.py` 删除、实现迁入 parse；`backend/tools/ingest_tool.py` 承接落盘与溯源回填。**溯源由服务端重算**：客户端 items 只认文本，勾选项与文件解析结果对不上即拒绝入库。
+
+**验证**：`python -X utf8 -m pytest tests -q` → **311 passed in 16.07s**（本轮新增 tests/parse 12 条 + tests/test_sources 11 条 + mcp 2 条）。真实 OCR 非假引擎：`python -X utf8 -m scripts.verify_parse` → poster.png `kind=image engine=rapidocr blocks=3 confidence=0.9973`，三行中文按阅读顺序还原（"双眼皮限时特惠 / 保证做完能往上走三个色度 / 全城最低价 术后零风险"），逐字回查断言全部通过。迁移：`migrate_sources_provenance --apply --show` 建表成功并打印前后 `SHOW CREATE TABLE`，复跑输出"跳过：sources 表已存在，scripts 溯源四列齐全"；MCP `--selftest` 列出 8 个工具。`pypdfium2 5.14.0` 渲染链路单测通过（未额外装渲染依赖）。
+
+**遗留**：① ASR 依赖（funasr/modelscope/soundfile）按分工由作者本人安装，代码侧懒加载+能力探测已就绪，装上即生效；本机无 ffmpeg，mp3 靠 libsndfile≥1.1、m4a/aac 需 ffmpeg，已在错误信息里写清。② 解析是同步接口，海报数秒、录音数十秒，只靠大小/时长上限（文档 8MB、图片 12MB、音频 30MB / 300 秒）兜住，未做任务队列。③ 前端（S7）尚未接 `items_detail`/`/sources`，页面能力仍是"粘贴+文档"。④ 目录规模：`api/v1/resources.py` 307 行、`services/compliance.py` 300 行、`parse/documents.py` 300 行、`parse/media.py` 282 行、`parse/base.py` 278 行。resources.py 超 300 的理由按 CLAUDE.md §3.1 末档记录：`api/v1/` 已有 auth/resources/ai 三个实文件，再放第四个会破"每目录 ≤3 文件"，而把摄取路由并进 ai.py 属于职责错配；待 D6 前端联调后按业务域拆 `api/v1/ingest/` 子包。`scripts/` 目录 20 个文件为既有债务（迁移与一次性脚本堆积），建议后续合并为 `scripts/migrate/` 子包。⑤ 未打 tag、未 push：等 S7 前端联调通过一起走。
+
+**规则/评测**：未改规则数据、法规正文与冻结罚单评测集。契约变动仅两处且均为能力扩展：`scripts/import` 响应新增字段（`items` 保持字符串数组，既有前端不破）；`tests/test_import.py` 原"图片不支持"断言改为"损坏图片报无法解码"（因为图片现在真的支持了）。

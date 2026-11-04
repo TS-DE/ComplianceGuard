@@ -2,7 +2,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 from backend.core.config import VALID_SCORES, RuleLevel, ScriptStatus
 
 
@@ -61,6 +61,12 @@ class ScriptOut(ScriptBase):
     id: int
     status: str
     created_at: datetime
+    # 素材溯源：前端拿 source_id 再去取素材详情，列表里只带位置与置信度，
+    # 免得每条话术都 JOIN 一次 sources 把列表接口拖慢。
+    source_id: int | None = None
+    source_pos: int | None = None
+    source_ref: str | None = None
+    parse_confidence: float | None = None
 
 class AuditBase(BaseModel):
     """审查记录公共字段。"""
@@ -202,3 +208,34 @@ class CaseRecord(BaseModel):
         if value.strip().upper().startswith("TODO") or len(value.strip()) < 6:
             raise ValueError("violation_quote 必须是罚单原文，不得使用占位符")
         return value
+
+
+class SourceOut(BaseModel):
+    """一份上传素材的解析档案。
+
+    刻意不返回 stored_path（用 exclude=True 挡掉）：那是服务器内部文件布局，
+    前端需要的只是 file_available 这一个布尔值 + /sources/{id}/file 这个入口。
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    client_id: int
+    filename: str
+    kind: str
+    engine: str
+    sha256: str
+    size_bytes: int
+    meta: dict | None = None
+    confidence: float | None = None
+    warnings: list[str] | None = None
+    parse_ms: int | None = None
+    item_count: int
+    created_at: datetime
+    stored_path: str | None = Field(default=None, exclude=True)
+
+    @computed_field
+    @property
+    def file_available(self) -> bool:
+        """原始素材是否还能点开看。落盘失败或被清理过时为 False，解析档案仍在。"""
+        return bool(self.stored_path)

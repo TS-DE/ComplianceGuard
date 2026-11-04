@@ -27,6 +27,7 @@
 | S7 | LangChain 工具调用（Tool 绑定） | TODO（D3） | — |
 | S8 | 引文子串校验（quote → 原文定位） | TODO（D3） | — |
 | S9 | Vue3 + Element Plus 表格/表单页骨架 | TODO（D5） | — |
+| S10 | 可选引擎懒加载 + 能力探测由注册表现算 | **已验证**（全文 `skills/doc-parse-engines.md`） | 2026-11-04 |
 
 ### Hermes 私有技能索引（技能全文在 Hermes 目录，此处只做可审计登记）
 

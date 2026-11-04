@@ -162,19 +162,55 @@ POST /api/v1/scripts/import （multipart/form-data，JWT 鉴权）
 |---|---|
 | `client_id` | 必填，归属机构 |
 | `scene` | 可选，场景 |
-| `mode` | `blank`(按空行，默认) / `line`(按单换行) |
-| `commit` | `false` 只预览；`true` 入库 |
+| `mode` | `blank`(按空行，默认) / `line`(按单换行) / `sentence`(按句末标点，语音与整段连排用) |
+| `commit` | `false` 只预览（**不写库也不落盘**）；`true` 入库并保存原始素材 |
 | `text` / `file` | 二选一：粘贴文本，或上传文件 |
-| `items` | 可选，JSON 字符串数组；提供时只入库这些条目（人工剔除误切片段） |
+| `items` | 可选，**JSON 字符串数组**；提供时只入库这些条目（人工剔除误切片段）。服务端只认文本，位置与置信度一律重算 |
 
-支持格式：`.txt / .md / .csv / .docx / .pdf(需文字层)`。
-**不支持**：图片、音频、扫描件 PDF —— 返回 **422** 并说明原因，绝不返回空内容冒充成功。
+支持格式（由 `backend/parse/` 注册表决定，缺失引擎时如实报"未启用"）：
 
-返回：
+| 类别 | 扩展名 | 引擎 |
+|---|---|---|
+| 文本 | `.txt` `.md` `.csv` | UTF-8/GB18030 自动识别；csv 一行一块 |
+| Office | `.docx` `.xlsx` `.xls` `.pptx` | python-docx（正文真实顺序）/ openpyxl·xlrd（按文件头判格式）/ python-pptx（含备注） |
+| PDF | `.pdf` | pdfplumber 文字层；**无文字层的页自动渲染后走 OCR** |
+| 图片 | `.png` `.jpg` `.jpeg` `.bmp` `.webp` `.tif` `.tiff` | RapidOCR（onnxruntime，CPU 离线） |
+| 音频 | `.wav` `.mp3` `.flac` `.ogg` `.m4a` `.aac` | FunASR SenseVoiceSmall（可选，未装则 422 说明装什么） |
+| 明确不做 | `.doc` `.wps` `.ppt` `.odt` `.numbers` `.pages` `.key` | 422 + "请另存为/导出为" 指引 |
+
+**绝不返回 `count=0` 冒充"没有违规"**：解析失败一律 422 并给出原因与下一步动作。
+
+返回（`items` 为兼容既有前端的字符串数组，`items_detail` 是带溯源的新契约）：
 ```json
-{"code":200,"data":{"source":"file:a.docx","count":12,"items":["话术1","…"],
- "created":0,"script_ids":[]},"total":null}
+{"code":200,"data":{"source":"话术.docx","kind":"docx","engine":"python-docx",
+  "confidence":null,"warnings":[],"meta":{"blocks":12},"parse_ms":18,"size_bytes":37012,
+  "count":12,"items":["话术1","…"],
+  "items_detail":[{"text":"话术1","pos":1,"ref":"第1段","confidence":null}],
+  "created":0,"script_ids":[]},"total":null}
 ```
+`commit=true` 额外返回 `source_id`，同机构重复上传同一份内容时返回 `duplicate_of`。
+
 - 强制两段式：先 `commit=false` 预览切分结果，人工确认后再 `commit=true` 入库，
   避免一次传错文件把脏数据写进库、污染后续所有审计统计；
-- 切分规则：剥行首序号（`1.` / `（1）` / `一、` / `-`）、去重、过滤 4 字以下噪声、单次上限 200 条。
+- 切分规则：剥行首序号（`1.` / `（1）` / `一、` / `-`）、去重、过滤 4 字以下噪声、单次上限 200 条；
+- **溯源由服务端计算**：客户端传来的页码/置信度一律忽略，勾选项若与文件解析结果对不上则拒绝入库。
+
+## D6-b 素材档案与原始文件回看
+
+| 接口 | 说明 |
+|---|---|
+| `GET /api/v1/sources/formats` | 能力清单：可扩展名、kind/engine、缺哪个引擎、`modes`、上限。前端 accept 列表必须由此生成，不许手写 |
+| `GET /api/v1/sources?page&client_id` | 素材档案分页；商家只见本机构 |
+| `GET /api/v1/sources/{id}` | 详情 + `scripts[]`（该素材切出的话术，含 ref/confidence）。**不返回服务器内部路径**，只返回 `file_available` |
+| `GET /api/v1/sources/{id}/file` | 原始素材内联返回（`Content-Disposition: inline`）：海报直接显示、录音直接播、PDF 直接翻 |
+
+越权访问他人素材（详情与文件同样处理）返回 **404**，不暴露"这条存在"。
+文件路径校验在服务层 `sources.file_path` 统一把门（`is_relative_to` 上传目录），
+任何新增入口想读素材都得过同一道闸。
+
+MCP 工具新增两个（共 8 个，`--selftest` 可验）：
+
+| 工具 | 参数 | 用途 |
+|---|---|---|
+| `parse_source` | `source_id`, `mode` | 智能体按素材 id 取回**当前文件**的逐条话术与溯源，不依赖有人先复制粘贴 |
+| `parse_document` | `rel_path`, `mode` | 解析项目 `data/` 内素材；路径锁死在 `data/` 之内，挡 `..` |

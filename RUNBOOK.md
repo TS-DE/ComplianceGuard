@@ -19,6 +19,9 @@ python -m scripts.init_db --apply    # 建库建表（幂等，可重复跑）
 python -m scripts.show_tables        # 核对表结构与索引
 python -m scripts.seed_cases
 
+# 2b) 素材溯源迁移（幂等，只加表加列；重复执行会输出"跳过"）
+python -m scripts.migrate_sources_provenance --apply --show
+
 # 3) 构建向量库（Chroma）
 python -m scripts.build_index
 
@@ -71,8 +74,34 @@ cd frontend && npm run dev
 
 ---
 
+## 6. 素材摄取（文档 / 海报 / 扫描件 / 录音）
+
+```bash
+# 现在到底能吃什么：扩展名、缺哪个引擎、切分模式、上限（前端 accept 也由此生成）
+python -X utf8 -c "from backend.parse import capabilities; import json; print(json.dumps(capabilities(), ensure_ascii=False, indent=2))"
+# 真实跑一次 OCR（自造中文海报，逐字回查；不花钱不联网）
+python -X utf8 -m scripts.verify_parse
+# 解析某个具体文件
+python -X utf8 -m scripts.verify_parse data/verify/poster.png "D:/某机构话术库.docx"
+```
+
+| 现象 | 根因 | 处理 |
+|---|---|---|
+| 上传录音 422「未安装语音引擎」 | `funasr` 未装（能力探测 `engines.asr=false`） | `python -m pip install --no-cache-dir funasr modelscope soundfile -i https://pypi.tuna.tsinghua.edu.cn/simple`；模型约 500MB 落在 `data/models`，**不写 C 盘** |
+| 上传海报 422「图片无法解码」 | 文件损坏或不是真图片（与"不支持"是两回事） | 让商家重新导出；不要用截图工具二次压缩 |
+| PDF 报「没有可抽取的文本层」且未降级到 OCR | OCR 引擎缺失，或 `PARSE_OCR_ENABLED=false` 把它关了 | 装 `rapidocr-onnxruntime`，或检查 `.env` |
+| 扫描页超过 20 页报错 | 同步接口不能长挂 | 拆分文件分批上传（`OCR_MAX_PAGES`） |
+| 解析置信度 40% 且带「请人工核对」 | 图糊/斜拍/花字 | **不要采信该条结论**，让商家重传清晰图；这是刻意的降级而非 bug |
+| 首次 ASR 卡住很久 | 正在下载模型；或 C 盘空间不足导致写入失败 | 确认 `MODELSCOPE_CACHE`/`HF_HOME` 已指到项目盘（`core.config.configure_model_cache` 在导入时设置），C 盘剩余空间用 `python -c "import shutil;print(shutil.disk_usage('C:/').free/2**30)"` 核对 |
+
+原始素材落盘在 `data/uploads/YYYYMM/<指纹前16位>.<ext>`（已在 `.gitignore`）。
+**预览阶段不写盘**；只有 `commit=true` 才留下文件，所以磁盘体积等于"已入库素材"的体积。
+
+---
+
 ## 变更记录
 | 日期 | 变更 | 原因 |
 |---|---|---|
+| 2026-11-04 | 启动顺序加 2b 素材溯源迁移；新增 §6 素材摄取排查表 | 解析层上线后，OCR/ASR 与模型目录成为常见故障点，且模型缓存默认写 C 盘会挤爆磁盘 |
 | 2026-11-01 | 建立启动顺序、回滚三级、故障表 | 项目启动 |
 | 2026-11-01 | 启动命令改 `init_db --apply`，补 show_tables 与 CHECK 故障项 | D1 建库落地：预览与执行分离 |

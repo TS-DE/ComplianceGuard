@@ -22,6 +22,26 @@ PyJWT==2.15.1
 # 向量库（D2 使用；protobuf 冲突已在环境内修复，勿随意升级）
 chromadb==1.5.9
 
+# 素材摄取 · 文档结构层（无模型，可在 CI 全量测）
+python-docx==1.2.0          # .docx 正文真实顺序
+pdfplumber==0.11.10         # PDF 文字层
+pypdfium2==5.14.0           # PDF 页渲染（pdfplumber 的渲染后端，扫描页走 OCR 的前提）
+openpyxl==3.1.5             # .xlsx
+xlrd==2.0.2                 # .xls（2.x 已不支持 xlsx，故两者并存）
+python-pptx==1.0.2          # .pptx 含演讲者备注
+
+# 素材摄取 · OCR（RapidOCR 复用已装的 onnxruntime，CPU 离线，权重在包内不写 C 盘）
+rapidocr-onnxruntime==1.4.4
+onnxruntime==1.31.0
+pillow==12.3.0
+
+# 素材摄取 · 语音 ASR（可选：装了才生效，未装时能力探测报 asr=False 且接口如实 422）
+# 由作者自行安装，模型落在 data/models：
+#   python -m pip install --no-cache-dir funasr modelscope soundfile -i https://pypi.tuna.tsinghua.edu.cn/simple
+# funasr==1.4.21
+# modelscope
+# soundfile          # libsndfile>=1.1 才能解 mp3；m4a/aac 需要 ffmpeg（本机没有）
+
 # 测试
 pytest==9.1.1
 httpx==0.28.1

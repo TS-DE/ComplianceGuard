@@ -1,4 +1,4 @@
-"""五张业务表的 ORM 映射；保持既有数据库结构不变。"""
+"""六张业务表的 ORM 映射：users/clients/sources/scripts/audits/rules。"""
 
 from datetime import datetime
 from decimal import Decimal
@@ -68,6 +68,57 @@ class Client(Base):
     def __repr__(self) -> str:
         return f"<Client id={self.id} name={self.name}>"
 
+class Source(Base):
+    """商家上传的原始素材（海报 / 扫描件 / 录音 / 文档）；一条素材切出 N 条话术。
+
+    为什么单独成表而不是在 scripts 上记个文件名：一份 PDF 会切成几十条话术，
+    而"哪个文件、什么引擎、第几页、置信度多少、警告"是**素材的属性**，
+    复制到每条话术上既冗余又改不动（重跑一次 OCR 要更新几十行）。
+    审查结论要回溯"这句是哪来的"，靠 scripts.source_id → sources 一次 JOIN 就够。
+    """
+
+    __tablename__ = "sources"
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    client_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("clients.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    # 解析结果形态：text/sheet/docx/slides/pdf_text/pdf_scan/image/audio
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    # 实际干了活的库：decode/python-docx/openpyxl·xlrd/python-pptx/pdfplumber
+    # /pdfplumber+rapidocr/rapidocr/funasr:sensevoice-small
+    engine: Mapped[str] = mapped_column(String(40), nullable=False)
+    # 内容指纹：同一张海报重复上传要能看出来，否则统计口径会被同一份素材灌水
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    # 相对项目根的存储路径；NULL 表示本轮只解析预览、没有落盘
+    stored_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # 页码/段落/毫秒等结构化信息：{pages, slides, sheets, seconds, blocks, chars}
+    meta: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    # OCR/ASR 平均置信度；纯文本层为 NULL（意为"不存在识别误差"，不是"0"）
+    confidence: Mapped[Decimal | None] = mapped_column(Numeric(5, 4), nullable=True)
+    warnings: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    parse_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    item_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    created_by: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP")
+    )
+
+    client: Mapped["Client"] = relationship(passive_deletes=True)
+    # 反向名是 source_obj 而不是 source：Script 已有一个叫 source 的列（manual/redteam），
+    # SQLAlchemy 不允许同名关系与列并存，硬要同名会在建映射时直接报错。
+    scripts: Mapped[list["Script"]] = relationship(
+        back_populates="source_obj", passive_deletes=True
+    )
+
+    def __repr__(self) -> str:
+        return f"<Source id={self.id} filename={self.filename} kind={self.kind}>"
+
 class Script(Base):
     """待审话术（CRUD 2）；client_id 外键 ON DELETE RESTRICT。"""
 
@@ -82,8 +133,20 @@ class Script(Base):
         index=True,
     )
     scene: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # source 说"这条记录是谁产生的"（人工录入 / 红队生成）；
+    # 至于"人工录入的那份文件是什么"，由下面的 source_id 指向 sources。
+    # 两个字段刻意不合并：合并后红队样本没地方放，商家素材也没地方查。
     source: Mapped[str] = mapped_column(Enum("manual", "redteam"), nullable=False, server_default=text("'manual'"))
     redteam_meta: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    # ---- 素材溯源：这句话来自哪份文件的哪个位置（无素材来源时全为 NULL）----
+    source_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("sources.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # pos 给机器（排序、按页统计），ref 给人（"第3页" / "Sheet1·第12行" / "语音第4句"）
+    source_pos: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_ref: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # OCR/ASR 单块置信度；NULL 表示来自文本层，不存在识别误差
+    parse_confidence: Mapped[Decimal | None] = mapped_column(Numeric(5, 4), nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(
         Enum(ScriptStatus, values_callable=lambda e: [m.value for m in e]),
@@ -95,6 +158,9 @@ class Script(Base):
     )
 
     client: Mapped["Client"] = relationship(
+        back_populates="scripts", passive_deletes=True
+    )
+    source_obj: Mapped["Source | None"] = relationship(
         back_populates="scripts", passive_deletes=True
     )
     audits: Mapped[list["Audit"]] = relationship(

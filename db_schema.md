@@ -49,6 +49,10 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 | scene | VARCHAR(50) | NULL | 场景：双眼皮/热玛吉/美白/祛斑/植发 |
 | source | ENUM('manual','redteam') | NOT NULL, DEFAULT 'manual' | 来源 |
 | redteam_meta | JSON | NULL | run_id、target_axis、strength、strategy、expected_violation；判定后追加verdict/actual_axes/audit_id |
+| source_id | BIGINT | FK→sources.id, NULL, ON DELETE SET NULL, INDEX | **素材溯源**：这句话出自哪份上传文件；手工录入与红队样本为 NULL |
+| source_pos | INT | NULL | 素材内的机器位置（页码/幻灯片号/段落序号/行号/块序号），含义随 `sources.kind` 变 |
+| source_ref | VARCHAR(40) | NULL | 给人看的位置："第3页" / "Sheet1·第12行" / "第4张幻灯片备注" / "OCR块2" / "语音第3句" |
+| parse_confidence | DECIMAL(5,4) | NULL | 该条的 OCR/ASR 识别置信度；**文本层为 NULL（意为"不存在识别误差"，不是 0）** |
 | content | TEXT | NOT NULL | 待审话术原文 |
 | status | ENUM('pending','audited','archived') | NOT NULL, DEFAULT 'pending' | |
 | created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
@@ -99,9 +103,36 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 `pattern` 说"**什么算违规**"，`exemptions` 说"**什么看起来像违规但其实不算**"，`detector` 说"**用什么方法去查**"。
 **三者是独立维度**，混在一起会让判定器和读代码的人都分不清。
 
-### 1.6 关系与外键策略
+### 1.7 `sources` — 商家上传的原始素材（解析与溯源）
+
+> 一份素材 → N 条话术。**为什么单独成表而不是在 scripts 上记文件名**：
+> "哪个文件、什么引擎、共几页、平均置信度、告警、耗时"是**素材的属性**，
+> 复制到每条话术上既冗余又改不动（重跑一次 OCR 要更新几十行）。
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| id | BIGINT | PK, AI | |
+| client_id | BIGINT | FK→clients.id, NOT NULL, INDEX, ON DELETE RESTRICT | 归属机构；与 scripts 同一口径 |
+| filename | VARCHAR(255) | NOT NULL | 商家上传时的原名（磁盘上用指纹命名，原名只用于展示与回看） |
+| kind | VARCHAR(20) | NOT NULL | text/sheet/docx/slides/pdf_text/pdf_scan/image/audio |
+| engine | VARCHAR(40) | NOT NULL | decode/csv/python-docx/openpyxl·xlrd/python-pptx/pdfplumber/pdfplumber+rapidocr/rapidocr/funasr:sensevoice-small/paste |
+| sha256 | VARCHAR(64) | NOT NULL, INDEX | 内容指纹；**判重用指纹不用文件名**（改名重传还是同一份素材） |
+| size_bytes | INT | NOT NULL | 原始文件字节数 |
+| stored_path | VARCHAR(255) | NULL | 相对 `UPLOAD_DIR` 的路径（`YYYYMM/指纹前16位.ext`）；NULL=只预览未落盘 |
+| meta | JSON | NULL | `{pages, slides, sheets, rows, blocks, chars, seconds, scanned_pages}` |
+| confidence | DECIMAL(5,4) | NULL | 平均识别置信度；文本层为 NULL |
+| warnings | JSON | NULL | 低置信度提醒、扫描页未做 OCR 等，**原样透出给人看，不静默丢弃** |
+| parse_ms | INT | NULL | 解析耗时；OCR/ASR 的性能证据 |
+| item_count | INT | NOT NULL, DEFAULT 0 | 切出的话术条数 |
+| created_by | BIGINT | FK→users.id, NULL, ON DELETE SET NULL | 谁传的 |
+| created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
+
+磁盘布局：`data/uploads/YYYYMM/<指纹前16位>.<ext>`（在 `.gitignore` 内）。
+原始字节**只在确认入库时落盘**，预览阶段一个文件都不写。
+
+### 1.8 关系与外键策略
 ```
-clients 1 ──< scripts 1 ──< audits
+clients 1 ──< sources 1 ──< scripts 1 ──< audits
 rules（独立字典表，被 Agent 读取）
 users（独立，仅鉴权）
 ```
@@ -235,3 +266,4 @@ users（独立，仅鉴权）
 | 2026-11-01 | 补全 NOT NULL、`ck_audits_score` CHECK、`updated_at` ON UPDATE、索引名 | D1 建库落地，代码与文档对齐 |
 | 2026-11-01 | rules 增 `detector`（检测手段）+ `exemptions`（法定豁免清单），并补 §3.1 轴分配表 / §3.2 detector 语义 / §3.3 exemptions 用法 | **严重度与检测手段是正交维度**；法条自带的"不适用情形"须独立成白名单，否则误杀 |
 | 2026-11-01 | 轴从 8 条扩到 10 条（新增 `cure_rate` 治愈率、`endorsement` 广告代言） | 《广告法》第16条(二)显式禁止说明治愈率；《医美广告执法指南》第五条(六)单列"推荐官/体验官" |
+| 2026-11-04 | 新增 §1.7 `sources` 表 + `scripts` 四列溯源（source_id/source_pos/source_ref/parse_confidence），关系链补 clients→sources→scripts | 商家给的是整份素材（PDF/海报/录音），解析出的页码与置信度必须有地方存，否则"这句违规话从哪来"无法回答。迁移见 `scripts/migrate_sources_provenance.py`（幂等，只加表加列） |
