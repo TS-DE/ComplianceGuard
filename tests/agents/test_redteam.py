@@ -153,7 +153,8 @@ def test_orchestration_judges_once_per_sample_and_reports(db,client,auth_headers
 def test_report_model_cannot_add_facts():
     from backend.agents.redteam import AuditReportAgent
     class Repo:
-        def daily(self,day): return dict(total=1,incomplete=0)
+        # 签名与仓储层保持一致：多出的 client_id 用于商家端只看自己机构
+        def daily(self,day,client_id=None): return dict(total=1,incomplete=0)
     class Model:
         def complete(self,messages): return dict(content='{"template_id":"daily","extra":"99%合规"}')
     with pytest.raises(ValueError,match='new facts'): AuditReportAgent(Repo(),Model()).daily(None)
