@@ -10,6 +10,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { rewriteAudit, axisLabel, type AuditRow, type Hit } from '../../api/resource'
+import { copyText } from '../../utils/clipboard'
 import ArticleDrawer from '../law/ArticleDrawer.vue'
 
 const props = defineProps<{ modelValue: boolean; row: AuditRow | null }>()
@@ -26,6 +27,13 @@ const articleItemNo = ref<string | null>(null)
 const label = (score: number) =>
   ({ '-1': '判定未完成', '0': '违规', '1': '轻微风险', '2': '合规' } as Record<string, string>)[String(score)] ?? '未知'
 const hits = (row: AuditRow | null): Hit[] => row?.hits_json ?? []
+
+async function copyOrigin() {
+  if (!props.row?.script_content) return
+  const done = await copyText(props.row.script_content)
+  if (done) ElMessage.success('已复制原话术')
+  else ElMessage.error('复制失败，请手动选中')
+}
 
 function openArticle(hit: Hit) {
   articleCode.value = hit.law_article
@@ -58,6 +66,20 @@ async function doRewrite() {
         :type="row.incomplete || row.score === -1 || row.score === 0 ? 'error' : row.score === 1 ? 'warning' : 'success'"
         :closable="false" show-icon
       />
+
+      <!-- 被审原文置顶：审查结论脱离原文就没法核对，也没法拿去改；
+           这里给全文 + 一键复制，避免用户回话术库找不到同一条。 -->
+      <div class="origin">
+        <div class="origin-head">
+          <span class="origin-title">被审话术</span>
+          <span class="origin-no">#{{ row.script_id }}</span>
+          <el-button v-if="row.script_content" link type="primary" size="small"
+                     @click="copyOrigin">复制全文</el-button>
+        </div>
+        <p class="origin-text" :class="{ empty: !row.script_content }">
+          {{ row.script_content || '（原话术已删除，无法显示）' }}
+        </p>
+      </div>
 
       <el-descriptions :column="2" border size="small" style="margin-top: 14px">
         <el-descriptions-item label="记录 ID">{{ row.id }}</el-descriptions-item>
@@ -116,6 +138,20 @@ async function doRewrite() {
 <style scoped>
 h4 { margin: 18px 0 10px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .item-hint { margin-left: 2px; color: var(--el-color-warning-dark-2); }
+/* 原话术区：结论要能对照原文看，长文允许换行，保留原始标点 */
+.origin { margin-top: 14px; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }
+.origin-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
+}
+.origin-title { font-size: 13px; font-weight: 600; }
+.origin-no { color: var(--el-text-color-secondary); font-size: 12px; }
+.origin-text {
+  margin: 0; padding: 12px; line-height: 1.75; font-size: 13px;
+  white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto;
+}
+.origin-text.empty { color: var(--el-text-color-placeholder); }
 .reason { font-size: 12px; line-height: 1.6; color: var(--el-text-color-regular); }
 .unpriced { color: var(--el-color-warning-dark-2); }
 .muted { color: var(--el-text-color-secondary); font-size: 12px; }

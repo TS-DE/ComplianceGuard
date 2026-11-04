@@ -61,7 +61,28 @@ def resource_router(name, service, create_schema, update_schema, out_schema,
     router = APIRouter(prefix=f"/{name}", tags=[name], dependencies=[Depends(get_current_user)])
 
     def output(obj):
-        return out_schema.model_validate(obj).model_dump(mode="json")
+        payload = out_schema.model_validate(obj).model_dump(mode="json")
+        return payload
+
+    def attach_script_content(db, rows, payloads):
+        """审查记录补上原话术内容。
+
+        用一次 IN 查询批量取，避免每行一次 SELECT；
+        话术被删除时留 None，不编造内容。
+        """
+        if name != "audits" or not rows:
+            return payloads
+        from sqlalchemy import select
+
+        from backend.db.models import Script
+
+        ids = {row.script_id for row in rows}
+        found = db.execute(select(Script.id, Script.content)
+                           .where(Script.id.in_(ids))).all()
+        content = {sid: text for sid, text in found}
+        for row, payload in zip(rows, payloads):
+            payload["script_content"] = content.get(row.script_id)
+        return payloads
 
     def assert_owned(db, obj, scoped: int | None) -> None:
         """商家只能操作自己机构的资源；不匹配一律按不存在处理，避免暴露存在性。"""
@@ -110,14 +131,15 @@ def resource_router(name, service, create_schema, update_schema, out_schema,
         scoped = data_scope(current_user)
         rows, total = service.list_paged(
             db, page.page, page.page_size, scoped if scoped is not None else client_id, script_id)
-        return ok([output(row) for row in rows], total=total)
+        payloads = attach_script_content(db, rows, [output(row) for row in rows])
+        return ok(payloads, total=total)
 
     def get_item(item_id: int, db: DbSession, current_user: CurrentUser) -> dict:
         if platform_only:
             require_platform(current_user)
         obj = service.get(db, item_id)
         assert_owned(db, obj, data_scope(current_user))
-        return ok(output(obj))
+        return ok(attach_script_content(db, [obj], [output(obj)])[0])
 
     def create_item(payload: create_schema, db: DbSession, current_user: CurrentUser) -> dict:
         if platform_only:

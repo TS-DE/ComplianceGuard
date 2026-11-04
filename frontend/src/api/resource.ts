@@ -40,6 +40,9 @@ export interface AuditRow {
   rewritten_text: string | null; rewrite_passed: boolean | null
   model: string | null; prompt_tokens: number; completion_tokens: number
   cost: string | null; latency_ms: number; incomplete: boolean; created_at: string
+  // 审查记录必须能直接看到被审的原话术：只给 script_id 的话，
+  // 商家要跳回话术库再搜一遍，也没法复制原文去对照修改。
+  script_content: string | null
 }
 export interface RuleRow {
   id: number; axis: string; law_article: string; pattern: string

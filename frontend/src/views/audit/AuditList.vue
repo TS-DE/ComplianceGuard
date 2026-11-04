@@ -7,7 +7,9 @@
  */
 import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { audits, type AuditRow } from '../../api/resource'
+import { copyText } from '../../utils/clipboard'
 import AuditDetail from './AuditDetail.vue'
 
 const route = useRoute()
@@ -56,6 +58,13 @@ function detail(row: AuditRow) {
   open.value = true
 }
 
+async function copyRow(row: AuditRow) {
+  if (!row.script_content) return
+  const done = await copyText(row.script_content)
+  if (done) ElMessage.success('已复制原话术')
+  else ElMessage.error('复制失败，请手动选中')
+}
+
 const label = (row: AuditRow) =>
   row.incomplete || row.score === -1 ? '判定未完成'
     : ({ '0': '违规', '1': '轻微风险', '2': '合规' } as Record<string, string>)[String(row.score)] ?? '未知'
@@ -79,8 +88,19 @@ onMounted(load)
 
       <el-table v-loading="loading" :data="rows" empty-text="暂无审查记录，请到话术库提交审查">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="script_id" label="话术 ID" width="100" />
-        <el-table-column label="结论" width="130">
+        <el-table-column label="被审话术" min-width="300">
+          <template #default="{ row }">
+            <div class="script-cell">
+              <span class="script-no">#{{ row.script_id }}</span>
+              <span class="script-text" :title="row.script_content || ''">
+                {{ row.script_content || '（话术已删除）' }}
+              </span>
+              <el-button v-if="row.script_content" link type="primary" size="small"
+                         @click.stop="copyRow(row)">复制</el-button>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="结论" width="120">
           <template #default="{ row }">
             <el-tag :type="tagType(row)" effect="light">{{ label(row) }}</el-tag>
           </template>
@@ -115,4 +135,10 @@ onMounted(load)
 <style scoped>
 .muted { color: var(--el-text-color-secondary); font-size: 13px; }
 .unpriced { color: var(--el-color-warning-dark-2); }
+/* 话术内容可能很长：单行截断 + hover 看全文 + 右侧复制按钮 */
+.script-cell { display: flex; align-items: center; gap: 8px; }
+.script-no { flex: none; color: var(--el-text-color-secondary); font-variant-numeric: tabular-nums; }
+.script-text {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 </style>

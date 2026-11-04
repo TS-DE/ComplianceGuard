@@ -136,6 +136,9 @@ class AuditOut(BaseModel):
     latency_ms: int
     incomplete: bool
     created_at: datetime
+    # 审查记录必须能直接看到被审查的原话术：
+    # 只给 script_id 的话，商家要跳到话术库再搜一遍，也没法复制原文去对照修改。
+    script_content: str | None = None
 
 class RuleBase(BaseModel):
     """规则公共字段。
