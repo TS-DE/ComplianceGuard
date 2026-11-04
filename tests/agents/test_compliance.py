@@ -100,6 +100,49 @@ def test_search_law_is_cached_for_same_text(monkeypatch):
     _cached_law_lookup.cache_clear()
 
 
+def test_descriptive_prognosis_is_downgraded_not_cleared():
+    """预后描述应降级为"疑似"，既不能判违规，也不能直接放行。
+
+    实测背景：模型把「皮肤愈合后，应更显光滑」判成功效断言。
+    这句是愈合后的常规预后描述，没有向顾客承诺确定结果。
+    正确处理是保留命中但降为 soft：界面显示"疑似违规 · 建议复核"，
+    商家仍被提示有风险，又不至于把正常宣传一刀切判死。
+    """
+    text = "皮肤愈合后，应更显光滑"
+    r = audit(text, [dict(quote=text, law_article="广告法第9条", reason="x")])
+    assert r["hit_count"] == 1, "命中必须保留，降级不等于放行"
+    assert r["hits"][0]["downgraded"] is True
+    assert r["hits"][0]["severity"] == "soft"
+    assert "模糊限定词" in r["hits"][0]["downgrade_reason"]
+    assert r["score"] == 1, "降级后应为疑似(1)，不是违规(0)，也不是合规(2)"
+
+
+def test_recovery_period_with_modifiers_is_downgraded():
+    """「可能需要大约三个月才能恢复正常肤色」是恢复周期告知，不是疗效承诺。"""
+    text = "可能需要大约三个月时间才能恢复正常肤色"
+    r = audit(text, [dict(quote=text, law_article="广告法第9条", reason="x")])
+    assert r["hits"][0]["downgraded"] is True
+    assert r["score"] == 1
+
+
+def test_commitment_phrase_stays_hard():
+    """去掉限定词、变成打包票的同一信息必须保持硬命中。"""
+    text = "保证三个月恢复正常肤色"
+    r = audit(text, [dict(quote=text, law_article="广告法第9条", reason="x")])
+    assert r["score"] == 0
+    assert r["hits"][0].get("downgraded") is not True
+
+
+def test_two_downgraded_hits_do_not_sum_to_violation():
+    """两句独立的预后描述不能凑成"多处违规"，否则降级就白做了。"""
+    text = "皮肤愈合后应更显光滑。可能需要大约三个月恢复正常肤色"
+    hits = [dict(quote="皮肤愈合后应更显光滑", law_article="广告法第9条", reason="x"),
+            dict(quote="可能需要大约三个月恢复正常肤色", law_article="广告法第9条", reason="y")]
+    r = audit(text, hits)
+    assert all(h["downgraded"] for h in r["hits"])
+    assert r["score"] == 1
+
+
 def test_exemption_retained_as_trace_not_active_hit():
     exemption = dict(text='仅表明服务态度或者经营理念、主观愿望的', source='指南第五条(一)')
     r = audit('我们要做最好的医美服务',

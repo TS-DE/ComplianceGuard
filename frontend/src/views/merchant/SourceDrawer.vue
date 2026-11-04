@@ -43,7 +43,7 @@ const view = computed<'image' | 'audio' | 'pdf' | 'text' | 'none'>(() => {
 const verdict = (item: PreviewItem) =>
   item.error ? '判定未完成'
     : item.incomplete || item.score === -1 ? '判定未完成'
-      : ({ '0': '违规', '1': '轻微风险', '2': '合规' } as Record<string, string>)[String(item.score)] ?? '未知'
+      : ({ '0': '违规', '1': '疑似违规', '2': '合规' } as Record<string, string>)[String(item.score)] ?? '未知'
 const tagType = (item: PreviewItem) =>
   item.error || item.incomplete || item.score === -1 || item.score === 0 ? 'danger'
     : item.score === 1 ? 'warning' : 'success'

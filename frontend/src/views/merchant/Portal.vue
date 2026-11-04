@@ -47,7 +47,7 @@ async function load() {
 
 const verdict = (row: AuditRow) =>
   row.incomplete || row.score === -1 ? '判定未完成'
-    : ({ '0': '违规', '1': '轻微风险', '2': '合规' } as Record<string, string>)[String(row.score)] ?? '未知'
+    : ({ '0': '违规', '1': '疑似违规', '2': '合规' } as Record<string, string>)[String(row.score)] ?? '未知'
 const sourceItems = computed(() => Object.entries(report.value?.by_source ?? {})
   .map(([key, count]) => ({ key, label: SOURCE_LABELS[key] ?? key, count })))
 const tagType = (row: AuditRow) =>

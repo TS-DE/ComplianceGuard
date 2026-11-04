@@ -11,7 +11,9 @@ from decimal import Decimal
 from time import perf_counter
 from backend.agents.base import Rule, DETECTORS, LLMJudgeDetector, merged_judgment, bind_rule_law
 from backend.core.config import DISCLAIMER_TEXT
-from backend.core.constants import to_refs, missing_docs, add_cost, match_refs, bind_chunk
+from backend.core.constants import (
+    COMMITMENT_WORDS, HEDGE_WORDS,
+    to_refs, missing_docs, add_cost, match_refs, bind_chunk)
 
 _SENTENCES = re.compile(r'[^。！？!?；;\n]+[。！？!?；;\n]?')
 _ZERO_WIDTH = frozenset('\u200b\u200c\u200d\ufeff\u2060')
@@ -36,10 +38,49 @@ def normalize_with_map(original):
     normalized, spans = normalize_text(original)
     return normalized, [start for start, end in spans]
 
+def downgrade_descriptive_hits(hits):
+    """把"只描述效果、不含承诺词"的硬命中降级为软提示，而不是放行。
+
+    为什么要分级：模型把「皮肤愈合后，应更显光滑」「可能需要大约三个月时间才能
+    恢复正常肤色」判成了功效断言。这两句是预后 / 恢复周期的常规告知，
+    没有向顾客承诺确定结果。真正的红线是"把可能性包装成确定性"。
+
+    刻意保留命中、只降严重度：
+    - 命中仍在 -> 商家仍会被提示"这句话有风险"，不会因降级被吞掉；
+    - hard -> soft -> 分数 0 变 1 -> 界面显示"疑似违规 · 建议复核"。
+
+    判据放在代码里而不是让模型自己给等级：可复算、可解释，
+    也符合"分数由代码算"的铁律。
+    """
+    for hit in hits:
+        if hit.get('severity') != 'hard':
+            continue
+        quote = hit.get('quote') or ''
+        if any(word in quote for word in COMMITMENT_WORDS):
+            continue  # 有承诺词，保持硬命中
+        hedges = [word for word in HEDGE_WORDS if word in quote]
+        if not hedges:
+            continue  # 既无承诺词也无模糊限定词，无从判断，保持原判
+        hit['severity'] = 'soft'
+        hit['downgraded'] = True
+        hit['downgrade_reason'] = (
+            f"表述含模糊限定词（{'、'.join(hedges[:3])}）且无保证性承诺词，"
+            "按一般预后/恢复周期告知处理，降级为疑似风险"
+        )
+    return hits
+
+
 def _score(hits):
-    """同句多轴仅计一处，严重度取该句最大值。"""
+    """同句多轴仅计一处，严重度取该句最大值。
+
+    被降级的命中不计入"多处违规"的累加：否则两句独立的预后描述
+    就能凑成"多处违规"，降级就白做了。
+    """
     sentences = {h['sentence_id'] for h in hits}
-    if any(h['severity'] == 'hard' for h in hits) or len(sentences) >= 2:
+    solid = [h for h in hits if not h.get('downgraded')]
+    if any(h['severity'] == 'hard' for h in solid):
+        return 0
+    if len({h['sentence_id'] for h in solid}) >= 2:
         return 0
     return 1 if sentences else 2
 
@@ -118,6 +159,8 @@ class ComplianceAuditAgent:
         if result.get('evidence_gap'):
             result['incomplete'] = True
             result['incomplete_reason'] = 'evidence_gap'
+        # N7.5 分级闸：描述性表述降级为软提示（见 downgrade_descriptive_hits）
+        downgrade_descriptive_hits(result['hits'])
         result['raw_hits'] = result['hits']
         result['hits'] = aggregate_claims(result['raw_hits'])
         result['hit_count'] = len(result['hits'])  # N8
@@ -215,6 +258,12 @@ class ComplianceAuditAgent:
                        exempted_by=None)
             hit.setdefault("pattern", rule.pattern)
             quote = hit.get('quote')
+            if isinstance(quote, str) and quote:
+                # 模型偶尔会把全角标点写成半角（或反之），而 text 已经过 NFKC 归一。
+                # 直接用原串 find 会把这种"标点差异"误判成编造引文，丢掉真实命中；
+                # 因此先按同一规则归一再定位，命中后再由后面回填原文片段。
+                quote = normalize_text(quote)[0]
+                hit['quote'] = quote
             start = text.find(quote) if isinstance(quote, str) and quote else -1
             if start < 0:
                 result['traces'].append(dict(hit, status='invalid_quote'))

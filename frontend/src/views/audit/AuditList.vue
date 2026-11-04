@@ -67,7 +67,7 @@ async function copyRow(row: AuditRow) {
 
 const label = (row: AuditRow) =>
   row.incomplete || row.score === -1 ? '判定未完成'
-    : ({ '0': '违规', '1': '轻微风险', '2': '合规' } as Record<string, string>)[String(row.score)] ?? '未知'
+    : ({ '0': '违规', '1': '疑似违规', '2': '合规' } as Record<string, string>)[String(row.score)] ?? '未知'
 const tagType = (row: AuditRow) =>
   row.incomplete || row.score === -1 || row.score === 0 ? 'danger' : row.score === 1 ? 'warning' : 'success'
 

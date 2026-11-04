@@ -182,7 +182,7 @@ function gotoAudits(scriptId: number) {
 }
 
 const label = (score: number) =>
-  ({ '-1': '判定未完成', '0': '违规', '1': '轻微风险', '2': '合规' } as Record<string, string>)[String(score)] ?? '未知结果'
+  ({ '-1': '判定未完成', '0': '违规', '1': '疑似违规', '2': '合规' } as Record<string, string>)[String(score)] ?? '未知结果'
 const alertType = (r: AuditResult) =>
   r.incomplete || r.score === -1 || r.score === 0 ? 'error' : r.score === 1 ? 'warning' : 'success'
 const canAudit = computed(() => auditing.value === null)

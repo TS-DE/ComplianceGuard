@@ -25,7 +25,7 @@ const articleCode = ref<string | null>(null)
 const articleItemNo = ref<string | null>(null)
 
 const label = (score: number) =>
-  ({ '-1': '判定未完成', '0': '违规', '1': '轻微风险', '2': '合规' } as Record<string, string>)[String(score)] ?? '未知'
+  ({ '-1': '判定未完成', '0': '违规', '1': '疑似违规', '2': '合规' } as Record<string, string>)[String(score)] ?? '未知'
 const hits = (row: AuditRow | null): Hit[] => row?.hits_json ?? []
 
 async function copyOrigin() {

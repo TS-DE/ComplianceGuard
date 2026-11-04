@@ -18,7 +18,7 @@ const expanded = ref<number | null>(null)
 const verdict = (item: BatchAuditItem) =>
   item.error ? '失败'
     : item.incomplete || item.score === -1 ? '判定未完成'
-      : ({ '0': '违规', '1': '轻微风险', '2': '合规' } as Record<string, string>)[String(item.score)] ?? '未知'
+      : ({ '0': '违规', '1': '疑似违规', '2': '合规' } as Record<string, string>)[String(item.score)] ?? '未知'
 const tagType = (item: BatchAuditItem) =>
   item.error || item.incomplete || item.score === -1 || item.score === 0 ? 'danger'
     : item.score === 1 ? 'warning' : 'success'
@@ -60,11 +60,15 @@ const hitList = (item: BatchAuditItem): Hit[] => item.hits ?? []
       <div v-if="expanded === row.script_id" class="detail">
         <div v-for="(hit, i) in hitList(row)" :key="i" class="hit">
           <p class="hit-head">
-            <el-tag size="small" type="danger" effect="light">{{ label(hit.axis) }}</el-tag>
+            <el-tag size="small" :type="hit.downgraded ? 'warning' : 'danger'" effect="light">
+              {{ label(hit.axis) }}
+            </el-tag>
+            <el-tag v-if="hit.downgraded" size="small" type="warning" effect="plain">已降级</el-tag>
             <span class="law">{{ hit.law_article }}<span v-if="hit.item_no" class="law"> {{ hit.item_no }}</span></span>
           </p>
           <p class="quote">原文：{{ hit.quote }}</p>
           <p v-if="hit.reason" class="reason">理由：{{ hit.reason }}</p>
+          <p v-if="hit.downgrade_reason" class="downgrade">分级：{{ hit.downgrade_reason }}</p>
         </div>
       </div>
     </div>
@@ -86,7 +90,8 @@ h3 { margin: 0 0 8px; font-size: 15px; }
 .detail { margin-top: 8px; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; padding: 12px; }
 .hit { padding: 8px 0; border-bottom: 1px dashed var(--el-border-color-lighter); }
 .hit:last-child { border-bottom: none; }
-.hit-head { margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+.hit-head { margin: 0 0 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.downgrade { margin: 4px 0 0; font-size: 12px; line-height: 1.6; color: var(--el-color-warning-dark-2); }
 .law { font-size: 12px; color: var(--el-text-color-secondary); }
 .quote { margin: 0 0 4px; font-size: 13px; line-height: 1.6; }
 .reason { margin: 0; font-size: 12px; line-height: 1.6; color: var(--el-text-color-regular); }

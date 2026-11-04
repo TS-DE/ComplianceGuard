@@ -10,7 +10,14 @@ export interface ScriptRow {
   source_ref: string | null; parse_confidence: number | string | null
 }
 export interface ScriptInput { client_id: number; scene: string | null; content: string }
-export interface Hit { axis: string; law_article: string; quote: string; item_no?: string | null; reason?: string | null }
+export interface Hit {
+  axis: string; law_article: string; quote: string; item_no?: string | null; reason?: string | null
+  /** 严重度：hard=违规，soft=疑似。由后端分级闸计算，模型不决定。 */
+  severity?: 'hard' | 'soft'
+  /** 被降级：描述性表述、无承诺词（如"皮肤愈合后应更显光滑"），保留命中但降为疑似。 */
+  downgraded?: boolean
+  downgrade_reason?: string | null
+}
 
 // 风险轴中文名：界面上直接显示英文变量名（efficacy_claim）商家看不懂，
 // 而"看不懂为什么违规"会直接被当成误杀。
