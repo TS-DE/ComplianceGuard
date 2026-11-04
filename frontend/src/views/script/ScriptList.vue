@@ -18,6 +18,7 @@ import {
 import ScriptDialog from './ScriptDialog.vue'
 import ScriptImport from './ScriptImport.vue'
 import ArticleDrawer from '../law/ArticleDrawer.vue'
+import SourceDrawer from '../merchant/SourceDrawer.vue'
 
 interface ScriptNode extends ScriptRow {
   rowKey: string
@@ -51,6 +52,9 @@ const resultOpen = ref(false)
 const articleOpen = ref(false)
 const articleCode = ref<string | null>(null)
 const articleItemNo = ref<string | null>(null)
+// 素材档案抽屉：从话术直接跳到"这句话来自哪份文件"，省掉回头搜索一遍的功夫
+const sourceOpen = ref(false)
+const sourceId = ref<number | null>(null)
 
 const viewMode = ref<'group' | 'flat'>('group')
 const groupNodes = ref<ClientNode[]>([])
@@ -288,6 +292,15 @@ onMounted(async () => {
             <template #default="{ row }">{{ clientName(row.client_id) }}</template>
           </el-table-column>
           <el-table-column prop="scene" label="场景" width="100" />
+          <el-table-column label="来源" width="130">
+            <template #default="{ row }">
+              <el-button v-if="row.source_id" link type="primary"
+                         @click="sourceId = row.source_id; sourceOpen = true">
+                {{ row.source_ref || '看原文件' }}
+              </el-button>
+              <span v-else class="muted">手工录入</span>
+            </template>
+          </el-table-column>
           <el-table-column label="话术内容" min-width="260">
             <template #default="{ row }">
               <el-tooltip :content="row.content" placement="top" :show-after="300">
@@ -377,6 +390,7 @@ onMounted(async () => {
     </el-dialog>
 
     <ArticleDrawer v-model="articleOpen" :code="articleCode" :item-no="articleItemNo" />
+    <SourceDrawer v-model="sourceOpen" :source-id="sourceId" />
   </div>
 </template>
 

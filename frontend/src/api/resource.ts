@@ -1,6 +1,14 @@
-import { page, request } from './http'
+import { page, request, requestBlob } from './http'
 export interface Client { id: number; name: string }
-export interface ScriptRow { id: number; client_id: number; scene: string | null; content: string; status: string; created_at: string }
+export interface ScriptRow {
+  id: number; client_id: number; scene: string | null; content: string
+  status: string; created_at: string
+  // 素材溯源：话术库必须能指出这句话来自哪份文件的哪个位置，
+  // 否则商家问"这句是哪来的"只能靠人回忆。
+  // parse_confidence 是 DECIMAL，后端序列化成字符串（同 AuditRow.cost）。
+  source_id: number | null; source_pos: number | null
+  source_ref: string | null; parse_confidence: number | string | null
+}
 export interface ScriptInput { client_id: number; scene: string | null; content: string }
 export interface Hit { axis: string; law_article: string; quote: string; item_no?: string | null; reason?: string | null }
 
@@ -143,11 +151,68 @@ export const lawArticle = (code: string, itemNo?: string | null) =>
 
 // 批量导入：商家给的是整页文档而不是一条条数据，所以走 multipart 上传 / 粘贴切分。
 // 两段式（先预览再入库）在界面上强制：切分不可能百分百正确，必须允许人工剔除误切片段。
+
+/** 解析能力清单：由后端注册表算出来，前端不许手写 accept 列表。
+ *  手写清单一定会和代码不同步，结果就是用户传上来才知道"其实不支持"。 */
+export interface ParseFormat {
+  suffix: string; kind: string; engine: string
+  requires: string | null; available: boolean; note: string; max_mb: number
+}
+export interface Capabilities {
+  formats: ParseFormat[]; modes: string[]
+  engines: Record<string, boolean>
+  limits: { max_bytes: number; max_chunks: number; min_chars: number; audio_max_seconds: number }
+}
+export const parseCapabilities = () => request<Capabilities>('GET', '/sources/formats')
+
+export interface ImportPiece {
+  text: string; pos: number | null; ref: string | null; confidence: number | null
+}
 export interface ImportResult {
-  source: string; count: number; items: string[]; created: number; script_ids: number[]
+  source: string; filename: string; kind: string; engine: string
+  confidence: number | null; warnings: string[]; meta: Record<string, unknown>
+  parse_ms: number; size_bytes: number
+  count: number; items: string[]; items_detail: ImportPiece[]
+  created: number; script_ids: number[]
+  // commit=true 才有：素材档案 id；重复上传同一份内容时指向先前那次
+  source_id?: number; duplicate_of?: number
 }
 export const importScripts = (form: FormData) =>
-  request<ImportResult>('POST', '/scripts/import', form, undefined, 180000)
+  request<ImportResult>('POST', '/scripts/import', form, undefined, 300000)
+
+export interface SourceRow {
+  id: number; client_id: number; filename: string; kind: string; engine: string
+  sha256: string; size_bytes: number; meta: Record<string, unknown> | null
+  confidence: number | null; warnings: string[] | null; parse_ms: number | null
+  item_count: number; created_at: string; file_available: boolean
+}
+export interface SourceScript {
+  id: number; content: string; status: string; ref: string | null
+  // DECIMAL 列由后端序列化成字符串（与 AuditRow.cost 同一口径），不是 number
+  confidence: number | string | null
+}
+export interface SourceDetail extends SourceRow { scripts: SourceScript[] }
+export const sources = {
+  list: <T>(params?: object) => page<T>('/sources', params),
+  get: (id: number) => request<SourceDetail>('GET', `/sources/${id}`),
+  /** 原始素材字节；调用方负责 createObjectURL 与 revokeObjectURL（否则整份文件泄漏在内存里）。 */
+  blob: (id: number) => requestBlob(`/sources/${id}/file`)
+}
+
+/** A1 的第二个入口：整份素材当场体检，逐条结论带溯源，**不写审查记录**。 */
+export interface PreviewItem {
+  text: string; ref: string | null; confidence: number | null
+  score: number; incomplete: boolean; hit_count: number; hits: Hit[]; error?: string
+}
+export interface SourcePreviewResult {
+  source_id: number; filename: string; kind: string; engine: string
+  count: number; total_items: number; truncated: boolean
+  warnings: string[]; persisted: boolean; results: PreviewItem[]; disclaimer: string
+}
+// 逐条审查、单条约 6 秒、上限 20 条 → 最坏情况约 2 分钟，超时给到 5 分钟。
+export const previewSource = (sourceId: number, clientId?: number) =>
+  request<SourcePreviewResult>('POST', '/audit/preview-source',
+    { source_id: sourceId, client_id: clientId }, undefined, 300000)
 
 // 批量审查：商家一次粘贴多条后，必须能一次审完，否则还是要逐条点。
 // 后端顺序执行（单条约 6 秒），上限 20 条，因此超时放宽到 5 分钟。

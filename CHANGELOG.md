@@ -340,3 +340,13 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **遗留**：① 预审路径的真实模型链路本轮未跑（用例替换了 `auditor.review`，因为 A1 判定本身已有 tests/agents 覆盖；接线一次真实端到端待前端联调时一起验）。② 新接口未接前端。③ `audit_tool.py` 291→295 行，仍在 300 内。
 
 **规则/评测**：未改规则、法条正文与冻结评测集；无表结构变更。
+
+## D6-d · S7 前端联调：喂素材、看溯源、回看原文件
+
+**改动**：`api/http.ts` 新增 `requestBlob()`（绕开通用响应拦截器——它假定 `{code,msg,data}` 信封，Blob 会被判成"返回格式异常"；出错时把 blob 错误体读回 text 才能显示"素材已被清理"而不是"请求失败"；**不用 `?token=` 传令牌**，那会留在浏览器历史与访问日志）。`api/resource.ts` 接上 `parseCapabilities / sources / previewSource`，并把 DECIMAL 序列化成字符串这一事实写进类型（`SourceScript.confidence: number | string | null`，与既有 `AuditRow.cost` 同口径）。`views/merchant/Check.vue` 重写：`el-upload` 拖拽**多选**、accept 与"未启用能力"警告全部由 `/sources/formats` 生成、按文件分组预览、每条显示 `ref`（第几页/OCR块几/语音第几句）与识别置信度、入库按分组各一次 commit 再自动按 20 条分批审查。新增 `AuditResults.vue`（把结果表从宿主页拆出，Check 从 372 行降回 317）、`SourceDrawer.vue`（素材档案 + 原图/录音/PDF 内联回看 + 当场体检，Blob URL 在关闭与卸载时 revoke）、`views/source/SourceList.vue` 与 `/sources`、`/merchant/sources` 路由与菜单。平台端 `ScriptImport.vue` 的硬编码 accept 与"图片语音不支持"提示改为按能力清单生成（那是典型的"文档写着不支持、其实早就支持了"反向假契约）；`ScriptList.vue` 加「来源」列，点位置直接开抽屉。
+
+**验证**：`cd frontend && npm run build`（vue-tsc --noEmit + vite build）→ **✓ built in 6.33s，0 error**；首轮报出 5 个真实类型错（clientId 重复声明、buildForm 参数、el-upload raw 的 File 超集、索引可能 undefined），逐个改到干净。后端起 uvicorn 后跑真实 HTTP 端到端：`GET /sources/formats` → `engines={ocr:true,asr:false}`，可上传 15 种扩展名且 `.doc/.ppt/.wav` 均不在其中；上传真海报 → **4.28s、engine=rapidocr、confidence=0.9973、3 条带 OCR块1/2/3**；`commit=false` 阶段 `scripts` 总数为 0（预览确实不写库）；`commit=true` → `source_id=1`、3 条话术带 ref 与逐块置信度；`GET /sources/{id}/file` → 37200 字节 **sha256 与上传一致**且 `Content-Disposition: inline`；改名重传同一张海报 → `duplicate_of=1`；提交一句海报上没有的话术 → **422「有 1 条内容与文件解析结果对不上」**。临时脚本与联调服务已清理（`taskkill /PID 15504 /T /F`），联调产生的商家账号 `e2e_*` 与 source_id=1/2 留在开发库未清（下次 seed 或手工清理，不影响结构）。
+
+**遗留**：① 浏览器内的真机点验（拖拽、录音播放、抽屉动画）未做——本轮只做到类型检查、构建与接口级端到端；下一步人工过一遍。② ASR 依赖仍未装，`/sources/formats` 会持续报 `asr:false`，界面已如实显示"未启用"。③ 素材抽屉里"当场体检"未跑过真实模型（预审路径会真调 A1 判定，需要 JUDGE_API_KEY 与费用），按钮逻辑接口级已通。④ `Check.vue` 317 行仍略超 300，与 §3.1 末档同理由记录：SFC 含 template+script+style 三段，拆成两个组件会把一个交互流程割成两半，待 D6 定稿后按"预览区/操作区"再拆。
+
+**规则/评测**：无规则、法条、评测集与表结构变更。

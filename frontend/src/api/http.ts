@@ -55,3 +55,38 @@ export async function page<T>(url: string, params?: object): Promise<Page<T>> {
   if (typeof total !== 'number') return fail('分页总数缺失')
   return { items: response.data, total }
 }
+
+/**
+ * 取回二进制内容（原始素材内联预览：海报、录音、PDF）。
+ *
+ * 为什么不复用 request：上面的响应拦截器假定返回是 {code,msg,data} 信封，
+ * Blob 没有 code 字段会被判成"服务返回格式异常"，所以这里绕开拦截器、单独挂鉴权头。
+ * 也别改用 ?token= 查询参数：那会把令牌留在浏览器历史、服务器访问日志和referer里。
+ */
+export async function requestBlob(url: string, timeoutMs = 120000): Promise<Blob> {
+  const token = localStorage.getItem('token')
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE}${url}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      responseType: 'blob',
+      timeout: timeoutMs
+    })
+    return response.data as Blob
+  } catch (error: unknown) {
+    if (!axios.isAxiosError(error)) return fail('网络请求失败，请稍后重试')
+    const status = error.response?.status
+    // 出错时后端返回的是 JSON 信封，但 responseType=blob 把它包成了 Blob，
+    // 不读出来就只能显示"请求失败"，商家永远不知道是"素材已被清理"还是"没权限"。
+    let message = error.response?.statusText || '请求失败'
+    const body: unknown = error.response?.data
+    if (body instanceof Blob) {
+      try {
+        const parsed = JSON.parse(await body.text()) as Envelope<unknown>
+        if (parsed?.msg) message = parsed.msg
+      } catch {
+        // 非 JSON 错误体（网关超时等）保留 statusText。
+      }
+    }
+    return fail(message, status)
+  }
+}

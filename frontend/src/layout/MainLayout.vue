@@ -29,7 +29,8 @@ const MERCHANT_MENUS: MenuItem[] = [
   { path: '/merchant', title: '我的工作台' },
   { path: '/merchant/check', title: '文案检查', hint: '批量' },
   { path: '/merchant/scripts', title: '我的话术' },
-  { path: '/merchant/audits', title: '审查历史' }
+  { path: '/merchant/audits', title: '审查历史' },
+  { path: '/merchant/sources', title: '素材档案', hint: '原文件' }
 ]
 
 const PLATFORM_MENUS: MenuItem[] = [
@@ -38,7 +39,8 @@ const PLATFORM_MENUS: MenuItem[] = [
   { path: '/audits', title: '审查记录' },
   { path: '/rules', title: '规则库' },
   { path: '/redteam', title: '红队压测', hint: '体检' },
-  { path: '/clients', title: '机构管理' }
+  { path: '/clients', title: '机构管理' },
+  { path: '/sources', title: '素材档案', hint: '原文件' }
 ]
 
 const menus = computed(() => (isMerchant.value ? MERCHANT_MENUS : PLATFORM_MENUS))

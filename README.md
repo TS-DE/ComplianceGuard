@@ -17,6 +17,9 @@ RapidOCR + onnxruntime（海报与扫描件），FunASR SenseVoiceSmall（录音
 
 ## 当前进度
 - D1：目录骨架、MySQL 五张表、JWT 注册登录、clients/scripts/audits/rules 四套 CRUD
+- D6-b/c/d：**素材摄取层**（海报图片与扫描件 OCR、录音 ASR（可选引擎）、xlsx/xls/pptx、
+  扫描版 PDF 自动降级 OCR）+ `sources` 素材档案与逐条溯源 + A1 按素材预审入口 +
+  商家端/平台端页面接上（拖拽多选、accept 由能力清单生成、原文件内联回看）
 
 ## 怎么跑（Windows，Python 3.12）
 ```bash
