@@ -47,6 +47,48 @@ def run_audit(payload: AuditRunRequest, db: DbSession, current_user: CurrentUser
     return ok(build_audit_tool(db).run_audit(payload.script_id, payload.client_id))
 
 
+class BatchAuditRequest(BaseModel):
+    """一次审查多条话术。
+
+    上限 20 条：单条约 6 秒，20 条已接近 2 分钟，再多会让浏览器超时；
+    真正的大批量应当走后台任务，这里明确拒绝而不是假装很快。
+    """
+
+    client_id: int = Field(gt=0)
+    script_ids: list[int] = Field(min_length=1, max_length=20)
+
+
+@router.post("/audit/batch", tags=["audit"])
+def run_audit_batch(payload: BatchAuditRequest, db: DbSession,
+                    current_user: CurrentUser) -> dict:
+    """顺序审查一批话术，逐条返回结果。
+
+    为什么顺序而不是并发：模型接口的限流与成本都按并发放大，
+    而且一条失败不应影响其余——顺序执行时每条独立 try，失败只记该条。
+
+    越权保护：商家只能审自己机构的话术，任何一条不属于自己即整批拒绝，
+    避免"混入一条别人的"这种探测手法。
+    """
+    from backend.core.security import data_scope
+    from backend.crud.special import scripts as script_repo
+
+    scoped = data_scope(current_user)
+    tool = build_audit_tool(db)
+    results = []
+    for script_id in payload.script_ids:
+        script = script_repo.get(db, script_id)
+        if script is None:
+            results.append({"script_id": script_id, "error": "话术不存在"})
+            continue
+        if scoped is not None and script.client_id != scoped:
+            raise AppError(CODE_NOT_FOUND, f"话术 {script_id} 不存在")
+        try:
+            results.append(tool.run_audit(script_id, script.client_id))
+        except Exception as exc:  # 单条失败不拖垮整批
+            results.append({"script_id": script_id, "error": str(exc)})
+    return ok({"count": len(results), "results": results})
+
+
 @router.post("/audit/{audit_id}/rewrite", tags=["audit"])
 def rewrite_audit(audit_id: Annotated[int, Path(gt=0)], db: DbSession,
                   current_user: CurrentUser) -> dict:
@@ -77,8 +119,13 @@ def redteam_gaps(run_id: str, db: DbSession, current_user: CurrentUser):
 
 @router.get('/reports/daily',tags=['reports'])
 def daily_report(date: date, db: DbSession, current_user: CurrentUser):
-    """纯SQL聚合日报，默认不调用模型。"""
-    return ok(redteam_operations(db)['report'].daily(date))
+    """纯SQL聚合日报，默认不调用模型。
+
+    商家账号只统计自己机构：平台级汇总不能对商家开放。
+    """
+    from backend.core.security import data_scope
+    scoped = data_scope(current_user)
+    return ok(redteam_operations(db)['report'].daily(date, scoped if scoped and scoped > 0 else None))
 
 
 @router.get('/reports/redteam/{run_id}',tags=['reports'])

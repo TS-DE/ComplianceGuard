@@ -18,9 +18,16 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 | id | BIGINT | PK, AI | |
 | username | VARCHAR(50) | UNIQUE, NOT NULL | 登录名 |
 | password_hash | VARCHAR(255) | NOT NULL | bcrypt，**禁止存明文** |
-| role | ENUM('admin','operator') | NOT NULL, DEFAULT 'operator' | |
+| role | ENUM('admin','operator','merchant') | NOT NULL, DEFAULT 'operator' | merchant=商家端账号，只能看自己机构 |
+| client_id | BIGINT | NULL, FK→clients(id) ON DELETE SET NULL | **商家绑定的机构**；NULL=平台账号 |
 | is_active | TINYINT(1) | NOT NULL, DEFAULT 1 | 停用即不能登录 |
 | created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
+
+> **迁移记录（2026-11-04）**：新增 `client_id` 与 `merchant` 角色。
+> 幂等脚本 `scripts/migrate_users_tenant.py`；幂等判断读 `information_schema.COLUMN_TYPE`
+> （`inspector` 的 ENUM 类型对象字符串化后不含枚举值，会让判断永远为真、迁移不幂等）。
+> 数据隔离由 `core.security.data_scope` 统一收敛：商家 `client_id` 非空 → 只能读写自己机构；
+> 商家访问 `/rules` 等平台级接口返回 403；越权访问单条资源按 404 处理。
 
 ### 1.2 `clients` — 机构（CRUD 1）
 

@@ -89,9 +89,9 @@ class AuditReportAgent:
         self.repository = repository
         self.model = model
 
-    def daily(self, day):
-        """返回SQL聚合数值及固定模板说明。"""
-        data = self.repository.daily(day)
+    def daily(self, day, client_id=None):
+        """返回SQL聚合数值及固定模板说明；client_id 用于商家端只看自己的数。"""
+        data = self.repository.daily(day, client_id)
         summary=f"今日审查{data['total']}条，未完成{data['incomplete']}条。"
         if self.model is not None:
             summary=self._safe_narrative(summary)

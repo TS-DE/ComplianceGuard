@@ -148,3 +148,20 @@ export interface ImportResult {
 }
 export const importScripts = (form: FormData) =>
   request<ImportResult>('POST', '/scripts/import', form, undefined, 180000)
+
+// 批量审查：商家一次粘贴多条后，必须能一次审完，否则还是要逐条点。
+// 后端顺序执行（单条约 6 秒），上限 20 条，因此超时放宽到 5 分钟。
+export interface BatchAuditItem {
+  script_id: number
+  audit_id?: number
+  score: number
+  hit_count: number
+  incomplete: boolean
+  hits: Hit[]
+  cost: string | null
+  latency_ms: number
+  error?: string
+}
+export const auditBatch = (clientId: number, scriptIds: number[]) =>
+  request<{ count: number; results: BatchAuditItem[] }>(
+    'POST', '/audit/batch', { client_id: clientId, script_ids: scriptIds }, undefined, 300000)

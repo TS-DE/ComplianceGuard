@@ -212,13 +212,19 @@ class RedteamRepository:
                         '全链路估算，非供应商账单；仅 embedding 已计价，其他未知项不计伪合计'
                         if total is None else '全链路估算，非供应商账单；token占比不等于费用占比'))
 
-    def daily(self, day):
-        """SQL复算审计总数、完整分数分布、均时、费用；NULL费用独立计数。"""
+    def daily(self, day, client_id=None):
+        """SQL复算审计总数、完整分数分布、均时、费用；NULL费用独立计数。
+
+        client_id 非空时只统计该机构：商家端不能看到平台全局数字，
+        否则一个商家能从日报里读出同行规模与违规率。
+        """
         from datetime import datetime, time, timedelta
         from sqlalchemy import case
-        from backend.db.models import Audit
+        from backend.db.models import Audit, Script
         start=datetime.combine(day,time.min)
-        criteria=(Audit.created_at>=start,Audit.created_at<start+timedelta(days=1))
+        criteria=[Audit.created_at>=start,Audit.created_at<start+timedelta(days=1)]
+        if client_id is not None:
+            criteria.append(Audit.script_id.in_(select(Script.id).where(Script.client_id==client_id)))
         complete=(Audit.incomplete.is_(False) & Audit.score.in_((0,1,2)))
         statement=select(func.count(Audit.id).label('total'),
             func.sum(case((~complete,1),else_=0)).label('incomplete'),
