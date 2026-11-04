@@ -23,13 +23,20 @@ RapidOCR + onnxruntime（海报与扫描件），FunASR SenseVoiceSmall（录音
 
 ## 怎么跑（Windows，Python 3.12）
 ```bash
+# 0) 关掉 C 盘用户目录的包污染（本项目 env 在 E 盘，但 user-site 会优先命中）
+#    详见 CLAUDE.md §9：不加这一句，SQLAlchemy/PyMySQL 可能仍从 C 盘加载
+set PYTHONNOUSERSITE=1
+
 # 1. 配置
 copy .env.example .env          # 填 DATABASE_URL 与 JWT_SECRET
 python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+#    装完必须验来源（pip 的 "already satisfied" 会指向 user-site 而跳过安装）：
+python -c "import sqlalchemy; print(sqlalchemy.__file__)"
 
 # 2. 建库建表 + 灌示例案例
 python -m scripts.init_db
 python -m scripts.seed_cases
+python -m scripts.migrate_sources_provenance --apply   # 素材溯源表与列（幂等）
 
 # 3. 启动后端（文档：http://localhost:8000/docs）
 python -m uvicorn backend.main:app --reload --port 8000

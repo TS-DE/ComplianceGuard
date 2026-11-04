@@ -393,3 +393,13 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **遗留**：① C 盘 user-site 里那份 SQLAlchemy/PyMySQL 副本**我没删**——删它会影响这台机器上的其他项目，属系统级改动，需作者本人决定；带 `PYTHONNOUSERSITE=1` 即可绕开。② README/RUNBOOK 的启动命令尚未统一加该变量（规矩已进 CLAUDE.md §9，命令模板待下一轮同步）。
 
 **规则/评测**：无规则、法条、评测集与表结构变更；仅环境事实与忽略规则。
+
+## D6-i · 命令模板补环境开关，HARNESS 六组件按实测改状态
+
+**改动**：① README「怎么跑」与 RUNBOOK §1 启动顺序都加了第 0 步 `set PYTHONNOUSERSITE=1`，并在 README 里补上"装完包必须 `print(sqlalchemy.__file__)` 验来源"与 `migrate_sources_provenance --apply` 一步（此前新机器照 README 跑会漏掉溯源迁移）。② `HARNESS.md` 六组件矩阵从"规则已写"改成"跑过没有"：②补 8 个 MCP 工具与 A1 双入口的证据路径；④ 用本轮 `sources` 迁移作为 §7.10 硬规则的一次真实执行记录（预览/apply/复跑跳过/前后 SHOW CREATE TABLE）；⑤ 用"能力探测假契约→修正→2 条测试→SKILL S10"作为一次真实反馈闭环；⑥ 列出本轮删并的 5 处过时说法。③ 只标到 🟡 并写明缺哪半：编码 Agent 侧记忆实测存在（3 条），统筹方约定的 `~/.hermes/MEMORY.md` **实测不存在**。④ 里那句"被拦下的 DROP TABLE"没勾成完成——本轮根本没写破坏性 SQL，只能算"未发生"，不吹成拦下过。§四 待补证据勾掉 3 项、留 3 项并逐条说明为什么还不能勾（含 Coze 那项明确写"未做，需作者提供发布地址"）。
+
+**验证**：`git remote -v` 确认作者已把 origin 从 SSH 改成 HTTPS，我的 shell 现在能 fetch；`git log origin/main` 显示远端已到 `ab63693`（作者自提的 test_redteam 桩件修正），我的 `0cce3c4` 也确实在远端。`~/.hermes/MEMORY.md` 用 `if exist` 实测：不存在。
+
+**遗留**：① 记忆路径两套并存（`.qwen` 与约定的 `.hermes`），D7 前需二选一，属文档债。② `ab63693` 的提交信息是 Desktop 默认的 "Update test_redteam.py"，与项目"小步语义化 commit"的规矩不符；**已推送的历史不该改写**（要改就得 force-push，风险大于收益），建议后续提交按语义化写。③ 真机点验与 ASR 仍等作者。
+
+**规则/评测**：无规则、法条、评测集与表结构变更。

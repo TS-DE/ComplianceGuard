@@ -9,6 +9,10 @@
 ## 1. 启动顺序（严格按序）
 
 ```bash
+# 0) 先关掉 C 盘用户目录的包污染（本项目 env 在 E 盘，但 user-site 优先命中）
+#    实测不加这句时 SQLAlchemy/PyMySQL 会从 C:\Users\<user>\AppData\Roaming 加载
+set PYTHONNOUSERSITE=1
+
 # 1) MySQL 服务（Windows 服务 MySQL82，通常开机自启）
 sc query MySQL82
 
