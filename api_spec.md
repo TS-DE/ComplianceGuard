@@ -214,3 +214,29 @@ MCP 工具新增两个（共 8 个，`--selftest` 可验）：
 |---|---|---|
 | `parse_source` | `source_id`, `mode` | 智能体按素材 id 取回**当前文件**的逐条话术与溯源，不依赖有人先复制粘贴 |
 | `parse_document` | `rel_path`, `mode` | 解析项目 `data/` 内素材；路径锁死在 `data/` 之内，挡 `..` |
+
+## D6-c A1 的第二个入口：按素材预审（不落库）
+
+`POST /api/v1/audit/preview-source` （JSON，JWT 鉴权）
+
+| 参数 | 说明 |
+|---|---|
+| `source_id` | 必填，已入库素材的 id |
+| `client_id` | 可选；**商家账号一律被改写成本机构**，平台账号可指定 |
+
+A1 在这里调 MCP 工具 `parse_source` 自己取内容 —— 商家递来海报、扫描件、录音时，
+不需要有人先把上面的字抄进文本框。
+
+```json
+{"code":200,"data":{"source_id":12,"filename":"双11海报.png","kind":"image","engine":"rapidocr",
+ "count":3,"total_items":3,"truncated":false,"persisted":false,
+ "warnings":["识别置信度仅 40%，很可能有误读，请对照原始素材人工核对后再采信结论"],
+ "results":[{"text":"保证做完能白三个色度","ref":"OCR块1","confidence":0.93,
+             "score":0,"incomplete":false,"hit_count":1,"hits":[…]}],
+ "disclaimer":"…不构成法律意见…"},"total":null}
+```
+
+三条硬约定：
+- **不写 `audits`**：预审是"试一下"，留档要改走 `/scripts/import commit=true` + `/audit/batch`；
+- **逐条上限 20**，超出时 `truncated=true` + `total_items`，**不许把"审了 20 条"演成"整份审完"**；
+- **单条模型故障只标该条** `score=-1 / incomplete=true`（铁律 5：未完成 ≠ 合规），其余继续。

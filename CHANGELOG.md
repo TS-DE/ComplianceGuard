@@ -330,3 +330,13 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **遗留**：① ASR 依赖（funasr/modelscope/soundfile）按分工由作者本人安装，代码侧懒加载+能力探测已就绪，装上即生效；本机无 ffmpeg，mp3 靠 libsndfile≥1.1、m4a/aac 需 ffmpeg，已在错误信息里写清。② 解析是同步接口，海报数秒、录音数十秒，只靠大小/时长上限（文档 8MB、图片 12MB、音频 30MB / 300 秒）兜住，未做任务队列。③ 前端（S7）尚未接 `items_detail`/`/sources`，页面能力仍是"粘贴+文档"。④ 目录规模：`api/v1/resources.py` 307 行、`services/compliance.py` 300 行、`parse/documents.py` 300 行、`parse/media.py` 282 行、`parse/base.py` 278 行。resources.py 超 300 的理由按 CLAUDE.md §3.1 末档记录：`api/v1/` 已有 auth/resources/ai 三个实文件，再放第四个会破"每目录 ≤3 文件"，而把摄取路由并进 ai.py 属于职责错配；待 D6 前端联调后按业务域拆 `api/v1/ingest/` 子包。`scripts/` 目录 20 个文件为既有债务（迁移与一次性脚本堆积），建议后续合并为 `scripts/migrate/` 子包。⑤ 未打 tag、未 push：等 S7 前端联调通过一起走。
 
 **规则/评测**：未改规则数据、法规正文与冻结罚单评测集。契约变动仅两处且均为能力扩展：`scripts/import` 响应新增字段（`items` 保持字符串数组，既有前端不破）；`tests/test_import.py` 原"图片不支持"断言改为"损坏图片报无法解码"（因为图片现在真的支持了）。
+
+## D6-c · A1 第二个入口：按素材预审 + 流程图重画
+
+**改动**：`AuditTool.review_source(source_id, client_id, limit=20)` —— A1 除"已存话术"外新增"整份素材"入口，内部调 MCP 工具 `parse_source` 重新解析原始文件，逐条走同一 N1–N9 判定路径并带回 `ref`/`confidence`/`warnings`；**不写 audits**（`persisted=false`），要留档仍须走入库 + batch。新增 `POST /api/v1/audit/preview-source`（商家账号强制本机构）。配套 `ingest_tool.source_owner()` 把归属校验收到"以库里的 sources.client_id 为准"，不接受调用方自我声明。`docs/flows/a1-合规审查智能体.md` 加"入口分流"与"N-1 素材归一"两节点、新增 §5 两入口对照表与三条取舍；PNG 已用 `scripts.render_flows --only a1 --layout both` 重出。`api_spec.md` 补 D6-c 节；`AGENTS.md` A1 流程行从"TODO（D3 补）"改为指向已定稿流程图（文档写着没做而代码已做，是本文件禁止的假契约）。
+
+**验证**：`python -X utf8 -m pytest tests -q` → **317 passed in 20.01s**（新增 `tests/agents/test_source_entry.py` 6 条：入口分流、单条故障标 -1/incomplete 而非合规、截断必须显式 `truncated=true`、越权素材直接拒、切不出条目不算成功、解析警告必须传到调用方）。渲染输出 `OK docs\flows\img\a1-合规审查智能体.png 235,514 字节` 与 `-lr.png 233,912 字节`，共 2 张、失败 0。
+
+**遗留**：① 预审路径的真实模型链路本轮未跑（用例替换了 `auditor.review`，因为 A1 判定本身已有 tests/agents 覆盖；接线一次真实端到端待前端联调时一起验）。② 新接口未接前端。③ `audit_tool.py` 291→295 行，仍在 300 内。
+
+**规则/评测**：未改规则、法条正文与冻结评测集；无表结构变更。

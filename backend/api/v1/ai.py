@@ -47,6 +47,29 @@ def run_audit(payload: AuditRunRequest, db: DbSession, current_user: CurrentUser
     return ok(build_audit_tool(db).run_audit(payload.script_id, payload.client_id))
 
 
+class SourcePreviewRequest(BaseModel):
+    """按素材预审：source_id 必填；平台侧可指定机构，商家账号一律被改写成自己机构。"""
+
+    source_id: int = Field(gt=0)
+    client_id: int | None = Field(default=None, gt=0)
+
+
+@router.post("/audit/preview-source", tags=["audit"])
+def audit_preview_source(payload: SourcePreviewRequest, db: DbSession,
+                         current_user: CurrentUser) -> dict:
+    """海报体检：直接审查一份已上传素材，逐条给结论与溯源，**不写 audits 表**。
+
+    A1 在这里调 `parse_source` 自己取内容 —— 商家递来海报或录音时，
+    不需要有人先把上面的字抄进文本框。
+    商家账号强制按本机构校验，越权即拒。
+    """
+    from backend.core.security import data_scope
+
+    scoped = data_scope(current_user)
+    client_id = scoped if scoped is not None else payload.client_id
+    return ok(build_audit_tool(db).review_source(payload.source_id, client_id))
+
+
 class BatchAuditRequest(BaseModel):
     """一次审查多条话术。
 

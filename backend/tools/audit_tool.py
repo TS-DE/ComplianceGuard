@@ -132,6 +132,58 @@ class AuditTool:
         self.repository.update_rewrite(audit_id, result)
         return dict(result, id=audit_id, audit_id=audit_id, disclaimer=DISCLAIMER_TEXT)
 
+    def review_source(self, source_id: int, client_id: int | None = None,
+                      limit: int = 20) -> dict:
+        """A1 的第二个入口：直接吃一份上传素材（海报/扫描件/录音），当场审、不落库。
+
+        为什么要单独一条路："先入库再审查"意味着商家只想试一下的素材也被迫写进
+        业务表，之后的审计统计全被这批没留档决心的数据污染。
+        预审只给结论与溯源，`persisted=false` 明说库里没有记录。
+
+        上限 20 条与 /audit/batch 同口径：单条约 6 秒，再多浏览器会超时。
+        逐条独立 try —— 一条模型故障只标该条"未完成"，不许把整批算成合规。
+        """
+        from backend.core.errors import BusinessValidationError
+        from backend.tools.db_tool import require_positive
+        from backend.tools.ingest_tool import parse_stored, source_owner
+
+        require_positive(source_id, "source_id")
+        if client_id is not None:
+            require_positive(client_id, "client_id")
+            self._client(client_id)
+        owner = source_owner(source_id)
+        if client_id is not None and owner["client_id"] != client_id:
+            raise BusinessValidationError("素材不属于指定机构")
+        parsed = parse_stored(source_id)
+        all_items = parsed["items_detail"]
+        if not all_items:
+            raise BusinessValidationError("该素材切不出可审查的话术条目（可能全是 4 字以下噪声）")
+        items = all_items[:limit]
+
+        results = []
+        for item in items:
+            entry = {"text": item["text"], "ref": item["ref"],
+                     "confidence": item["confidence"]}
+            try:
+                verdict = self.auditor.review(item["text"], client_id=owner["client_id"])
+                entry.update(score=verdict["score"], incomplete=bool(verdict.get("incomplete")),
+                             hit_count=len(verdict.get("hits") or []),
+                             hits=verdict.get("hits") or [])
+            except Exception as exc:  # 单条故障不外泄堆栈，但要留下可见的未完成标记
+                logging.getLogger(__name__).warning("preview_source_failed id=%s err=%s",
+                                                   source_id, type(exc).__name__)
+                entry.update(score=-1, incomplete=True, hit_count=0, hits=[],
+                             error=f"判定未完成（{type(exc).__name__}），需人工复核")
+            results.append(entry)
+        return {"source_id": source_id, "filename": owner["filename"],
+                "kind": owner["kind"], "engine": owner["engine"],
+                "count": len(results), "total_items": len(all_items),
+                # 截断必须显式说：否则"审了 20 条"在页面上看起来像"整份都审完了"
+                "truncated": len(all_items) > len(items),
+                "warnings": parsed.get("warnings") or [],
+                "persisted": False, "results": results,
+                "disclaimer": DISCLAIMER_TEXT}
+
     def recheck(self, text, client_id=None):
         """同一审查路径但不写 audits；参数错误不伪装成通过。"""
         from backend.tools.db_tool import require_positive, require_text

@@ -192,6 +192,21 @@ def commit(db: Session, result: IngestResult, client_id: int, scene: str | None,
             "parse_ms": result.parse_ms}
 
 
+def source_owner(source_id: int) -> dict:
+    """素材归属与原名：任何"按 source_id 干活"的入口都要先过这道归属校验。
+
+    单靠调用方传 client_id 不够——那等于让前端自己声明"这份素材是我的"。
+    """
+    from backend.db.session import SessionLocal
+
+    with SessionLocal() as db:
+        source = source_repo.get(db, source_id)
+        if source is None:
+            raise ParseError(f"source {source_id} 不存在")
+        return {"client_id": source.client_id, "filename": source.filename,
+                "kind": source.kind, "engine": source.engine}
+
+
 def parse_stored(source_id: int, mode: str = "blank") -> dict:
     """MCP 入口：按素材档案取回原始文件重新解析（只读，不写库）。
 
