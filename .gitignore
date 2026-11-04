@@ -44,3 +44,5 @@ agent_docs/
 
 # Hermes 本地会话/记忆（若落在项目内）
 .hermes/
+# Qwen Code 本地会话与工具授权配置（含机器相关的权限白名单，不属于项目产物）
+.qwen/

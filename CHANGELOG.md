@@ -381,3 +381,15 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **遗留**：① **ASR 仍未跑通**——按分工语音依赖由作者本人安装，我不代装；装完照 RUNBOOK 三步验收即可，代码侧不需要再改。② `base.py` 308 行仍超 §3.1 的 300：已按"先按职责拆"试过（把能力探测移进 media.py 会让那边从 291 涨到 326，更糟；再拆一个文件会破"每目录 ≤3 文件"），继续砍行数只能删"为什么"注释，本末倒置，故按末档在此记录理由。③ 推送仍被 SSH 凭据挡住。
 
 **规则/评测**：无规则、法条、评测集与表结构变更。
+
+## D6-h · 环境体检：依赖其实一直躺在 C 盘 user-site
+
+**改动**：作者问"你用的是哪个 python"，一查发现问题不在解释器而在包。解释器确实一直是 `E:\Anaconda_download\envs\py312_env\python.exe`（3.12.13，PATH 首位；C 盘的 py311 与 WindowsApps 只是排在后面没被用到）。但 `C:\Users\<user>\AppData\Roaming\Python\Python312\site-packages`（user-site）也在 sys.path 且**优先命中**：`SQLAlchemy` 与 `PyMySQL` 只装在那里，E 盘 env 里一个文件都没有——`requirements.txt` 钉了版本、`pip` 报 "Requirement already satisfied"，CLAUDE.md §9 写着"已确认可用"，全都是真的但都不是在 env 里。用 `--ignore-installed` 把 `SQLAlchemy==2.0.52 / PyMySQL==1.2.0`（连带 greenlet、typing-extensions）真正装进 E 盘 env；`.gitignore` 补 `.qwen/`（Agent 的本地工具授权配置被 GitHub Desktop 当成待提交改动列了出来，不该进仓库）。CLAUDE.md §9 增写 user-site 污染事实与两条硬规矩：装包后必须用 `import x; print(x.__file__)` 验来源、启动与测试统一带 `PYTHONNOUSERSITE=1`。
+
+**验证**：`set PYTHONNOUSERSITE=1&& python -m pytest tests -q` → **319 passed in 17.50s**，即关掉 C 盘用户目录后该 env 能独立跑通（这是"环境自足"的直接证据，之前只是碰巧靠 C 盘兜着）。加载来源实测：`sqlalchemy 2.0.52 <- E:\Anaconda_download\envs\py312_env\Lib\site-packages\...`。
+一处自我更正：我一度以为 `pymysql.__version__` 报 2.2.8 是撞上同名抢注包，读源码后确认是 PyMySQL 1.2.0 自己为兼容 mysqlclient/Django 导出的别名（`__init__.py:52` `VERSION=(1,2,0,"final")`、`:58` `__version__="2.2.8"`），**不是安全问题**；结论以读文件为准，不以属性名猜测为准。
+远端状态核实：GitHub API `repos/TS-DE/ComplianceGuard/commits/main` → `0f58a666e72e`，作者用 GitHub Desktop 推的 5 个提交确实都在远端（我 shell 的 SSH key 仍被拒，故以 API 为证据）。
+
+**遗留**：① C 盘 user-site 里那份 SQLAlchemy/PyMySQL 副本**我没删**——删它会影响这台机器上的其他项目，属系统级改动，需作者本人决定；带 `PYTHONNOUSERSITE=1` 即可绕开。② README/RUNBOOK 的启动命令尚未统一加该变量（规矩已进 CLAUDE.md §9，命令模板待下一轮同步）。
+
+**规则/评测**：无规则、法条、评测集与表结构变更；仅环境事实与忽略规则。

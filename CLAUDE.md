@@ -254,6 +254,19 @@ langchain 1.4.7 / langgraph 1.2.16 / pydantic 2.13.5 / uvicorn 0.52.4
 
 **禁止**：新建虚拟环境、用系统全局 Python、把依赖装到 C 盘（C 盘空间紧张）。
 
+**user-site 污染（2026-11-04 查明，跑项目必须带 `PYTHONNOUSERSITE=1`）**：
+`C:\Users\<user>\AppData\Roaming\Python\Python312\site-packages` 也在 sys.path 里，
+且**优先于** E 盘 env 命中。SQLAlchemy 与 PyMySQL 曾经只存在于这个目录——
+`requirements.txt` 钉了版本、`pip` 也说 "already satisfied"，但 env 里其实一个文件都没有。
+现已用 `--ignore-installed` 真正装入 E 盘 env，并用
+`set PYTHONNOUSERSITE=1&& python -m pytest tests -q` → 319 passed 证明该 env 可独立跑通。
+
+两条由此而来的硬规矩：
+1. 装包后必须验加载来源，别信 pip 的 satisfied：
+   `python -c "import sqlalchemy; print(sqlalchemy.__file__)"` 应指向 E 盘；
+2. 启动后端/跑测试统一加 `PYTHONNOUSERSITE=1`，否则 C 盘副本会静默覆盖 env 里的版本，
+   换一台机器就复现不出来。
+
 ## 10. 常用命令
 
 ```bash
