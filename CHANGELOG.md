@@ -361,3 +361,13 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **遗留**：① `git push` 失败——`git@ssh.github.com: Permission denied (publickey)`，本机这把 SSH key 不被 `TS-DE/ComplianceGuard` 接受。四个提交（8fad9be / 18878b5 / 81b3bdc / 本次）停在本地 main，需要作者加部署密钥或改 HTTPS+token，我不能代填凭据。② `scripts/` 目录 20 个平铺脚本**本轮不动**：按 §3.1 应当子包化，但这些是 RUNBOOK 里要被手敲的执行入口（`python -m scripts.migrate_*` / `verify_law` 等），改名的连带面覆盖文档、README 与老师照着跑的步骤，交付前动它风险大于收益。建议交付后再并成 `scripts/migrate/`+`scripts/verify/`+`scripts/ops/`。③ 前端 `Check.vue` 317 行仍略超 300，理由同 D6-d 记录。
 
 **规则/评测**：无规则、法条、评测集与表结构变更；接口 URL 与响应契约一字未改（纯文件位置重排）。
+
+## D6-f · 流程图核对与总览图重做
+
+**改动**：`docs/flows/README.md` 总览图重画并核对四处与代码不符的旧说法：MCP 工具 6 个 → **8 个**（补 `parse_source`、`parse_document`，节点名改用真实工具名而不是"法条检索"这种意译）；MySQL 5 张业务表 → **6 张**；使用者只有"运营/法务" → 补上**商家（自助端）**；新增「素材摄取层 backend/parse」子图（文档结构 / OCR / ASR / 溯源四个节点）与 `data/uploads` 原件存储。删掉一条不成立的旧连线 `复核工具 → 法规归档`（`audit_recheck` 走的是向量检索那条路，不直接读 Markdown 归档）。铁律表从四条补到五条（新增"溯源以服务端为准"）。A1 职责行标注"入口有两个"。a2/a3/a4/a5 四张分图经核对无需改动——A2 那条"score=2 或命中数下降"与 `agents/compliance.py:305` 的实现一致，是逐行对过而不是照着文档信。§四 的尺寸表改为**实测值**（PIL 读 PNG 尺寸），并写明总览图源码本身是 `flowchart LR`，`--layout both` 对它产出同一张图，避免有人以为渲染坏了。
+
+**验证**：`python -m scripts.render_flows --layout both` → 12 张图，首轮成功 10 / 失败 2（a1 两张因 DNS 抖动 `getaddrinfo failed`），`--only a1 --layout both` 重试后 2/2 成功；最终 12 张全部为本次渲染产物。实测尺寸示例：A1 竖版 632×3686、横版 4603×421；总览 3313×1429（td/lr 相同，原因如上）。
+
+**遗留**：① 横版 4603×421 在 16:9 页面上要缩得很小才可读，答辩若用横版建议现场放大或用 Mermaid 源码投屏。② 未做视觉复核（我只验证了"渲染成功+尺寸属实"，图里的连线是否美观没人眼看过）。
+
+**规则/评测**：无规则、法条、评测集与表结构变更；纯文档与图片。
