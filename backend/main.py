@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.v1.router import api_router
+from backend.api.v1 import api_router
 from backend.core.config import settings
 from backend.core.config import DISCLAIMER_TEXT
 from backend.core.errors import register_exception_handlers

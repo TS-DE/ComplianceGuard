@@ -63,7 +63,7 @@ D:\ComplianceGuard\
 │   ├── models/           # SQLAlchemy ORM（user/client/script/audit/rule）
 │   ├── schemas/          # Pydantic V2 请求响应模型
 │   ├── crud/             # 纯数据库操作，不含业务判断
-│   ├── api/v1/           # 路由层：auth/clients/scripts/audits/rules/redteam/reports
+│   ├── api/v1/           # 路由层：auth / resources(四套 CRUD) / ingest(素材摄取与档案) / ai
 │   ├── services/         # 业务编排：audit / rewrite / redteam / report
 │   ├── agents/           # 5 个 Agent + base.py + mcp_client.py
 │   ├── tools/            # rag_tool / db_tool / ingest_tool（MCP 工具的本地实现）
@@ -104,10 +104,10 @@ D:\ComplianceGuard\
 backend/
 ├── main.py
 ├── core/        config.py · security.py · errors.py      （deps 并入 security）
-├── db/          session.py · models.py                   （5 张表合一个文件）
+├── db/          session.py · models.py                   （6 张表合一个文件）
 ├── schemas/     common.py · auth.py · business.py        （4 套资源 schema 合一）
 ├── crud/        base.py · special.py                     （泛型 Repository + 特例）
-├── api/v1/      auth.py · resources.py · ai.py           （4 套 CRUD 用 router 工厂）
+├── api/v1/      auth.py · resources.py · ai.py + ingest/ 子包 （4 套 CRUD 用 router 工厂）
 ├── services/    compliance.py · redteam.py · report.py
 ├── agents/      base.py · compliance.py · redteam.py     （A1+A2 / A3+A4+A5）
 ├── rag/         ingest.py · embedding.py · retrieve.py
@@ -222,6 +222,8 @@ DETECTORS: dict[str, Detector] = {...}  # 注册表：新增手段 = 加一行�
     实测代价：一次任务因多次委派，token 成本高出数倍。
     另有一次并发改动把路由入口改成了另一套结构（`backend/api/v1/router/__init__.py`），
     **并发改同一工作区会产生结构漂移**。
+    （该漂移已于 2026-11-04 收掉：唯一聚合入口回到 `backend/api/v1/__init__.py`，`router/` 子包删除。
+    留两个聚合入口的代价是"加一个 router 只注册了一半"，报错还看不出来在哪半。）
     **允许委派的唯一情形**：任务彼此独立、互不共享文件，且已获授权。
 
 ## 8. 禁止行为

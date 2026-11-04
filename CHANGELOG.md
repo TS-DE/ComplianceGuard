@@ -350,3 +350,14 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **遗留**：① 浏览器内的真机点验（拖拽、录音播放、抽屉动画）未做——本轮只做到类型检查、构建与接口级端到端；下一步人工过一遍。② ASR 依赖仍未装，`/sources/formats` 会持续报 `asr:false`，界面已如实显示"未启用"。③ 素材抽屉里"当场体检"未跑过真实模型（预审路径会真调 A1 判定，需要 JUDGE_API_KEY 与费用），按钮逻辑接口级已通。④ `Check.vue` 317 行仍略超 300，与 §3.1 末档同理由记录：SFC 含 template+script+style 三段，拆成两个组件会把一个交互流程割成两半，待 D6 定稿后按"预览区/操作区"再拆。
 
 **规则/评测**：无规则、法条、评测集与表结构变更。
+
+## D6-e · 收尾巴：清联调数据、摄取路由独立成子包、聚合入口归一
+
+**改动**：① 清掉 D6-d 端到端脚本留在开发库的垃圾（3 个 `e2e_*` 商家账号与其机构、2 行 `sources`、6 行 `scripts`、2 个落盘素材文件；0 条 audits），删除前先盘点、删除后复核归零，非 `e2e_` 前缀数据一律不碰。② `api/v1/resources.py` 里为素材摄取新增的 117 行整段搬进领域子包 `backend/api/v1/ingest/{__init__,routes}.py`（307 → 190 行）：resources 的变化原因是"加一套 CRUD"，ingest 的变化原因是"加一种文件格式/引擎"，两者同处一文件时改一边会碰到另一边，且 resources.py 已因此顶到 307 行、越过 §3.1 上限。③ 聚合入口归一：删掉 2026-11-02 那次并发改动留下的第二套结构 `backend/api/v1/router/__init__.py`，唯一入口回到 `backend/api/v1/__init__.py` 并 include auth/resources/ingest/ai；`backend/main.py` 改 `from backend.api.v1 import api_router`。④ CLAUDE.md 的目录树、§3.1 目标结构与 §7.11 那条"结构漂移"记录同步更新（漂移已修，坑本身留着），`db/models.py` 注释"5 张表"改"6 张表"。
+
+**验证**：`pytest tests -q` → **317 passed in 18.70s**（拆分后打真实 URL 的用例全过，等于证明路由一个没漏）。清点脚本两次运行输出对照：清理前 `账号 3 / 机构 3 / 素材 2 / 话术 6 / 落盘 2`，清理后全部归零。
+一处如实更正：拆分后我一度以为"路由只剩 6 条"是事故，实际是 FastAPI 0.141 用惰性 `_IncludedRouter`、`app.routes` 不展开子路由，**不是 bug**；结论以测试套件为准，不以路由计数为准。
+
+**遗留**：① `git push` 失败——`git@ssh.github.com: Permission denied (publickey)`，本机这把 SSH key 不被 `TS-DE/ComplianceGuard` 接受。四个提交（8fad9be / 18878b5 / 81b3bdc / 本次）停在本地 main，需要作者加部署密钥或改 HTTPS+token，我不能代填凭据。② `scripts/` 目录 20 个平铺脚本**本轮不动**：按 §3.1 应当子包化，但这些是 RUNBOOK 里要被手敲的执行入口（`python -m scripts.migrate_*` / `verify_law` 等），改名的连带面覆盖文档、README 与老师照着跑的步骤，交付前动它风险大于收益。建议交付后再并成 `scripts/migrate/`+`scripts/verify/`+`scripts/ops/`。③ 前端 `Check.vue` 317 行仍略超 300，理由同 D6-d 记录。
+
+**规则/评测**：无规则、法条、评测集与表结构变更；接口 URL 与响应契约一字未改（纯文件位置重排）。
