@@ -241,5 +241,25 @@ class RedteamRepository:
         data['known_cost_subtotal']=data['cost']
         if data['unpriced']: data['cost']=None
         judged=data['total']-data['incomplete']
-        return dict(data,date=day.isoformat(),by_axis=axes,
+        return dict(data,date=day.isoformat(),by_axis=axes,by_source=self._daily_sources(criteria,complete),
                     violation_rate=data['violations']/judged if judged else None)
+
+    def _daily_sources(self, criteria, complete) -> dict:
+        """按素材形态统计已判定审查：这批结论是从什么材料里读出来的。
+
+        只 JOIN 已有记录做 group by，不引入任何新口径（A5 的铁律是只解释已有数字）。
+        outerjoin + no_material 是必须的：手工录入与红队样本没有 source_id，
+        用 inner join 会把它们静默丢掉，日报就变成"看起来全都来自上传素材"。
+        """
+        from sqlalchemy import case
+
+        from backend.db.models import Audit, Script, Source
+
+        label = case((Source.id.is_(None), 'no_material'), else_=Source.kind)
+        statement = (select(label.label('bucket'), func.count(Audit.id))
+                     .select_from(Audit)
+                     .join(Script, Audit.script_id == Script.id)
+                     .outerjoin(Source, Script.source_id == Source.id)
+                     .where(*criteria, complete)
+                     .group_by('bucket'))
+        return {bucket: int(count) for bucket, count in self.db.execute(statement)}

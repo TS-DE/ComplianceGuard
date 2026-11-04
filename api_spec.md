@@ -126,9 +126,14 @@
 ## D4 红队与报告
 全部JWT鉴权；POST /api/v1/redteam/run 请求client_id/scenes/axes/strength=all，一次生成每轴low/mid/high违规样本及control合规对照（默认4轴共16条），顺序调用A1后返回run_id/generated/script_ids。
 GET /api/v1/redteam/{run_id}/gaps 返回TP/FN/FP/TN/unjudged矩阵、清单和分轴率。
-GET /api/v1/reports/daily?date=YYYY-MM-DD 返回完整/未完成、按轴、成本和耗时。
+GET /api/v1/reports/daily?date=YYYY-MM-DD 返回完整/未完成、按轴、按素材形态（`by_source`）、成本和耗时。
+
+`by_source` 的口径：对**已判定**的审查按 `Audit → Script → LEFT JOIN sources.kind` 分桶，
+无素材的（手工录入、红队样本）归入 `no_material`。
+必须用 LEFT JOIN——inner join 会丢掉无素材的行，让日报看起来"结论全部来自上传文件"。
+分桶之和恒等于 `total - incomplete`，这条由测试锁死；商家端仍只统计本机构（与 `by_axis` 同一 criteria）。
 GET /api/v1/reports/redteam/{run_id} 返回矩阵、FN/(TP+FN)、FP/(FP+TN)、(TP+TN)/generated及样本量免责声明。
-MCP仍6个：db_query_violation_history新增可选run_id；db_save_redteam_result category为TP/FN/FP/TN/unjudged，judge可带script_id精确指定样本，写回scripts.redteam_meta。
+MCP 共 8 个（原 6 个 + `parse_source`、`parse_document`）：db_query_violation_history新增可选run_id；db_save_redteam_result category为TP/FN/FP/TN/unjudged，judge可带script_id精确指定样本，写回scripts.redteam_meta。
 全链路费用分judge_cost/rewrite_cost/embedding_cost/total_cost；任一未知total_cost=null，embedding token照常记录。价格及用量仅为估算，不是供应商账单。
 
 ## D5-a 话术内容搜索

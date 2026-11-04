@@ -5,10 +5,16 @@
  * 数字来自 getReportsDaily，服务端已按机构裁剪（商家看不到平台总量），
  * 所以这里可以直接展示，不需要在前端再过滤一遍。
  */
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { dailyReport, audits, type AuditRow, type DailyReport } from '../../api/resource'
 import { useAuth } from '../../stores/auth'
+
+// 素材形态中文名：后端给的是 kind 标识符，商家看不懂 image / pdf_scan 是什么材料
+const SOURCE_LABELS: Record<string, string> = {
+  image: '海报图片', pdf_scan: '扫描件 PDF', pdf_text: 'PDF 文字层', docx: 'Word 文档',
+  sheet: '表格', slides: 'PPT', audio: '录音', text: '文本/粘贴', no_material: '手工录入'
+}
 
 const router = useRouter()
 const auth = useAuth()
@@ -42,6 +48,8 @@ async function load() {
 const verdict = (row: AuditRow) =>
   row.incomplete || row.score === -1 ? '判定未完成'
     : ({ '0': '违规', '1': '轻微风险', '2': '合规' } as Record<string, string>)[String(row.score)] ?? '未知'
+const sourceItems = computed(() => Object.entries(report.value?.by_source ?? {})
+  .map(([key, count]) => ({ key, label: SOURCE_LABELS[key] ?? key, count })))
 const tagType = (row: AuditRow) =>
   row.incomplete || row.score === -1 || row.score === 0 ? 'danger' : row.score === 1 ? 'warning' : 'success'
 
@@ -84,6 +92,14 @@ onMounted(load)
       </el-col>
     </el-row>
 
+    <el-card v-if="sourceItems.length" shadow="never" class="quick">
+      <h3>今日结论来自哪些材料</h3>
+      <p class="muted">只统计已判定的审查；「手工录入」表示这句话不是从上传文件里解析出来的。</p>
+      <el-tag v-for="item in sourceItems" :key="item.key" effect="plain" class="srctag">
+        {{ item.label }} {{ item.count }} 条
+      </el-tag>
+    </el-card>
+
     <el-card shadow="never" class="quick">
       <h3>开始检查</h3>
       <p class="muted">把文案粘贴进来或上传文档，系统会切分后逐条审查，违规的会指出违反哪一条并给出理由。</p>
@@ -122,6 +138,7 @@ h3 { margin: 0 0 10px; font-size: 15px; }
 .value { margin: 8px 0 2px; font-size: 30px; font-weight: 700; line-height: 1; }
 .hint { margin: 0; font-size: 12px; color: var(--el-text-color-placeholder); }
 .quick { margin-top: 16px; }
+.srctag { margin: 0 8px 8px 0; }
 .quick .el-button { margin-top: 8px; margin-right: 10px; }
 .ellipsis { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 </style>

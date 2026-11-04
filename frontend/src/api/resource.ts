@@ -67,6 +67,8 @@ export interface DailyReport {
   average_latency_ms: string; cost: string | null; unpriced: number
   known_cost_subtotal: string | null; date: string
   by_axis: Record<string, number>; violation_rate: number; summary: string; disclaimer: string
+  // 素材形态分布：这批结论是从海报、表格还是手工录入里来的；no_material = 无上传素材
+  by_source?: Record<string, number>
 }
 export const rewriteAudit = (id: number) =>
   request<{ rewritten_text?: string | null; rewrite_passed?: boolean | null; recheck?: unknown }>('POST', `/audit/${id}/rewrite`)

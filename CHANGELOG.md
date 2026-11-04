@@ -403,3 +403,13 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **遗留**：① 记忆路径两套并存（`.qwen` 与约定的 `.hermes`），D7 前需二选一，属文档债。② `ab63693` 的提交信息是 Desktop 默认的 "Update test_redteam.py"，与项目"小步语义化 commit"的规矩不符；**已推送的历史不该改写**（要改就得 force-push，风险大于收益），建议后续提交按语义化写。③ 真机点验与 ASR 仍等作者。
 
 **规则/评测**：无规则、法条、评测集与表结构变更。
+
+## D6-j · A5 日报补素材形态分布：这批结论是从什么材料里读出来的
+
+**改动**：`RedteamRepository.daily()` 增加 `by_source` 分桶（`image / pdf_scan / pdf_text / docx / sheet / slides / audio / text / no_material`），沿用了与 `by_axis` 完全相同的 `criteria`，因此商家端的机构裁剪自动生效、不另开口径。实现走 `Audit → Script → LEFT JOIN sources` 后 `group by`：**必须 outerjoin 并把无 source 的行标成 `no_material`**——用 inner join 会把手工录入与红队样本静默丢掉，日报会呈现出"我们所有结论都来自上传素材"的假象。A5 的铁律照旧：只做已有记录的聚合，模型不参与算数。前端商家工作台（Portal）新增「今日结论来自哪些材料」卡片，kind 标识符统一映射成中文（商家看不懂 `pdf_scan`）。写 api_spec 时又逮到一处陈旧说法：`api_spec.md` §D4 还写着「MCP 仍 6 个」，实际已是 8 个，一并改正。
+
+**验证**：`set PYTHONNOUSERSITE=1&& python -m pytest tests -q` → **320 passed in 17.82s**；新增用例 `test_daily_report_breaks_down_by_material_kind` 断言三桶各 1 且 `sum(by_source.values()) == total - incomplete`（分桶之和必须等于已判定数，多算少算都会在这里露馅），并断言别家机构的 client_id 查出来是空字典。前端 `npm run build`（vue-tsc + vite）→ **✓ built in 6.16s**。
+
+**遗留**：`by_source` 目前只在商家工作台露一张卡片，平台端 Dashboard 与导出报告模板尚未使用；等真机点验通过后一起接。
+
+**规则/评测**：无规则、法条与冻结评测集变更；无表结构变更（只读聚合）。

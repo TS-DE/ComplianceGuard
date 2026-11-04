@@ -214,6 +214,51 @@ def test_merchant_client_id_is_forced_to_own_client(client: TestClient, db) -> N
     assert {row.client_id for row in rows} == {shop["client_id"]}
 
 
+# ---------------------------------------------------------------- 日报口径
+def test_daily_report_breaks_down_by_material_kind(db) -> None:
+    """A5 日报必须能回答"这批结论是从什么材料里读出来的"。
+
+    关键是 `no_material` 这一格：手工录入与红队样本没有 source_id，
+    用 inner join 会把它们静默丢掉，日报就变成"看起来全都来自上传素材"。
+    """
+    from datetime import date
+
+    from backend.db.models import Audit, Client, Script, Source
+    from backend.tools.db_tool import RedteamRepository
+
+    account = Client(name="日报素材机构", industry="medical_beauty", contact=None, plan="free")
+    db.add(account)
+    db.commit()
+    poster = Source(client_id=account.id, filename="海报.png", kind="image",
+                    engine="rapidocr", sha256="a" * 64, size_bytes=1, item_count=1)
+    sheet = Source(client_id=account.id, filename="话术.xlsx", kind="sheet",
+                   engine="openpyxl/xlrd", sha256="b" * 64, size_bytes=1, item_count=1)
+    db.add_all([poster, sheet])
+    db.commit()
+
+    rows = [Script(client_id=account.id, content="保证做完能白三个色度", source_id=poster.id),
+            Script(client_id=account.id, content="全城最低价术后零风险", source_id=sheet.id),
+            Script(client_id=account.id, content="手工敲进来的一条话术内容")]
+    for row in rows:
+        row.status = "audited"
+        db.add(row)
+    db.commit()
+    for index, row in enumerate(rows):
+        db.add(Audit(script_id=row.id, score=index, hit_count=1, incomplete=False,
+                     latency_ms=10, model="test"))
+    db.commit()
+
+    report = RedteamRepository(db).daily(date.today())
+    assert report["by_source"] == {"image": 1, "sheet": 1, "no_material": 1}
+    # 分桶总数必须等于已判定数：多算少算都会在这里露馅
+    assert sum(report["by_source"].values()) == report["total"] - report["incomplete"]
+
+    scoped = RedteamRepository(db).daily(date.today(), client_id=account.id)
+    assert scoped["by_source"] == report["by_source"]
+    other = RedteamRepository(db).daily(date.today(), client_id=account.id + 9999)
+    assert other["by_source"] == {}, "别家机构的素材不能混进本机构日报"
+
+
 # ---------------------------------------------------------------- 能力清单
 def test_formats_endpoint_reports_real_capabilities(client: TestClient, auth_headers: dict) -> None:
     """上传页的能力清单来自注册表，且如实标出缺引擎的格式。"""
