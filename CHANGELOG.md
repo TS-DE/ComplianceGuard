@@ -423,3 +423,14 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **遗留**：`Check.vue` 324 行仍超 §3.1 的 300。本轮**刻意不做**拆分（把分组卡片抽成子组件会改动刚写完、还没经人眼点验的交互代码，风险大于收益）；等 7 条点验通过后，按「预览区/操作区」拆一次并单独提交。
 
 **规则/评测**：无规则、法条、评测集与表结构变更；纯前端交互。
+
+## D6-l · 预检逮到一处真越权：红队四个接口对商家开放
+
+**改动**：点验前先跑了一遍无头预检（注册临时商家 → 直接 curl 各接口 → 用完删号），发现 **`GET /redteam/options` 对商家返回 200**，而它的响应体里带着每条轴的 `pattern / law_article / detector / version`——等于把判定规则本身交给被审查方，违反 CLAUDE.md 铁律与 AGENTS.md「商家不应看到或改动判定规则」。前端菜单只是不显示，直接请求接口照样拿得到。修法：`ai.py` 引入 `require_platform`，对 `/redteam/run`、`/redteam/{run_id}/gaps`、`/redteam/options`、`/reports/redteam/{run_id}` 四个端点统一拒商家（403）；`/reports/daily` 保持开放但按机构裁剪（商家要看得见自己的数），`/law/article` 保持开放（商家核对法条本来就该能看）。`api_spec.md` §D4 补写这条权限边界。
+
+**验证**：新增回归 `test_merchant_blocked_from_redteam_apis`（四个端点逐一断言 403 且消息含"管理员"）；`set PYTHONNOUSERSITE=1&& pytest tests -q` → **321 passed in 16.88s**。预检脚本其余输出（用完已自清理，临时账号与机构删除）：
+`engines={'ocr': True, 'asr': False}`、音频可传 False、上传 `.mp3` 后端兜底 422 并给出 `pip install soundfile`、粘贴 3 条预览 `count=3 created=0`、商家 `GET /rules` 403、`/reports/daily` total=0 且 `by_source={}`、历史 run `rt_20261104_ddaa57ff` 矩阵 `{TP_axis:11, TP_other:0, FN:1, FP:0, TN:4, unjudged:0}`（走仓储直查，一分钱没花）。
+
+**遗留**：① 粘贴文本切出的条目 `ref` 为 `null`（粘贴没有页/段结构可依），界面会隐藏位置徽章——不是丢失，但商家若想"第 2 行"这种定位，需要给粘贴也做行号，待定。② 预检只覆盖 API 面，浏览器交互（菜单切换、剪贴板、内联预览）仍需人眼，正是下面 7 条点验要做的。
+
+**规则/评测**：无规则、法条与冻结评测集变更；无表结构变更。权限边界收紧属于契约变更，已同步 `api_spec.md`。

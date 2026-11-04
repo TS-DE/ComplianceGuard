@@ -124,7 +124,8 @@
 
 
 ## D4 红队与报告
-全部JWT鉴权；POST /api/v1/redteam/run 请求client_id/scenes/axes/strength=all，一次生成每轴low/mid/high违规样本及control合规对照（默认4轴共16条），顺序调用A1后返回run_id/generated/script_ids。
+全部JWT鉴权；**其中 `/redteam/run`、`/redteam/{run_id}/gaps`、`/redteam/options`、`/reports/redteam/{run_id}` 为平台级，商家账号一律 403**（`/redteam/options` 的响应含每条轴的 pattern/law_article/detector/version，等于判定规则本身，不能交给被审查方；只在前端藏菜单不算数）。`/reports/daily` 对商家开放但按机构裁剪。
+POST /api/v1/redteam/run 请求client_id/scenes/axes/strength=all，一次生成每轴low/mid/high违规样本及control合规对照（默认4轴共16条），顺序调用A1后返回run_id/generated/script_ids。
 GET /api/v1/redteam/{run_id}/gaps 返回TP/FN/FP/TN/unjudged矩阵、清单和分轴率。
 GET /api/v1/reports/daily?date=YYYY-MM-DD 返回完整/未完成、按轴、按素材形态（`by_source`）、成本和耗时。
 

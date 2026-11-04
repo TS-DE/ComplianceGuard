@@ -151,3 +151,26 @@ def test_daily_report_is_scoped_for_merchant(client: TestClient, auth_headers: d
                       params={"date": date.today().isoformat()}, headers=shop["headers"])
     assert resp.status_code == 200, resp.text
     assert resp.json()["data"]["total"] == 0, "商家日报不应统计别家机构的审查"
+
+
+def test_merchant_blocked_from_redteam_apis(client: TestClient) -> None:
+    """红队相关的四个接口必须在 API 层就挡住商家账号。
+
+    起因是一次无头预检：商家 token 直接请求 /redteam/options 拿到 200，
+    而它的响应体里带着每条轴的 pattern / law_article / detector / version——
+    等于把判定规则本身交给被审查方。前端菜单藏起来不算数，
+    能被直接 curl 到的接口才是真实攻击面。
+    """
+    shop = _register(client, "shop_redteam_api", "merchant", "压测越权面")
+    headers = shop["headers"]
+
+    for path in (f"{API}/redteam/options", f"{API}/redteam/rt_none/gaps",
+                 f"{API}/reports/redteam/rt_none"):
+        resp = client.get(path, headers=headers)
+        assert resp.status_code == 403, f"{path} 竟然对商家开放"
+        assert "管理员" in resp.json()["msg"]
+
+    run = client.post(f"{API}/redteam/run", headers=headers,
+                      json={"client_id": shop["user"]["client_id"],
+                            "scenes": ["双眼皮"], "axes": ["efficacy_claim"]})
+    assert run.status_code == 403, "压测会消耗模型额度并生成违规样本，不能由商家发起"

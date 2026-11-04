@@ -9,6 +9,7 @@ from backend.services.compliance import run_redteam, redteam_operations
 
 from backend.core.errors import AppError, CODE_NOT_FOUND
 from backend.core.security import CurrentUser, DbSession
+from backend.api.v1.resources import require_platform
 from backend.rag.ingest import find_law_article
 from backend.schemas.common import ok
 from backend.services.compliance import audit_operations as build_audit_tool
@@ -130,13 +131,18 @@ class RedteamRunRequest(BaseModel):
 
 @router.post('/redteam/run',tags=['redteam'])
 def redteam_run(payload: RedteamRunRequest, db: DbSession, current_user: CurrentUser):
-    """一次生成并顺序裁判，返回可查询run_id。"""
+    """一次生成并顺序裁判，返回可查询run_id。
+
+    平台级功能：压测会生成违规样本并消耗模型额度，商家账号一律 403。
+    """
+    require_platform(current_user)
     return ok(run_redteam(db,payload.client_id,payload.scenes,payload.axes))
 
 
 @router.get('/redteam/{run_id}/gaps',tags=['redteam'])
 def redteam_gaps(run_id: str, db: DbSession, current_user: CurrentUser):
     """返回FN/FP清单与含未判定的矩阵。"""
+    require_platform(current_user)
     return ok(redteam_operations(db)['repository'].gaps(run_id))
 
 
@@ -154,6 +160,7 @@ def daily_report(date: date, db: DbSession, current_user: CurrentUser):
 @router.get('/reports/redteam/{run_id}',tags=['reports'])
 def redteam_report(run_id: str, db: DbSession, current_user: CurrentUser):
     """固定模板压测报告，不生成任何新事实。"""
+    require_platform(current_user)
     return ok(redteam_operations(db)['report'].redteam(run_id))
 
 
@@ -166,7 +173,11 @@ def redteam_options(db: DbSession, current_user: CurrentUser):
 
     没有这个接口时，管理员只看到"16 条"，不知道测的是什么轴、用的哪版规则——
     压测结果就没法解释，也没法和规则改动对应起来。
+
+    必须挡住商家：响应里带着每条轴的 pattern / law_article / detector / version，
+    等于把判定规则本身交给被审查方。前端菜单藏起来不算数，要在这层拒。
     """
+    require_platform(current_user)
     from backend.rag.embedding import llm_config
     from backend.services.compliance import rules as rule_service
 
