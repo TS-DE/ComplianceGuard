@@ -413,3 +413,13 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **遗留**：`by_source` 目前只在商家工作台露一张卡片，平台端 Dashboard 与导出报告模板尚未使用；等真机点验通过后一起接。
 
 **规则/评测**：无规则、法条与冻结评测集变更；无表结构变更（只读聚合）。
+
+## D6-k · 上传前的本地预判：能力没装就别白传一次
+
+**改动**：读 Element Plus 源码（`upload/src/upload-content.vue` 的 `uploadFiles`）确认了一件事——**`accept` 只作用于文件选择框，拖拽进来的文件一律不过滤**。所以拖一个 `.wav` 或 `.doc` 会整份上传到后端才拿到 422：30MB 的文件白传一次，用户等半天只看一行红字。新增 `frontend/src/utils/parseAccept.ts`，把三件本来各写一份的事收成一处：`acceptOf()` 生成 accept、`missingEnginesOf()` 生成"未启用能力"提示、`refuseReason()` 在发请求前给出具体理由（无扩展名 / 压根不支持 / 能力未启用 + 该装什么）。商家端 Check 与平台端 ScriptImport 同时改用它，顺带消掉两处 accept 逻辑的重复实现。能力清单没拉到时返回 null 交给后端判——前端不瞎猜，也不假装支持。
+
+**验证**：`npm run build`（vue-tsc --noEmit + vite build）→ **✓ built in 6.03s**。第 4 条点验的预期行为已按此实现：拖入 `.wav`（本机未装 funasr）应立刻在分组卡片上出现「语音转写未启用：需要语音引擎（funasr + SenseVoiceSmall 约 500MB，落 data/models）与音频解码器（soundfile 或 ffmpeg）」，**不发请求、不留空白**。
+
+**遗留**：`Check.vue` 324 行仍超 §3.1 的 300。本轮**刻意不做**拆分（把分组卡片抽成子组件会改动刚写完、还没经人眼点验的交互代码，风险大于收益）；等 7 条点验通过后，按「预览区/操作区」拆一次并单独提交。
+
+**规则/评测**：无规则、法条、评测集与表结构变更；纯前端交互。

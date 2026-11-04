@@ -13,6 +13,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { importScripts, parseCapabilities, type Capabilities, type Client, type ImportPiece } from '../../api/resource'
+import { acceptOf, missingEnginesOf } from '../../utils/parseAccept'
 
 const props = defineProps<{ modelValue: boolean; clients: Client[] }>()
 const emit = defineEmits<{
@@ -30,12 +31,10 @@ const parsing = ref(false)
 const saving = ref(false)
 const caps = ref<Capabilities | null>(null)
 
-/** accept 从后端能力清单生成：硬编码一份列表会在新增格式那天开始骗人，
- *  而且会把 .doc 这种"明确不做"的格式放进文件选择器里。 */
-const accept = computed(() => (caps.value?.formats ?? [])
-  .filter(item => item.available && item.suffix !== '.md').map(item => item.suffix).join(','))
-const missingEngines = computed(() => Object.entries(caps.value?.engines ?? {})
-  .filter(([, ok]) => !ok).map(([name]) => (name === 'ocr' ? 'OCR' : 'ASR')))
+/** accept 与缺引擎提示与商家端共用同一套逻辑（utils/parseAccept），
+ *  两份实现迟早会出现"一边提示未启用、另一边直接把文件发出去"的不一致。 */
+const accept = computed(() => acceptOf(caps.value))
+const missingEngines = computed(() => missingEnginesOf(caps.value))
 const modes = computed(() => caps.value?.modes ?? ['blank', 'line'])
 const pickedTexts = computed(() =>
   [...selected.value].sort((a, b) => a - b).map(index => parsed.value[index]?.text).filter(Boolean))

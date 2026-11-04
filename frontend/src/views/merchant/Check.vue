@@ -19,6 +19,7 @@ import {
   type BatchAuditItem, type Capabilities, type ImportPiece
 } from '../../api/resource'
 import { useAuth } from '../../stores/auth'
+import { acceptOf, missingEnginesOf, refuseReason } from '../../utils/parseAccept'
 import AuditResults from './AuditResults.vue'
 import SourceDrawer from './SourceDrawer.vue'
 
@@ -62,12 +63,10 @@ const MODE_LABELS: Record<string, string> = {
   blank: '按空行（一段一条）', line: '按行（一行一条）', sentence: '按句（语音/连排）'
 }
 const modes = computed(() => caps.value?.modes ?? ['blank', 'line'])
-/** accept 由后端能力清单生成：手写一份会在新增格式那天开始骗人。 */
-const accept = computed(() => (caps.value?.formats ?? [])
-  .filter(item => item.available && item.suffix !== '.md')
-  .map(item => item.suffix).join(','))
-const missingEngines = computed(() => Object.entries(caps.value?.engines ?? {})
-  .filter(([, ok]) => !ok).map(([name]) => (name === 'ocr' ? 'OCR（海报与扫描件）' : '语音转写（ASR）')))
+/** accept 与"未启用能力"提示都取自后端能力清单（utils/parseAccept）：
+ *  手写清单一定会和代码不同步，不同步的结果是用户传上来才知道"其实不支持"。 */
+const accept = computed(() => acceptOf(caps.value))
+const missingEngines = computed(() => missingEnginesOf(caps.value))
 const pickedCount = computed(() => groups.value.reduce((sum, g) => sum + g.picked.size, 0))
 
 /** 置信度显示为百分比；null 表示来自文本层，不存在识别误差（不是 0%）。 */
@@ -88,6 +87,15 @@ function buildForm(commit: boolean, group: { file: File | null; text: string | n
 
 /** 单份素材 → 一个预览分组；失败也留分组，原因原样写上去（不静默丢文件）。 */
 async function parseOne(file: File | null, pasted: string | null, key: string): Promise<Group> {
+  if (file) {
+    const reason = refuseReason(caps.value, file.name)
+    if (reason) {
+      return {
+        key, filename: file.name, kind: '-', engine: '-', confidence: null, warnings: [],
+        pieces: [], file, text: null, picked: new Set(), scriptIds: [], sourceId: null, error: reason
+      }
+    }
+  }
   const form = buildForm(false, { file, text: pasted }, [])
   try {
     const result = await importScripts(form)
