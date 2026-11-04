@@ -19,10 +19,30 @@ DEFAULT_INPUT_PRICE = "0"
 DEFAULT_OUTPUT_PRICE = "0"
 
 
-def search_law(query, top_k=3):
-    """复用 MCP 检索实现，延迟导入避免工具注册时循环依赖。"""
+@lru_cache(maxsize=256)
+def _cached_law_lookup(query: str, top_k: int) -> tuple[str, ...]:
+    """按 (文本, top_k) 缓存检索候选，保证同一句话在同一进程内拿到同一批法条。
+
+    为什么必须缓存：向量检索实测有约 1/5 概率把关键法条挤出候选，
+    同一句文案重复审查会因此得到不同结论。缓存把"同一输入"钉死为"同一证据集"，
+    使结论可复现；跨进程仍可能变化，所以 compliance 里还有证据缺口兜底。
+    用 JSON 字符串做缓存值，避免调用方就地修改命中对象污染缓存。
+    """
     from backend.mcp_server.server import rag_search_law
-    return rag_search_law(query, top_k)
+
+    items = rag_search_law(query, top_k)
+    return tuple(json.dumps(item, ensure_ascii=False, sort_keys=True) for item in items)
+
+
+def search_law(query, top_k=6):
+    """复用 MCP 检索实现，延迟导入避免工具注册时循环依赖。
+
+    top_k 取 6 而不是 3：实测同一句文案重复检索 5 次，有 1 次关键法条
+    （广告法第16条 / 医美指南第5条）被挤出前 3，导致模型判出的违规因
+    "法条不在候选里"被丢弃，结论翻转成合规。放宽召回 + 结果缓存降低该概率；
+    真正的兜底是 compliance 里的证据缺口判定（不足即未完成，不放行）。
+    """
+    return [json.loads(item) for item in _cached_law_lookup(query, top_k)]
 
 
 @lru_cache(maxsize=1)

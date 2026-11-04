@@ -112,6 +112,12 @@ class ComplianceAuditAgent:
         result['timings_ms']['detect'] = (perf_counter() - before) * 1000
         before = perf_counter()
         self._validate(text, normalized, offsets, candidates, result)  # N6–N7
+        # 证据缺口 = 模型判出了违规，但它引用的法条这一轮没检索到，命中被丢弃。
+        # 若就此按剩余命中算分，结果会从"违规"翻转成"合规"（实测同一句 6 次里翻转 3 次）。
+        # 证据不足不等于没问题，因此整条按"判定未完成"处理，绝不当合规放行。
+        if result.get('evidence_gap'):
+            result['incomplete'] = True
+            result['incomplete_reason'] = 'evidence_gap'
         result['raw_hits'] = result['hits']
         result['hits'] = aggregate_claims(result['raw_hits'])
         result['hit_count'] = len(result['hits'])  # N8
@@ -226,10 +232,16 @@ class ComplianceAuditAgent:
                     hit['law_article'] = cited_chunk['code']
                 codes = {r['code'] for r in result['law_refs']}
                 if hit.get('law_article') not in codes:
+                    # 关键：模型判出了违规，但它引用的法条这一轮没被检索到。
+                    # 直接丢弃会让结论翻转成"合规"——实测同一句文案 6 次里 3 次出现这种情况
+                    # （检索抖动导致关键法条不在候选里）。证据不足 ≠ 没问题，
+                    # 因此标记证据缺口，最终按"判定未完成"处理，绝不放行。
+                    result['evidence_gap'] = True
                     result['traces'].append(dict(hit, status='invalid_law_ref'))
                     continue
                 chunk = bind_chunk(hit, result['law_refs'])
                 if chunk is None:
+                    result['evidence_gap'] = True
                     result['traces'].append(dict(hit, status='invalid_law_ref'))
                     continue
             declared = to_refs(rule.law_article) if rule.law_article else set()

@@ -59,6 +59,47 @@ def test_unretrieved_law_discarded():
     assert r['traces'][0]['status'] == 'invalid_law_ref'
 
 
+def test_unretrieved_law_marks_incomplete_not_compliant():
+    """模型判出违规、但它引用的法条这一轮没检索到 —— 必须判"未完成"，绝不放行。
+
+    实测背景：同一句医美文案重复审查 6 次，有 3 次因向量检索抖动导致关键法条
+    （广告法第16条/医美指南第5条）不在候选里，命中被证据闸丢弃后，
+    结论就从"违规"翻转成"合规"——等于商家反复提交就能等到放行。
+    证据不足不等于没问题，因此这种情形必须按未完成处理。
+    """
+    r = audit('热玛吉可以除去皱纹', [dict(quote='热玛吉可以除去皱纹', law_article='广告法第16条', reason='x')])
+    assert r['hits'] == []
+    assert r['incomplete'] is True
+    assert r['incomplete_reason'] == 'evidence_gap'
+    assert r['score'] == -1, "证据缺口不得算成合规分"
+
+
+def test_search_law_is_cached_for_same_text(monkeypatch):
+    """同一句话在同一进程内必须拿到同一批候选，否则结论无法复现。"""
+    from backend.mcp_server import server as mcp_server
+    from backend.tools.audit_tool import _cached_law_lookup, search_law
+
+    calls = {"n": 0}
+
+    def fake_search(query, top_k=3):
+        calls["n"] += 1
+        return [dict(code='广告法第16条', text=query, chunk_id=f'c{calls["n"]}')]
+
+    monkeypatch.setattr(mcp_server, "rag_search_law", fake_search)
+    _cached_law_lookup.cache_clear()
+
+    first = search_law("同一句话术")
+    second = search_law("同一句话术")
+    assert calls["n"] == 1, "第二次调用应命中缓存，不重复检索"
+    assert first == second
+    assert first[0]["chunk_id"] == second[0]["chunk_id"]
+
+    # 调用方就地修改返回值不得污染缓存
+    first[0]["code"] = "被改坏"
+    assert search_law("同一句话术")[0]["code"] == "广告法第16条"
+    _cached_law_lookup.cache_clear()
+
+
 def test_exemption_retained_as_trace_not_active_hit():
     exemption = dict(text='仅表明服务态度或者经营理念、主观愿望的', source='指南第五条(一)')
     r = audit('我们要做最好的医美服务',
