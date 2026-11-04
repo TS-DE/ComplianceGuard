@@ -371,3 +371,13 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **遗留**：① 横版 4603×421 在 16:9 页面上要缩得很小才可读，答辩若用横版建议现场放大或用 Mermaid 源码投屏。② 未做视觉复核（我只验证了"渲染成功+尺寸属实"，图里的连线是否美观没人眼看过）。
 
 **规则/评测**：无规则、法条、评测集与表结构变更；纯文档与图片。
+
+## D6-g · 语音准备到位（仍卡在依赖），顺手补掉一处假契约
+
+**改动**：① 能力探测原来只看 `funasr` 装没装，**没看音频能不能解码**——模型在、解码器不在时界面仍会把 `.wav` 放进 accept，用户传上去才发现"打不开"，这正是本项目最忌的假契约。新增 `base.audio_decoder_available()`（soundfile 或系统 ffmpeg），`engine_available("asr")` 改为"模型 **且** 解码器都在"才算可用；解码失败的报错也改成直接给出 `pip install soundfile`，不再只说"未安装 ffmpeg"。② 用 Windows 自带中文 TTS（Microsoft Huihui）生成真实语音样本 `data/verify/talk.wav`：22050Hz / 单声道 / 16bit / 10.23s / 三句话（含"保证做完能往上走三个色度"），供装完依赖后一条命令验收。③ RUNBOOK 新增「语音（ASR）验收步骤」：装依赖 → 看 engines 翻 true → `verify_parse data/verify/talk.wav`，并写明通过判据是**转写带标点**（没标点切不开句子，算失败），附可重造样本的 PowerShell 片段与两个 API 坑（`System.Speech` 无 `SpeakToFile`、`SetWaveFormat` 非公开）。④ `parse/base.py` 从 319 压到 308 行。
+
+**验证**：`pytest tests/parse tests/test_sources.py tests/mcp -q` → **62 passed in 11.36s**（新增 2 条探测用例：解码器缺失时 asr 必须 False、本机实测 `.wav/.mp3/.m4a` 全部 available=False）。样本参数用 `wave` 模块实测打印：`采样率 22050 声道 1 位深 16 时长 10.23s`。能力探测本机输出：`engines {'ocr': True, 'asr': False}`。
+
+**遗留**：① **ASR 仍未跑通**——按分工语音依赖由作者本人安装，我不代装；装完照 RUNBOOK 三步验收即可，代码侧不需要再改。② `base.py` 308 行仍超 §3.1 的 300：已按"先按职责拆"试过（把能力探测移进 media.py 会让那边从 291 涨到 326，更糟；再拆一个文件会破"每目录 ≤3 文件"），继续砍行数只能删"为什么"注释，本末倒置，故按末档在此记录理由。③ 推送仍被 SSH 凭据挡住。
+
+**规则/评测**：无规则、法条、评测集与表结构变更。

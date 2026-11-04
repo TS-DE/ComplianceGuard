@@ -222,8 +222,9 @@ def _to_wav_16k(raw: bytes) -> tuple[bytes, float]:
             samples = tensor.numpy().astype("float32")
         except Exception:
             raise ParseError(
-                f"音频解码失败（{type(exc).__name__}）。本机未安装 ffmpeg："
-                "wav/flac/ogg 直接可读，mp3 需要 libsndfile≥1.1，m4a/aac 需要 ffmpeg") from None
+                f"音频解码失败（{type(exc).__name__}）。本机没有可用的解码器："
+                "请 python -m pip install soundfile（libsndfile≥1.1 可解 wav/flac/ogg/mp3）；"
+                "m4a/aac 还需要系统装有 ffmpeg") from None
     if samples.ndim > 1:  # 多声道取均值：识别模型只吃单声道
         samples = samples.mean(axis=1)
     seconds = check_duration(len(samples) / max(rate, 1))
@@ -258,7 +259,7 @@ class AudioParser(Parser):
     kind = "audio"
     engine = "funasr:sensevoice-small"
     requires = "asr"
-    note = "需要语音引擎（funasr + SenseVoiceSmall 模型约 500MB，落在 data/models）"
+    note = "需要语音引擎（funasr + SenseVoiceSmall 约 500MB，落 data/models）与音频解码器（soundfile 或 ffmpeg）"
     max_bytes = AUDIO_MAX_BYTES
 
     def parse(self, raw: bytes, filename: str) -> Doc:

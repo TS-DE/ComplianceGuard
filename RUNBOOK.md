@@ -74,6 +74,39 @@ cd frontend && npm run dev
 
 ---
 
+### 语音（ASR）验收步骤
+
+语音是唯一还没跑通的一段，代码侧已就绪（懒加载 + 能力探测），只等依赖装上。
+
+```bash
+# 1) 装依赖（模型会落到 data/models，约 500MB；--no-cache-dir 避免写 C 盘）
+python -m pip install --no-cache-dir funasr modelscope soundfile -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 2) 看能力清单是否翻成可用（asr 必须变成 true，.wav 进入可上传列表）
+python -X utf8 -c "from backend.parse import capabilities; print(capabilities()['engines'])"
+
+# 3) 用项目里现成的真语音样本跑一次（10.23 秒中文口播，含一句"保证…"违规话术）
+python -X utf8 -m scripts.verify_parse data/verify/talk.wav
+```
+
+验收通过的判据：`kind=audio engine=funasr:sensevoice-small`，切出的条目形如
+`语音第1句 保证做完能往上走三个色度。`，且**带标点**（SenseVoiceSmall 开 `use_itn=True`，
+没有标点就切不开句子，验收算失败）。
+
+样本 `data/verify/talk.wav` 用 Windows 自带中文 TTS 生成，可重造（不落库，gitignore 内）：
+
+```powershell
+Add-Type -AssemblyName System.Speech
+$s = New-Object System.Speech.Synthesis.SpeechSynthesizer
+$s.SelectVoice('Microsoft Huihui Desktop')
+$s.SetOutputToWaveFile('D:\ComplianceGuard\data\verify\talk.wav')
+$s.Speak('保证做完能往上走三个色度。效果因人而异，请遵医嘱。我们是全城最好的机构。')
+$s.SetOutputToNull(); $s.Dispose()
+```
+
+注意两个坑：`System.Speech` 里**没有** `SpeakToFile` 与公开的 `SetWaveFormat`，落盘只能
+`SetOutputToWaveFile` + `Speak`；产出是 22050Hz，解析层会自动重采样到模型要的 16000Hz。
+
 ## 6. 素材摄取（文档 / 海报 / 扫描件 / 录音）
 
 ```bash

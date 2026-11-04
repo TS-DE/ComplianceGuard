@@ -1,14 +1,11 @@
 """文档解析层抽象：一种文件类型 = 一个 Parser 子类 + REGISTRY 一行。
 
-为什么要有这一层：商家给的素材是「一整页文档」而不是「一条话术」，
-而文档形态永远在增加（docx → 表格 → PPT → 海报图 → 录音）。
-if/elif 判断扩展名会在第四个类型到来时失控，所以这里用
-`Parser` 抽象 + 注册表：新增格式不改调用方语义（LSP），不改判定器（OCP），
-业务层也不 import pdfplumber/cv2 这类实现库（DIP）。
+为什么要有这一层：素材形态永远在增加（docx → 表格 → PPT → 海报图 → 录音），
+if/elif 判断扩展名会在第四个类型到来时失控。用抽象 + 注册表：新增格式不改
+调用方语义（LSP）也不改判定器（OCP），业务层不必 import pdfplumber/cv2（DIP）。
 
-pos 的语义随 kind 变化（同一列在不同素材上含义不同，写清比强行统一好）：
-    pdf=页码 / pptx=幻灯片序号 / docx=段落序号 / sheet·csv=行号 /
-    image=OCR 文本块序号 / audio=起始毫秒 / text=None
+pos 的语义随 kind 变（写清比强行统一好）：pdf=页码 / pptx=幻灯片 / docx=段落 /
+sheet·csv=行号 / image=OCR 块 / audio=起始毫秒 / text=None
 """
 
 from __future__ import annotations
@@ -56,8 +53,8 @@ class ParseError(ValueError):
 class Block:
     """文档里的一个自然块（段落 / 表格行 / 一页 / 一张幻灯片 / 一句语音）。
 
-    pos 给机器（排序、统计），ref 给人（"第3页"、"Sheet1·第3行"、"00:32"）。
-    刻意分成两个字段：只留 ref 就无法排序，只留 pos 在多 Sheet 表格上说不清是哪张表。
+    pos 给机器（排序），ref 给人（"第3页"、"Sheet1·第3行"）：只留 ref 无法排序，
+    只留 pos 在多 Sheet 表格上说不清是哪张表，所以两个都要。
     """
 
     text: str
@@ -91,7 +88,7 @@ class Doc:
 
 @dataclass(frozen=True)
 class Piece:
-    """一条可独立审查的话术，带溯源（来自哪个位置、识别置信度多少）。"""
+    """一条可独立审查的话术，带溯源（位置与识别置信度）。"""
 
     text: str
     pos: int | None = None
@@ -117,10 +114,8 @@ class Parser(ABC):
 
     @abstractmethod
     def parse(self, raw: bytes, filename: str) -> Doc:
-        """把字节流解析成 Doc。
-
-        抛出 ParseError 的三种正当场景：文件损坏、格式与扩展名不符、
-        需要的引擎未安装。不允许静默返回空内容。
+        """把字节流解析成 Doc。抛 ParseError 的正当场景只有三种：文件损坏、
+        格式与扩展名不符、需要的引擎未安装。不许静默返回空内容。
         """
 
 
@@ -134,30 +129,47 @@ def register(parser: Parser) -> None:
 
 
 def supported_suffixes() -> list[str]:
-    """当前真实可解析的扩展名。必须排除 RejectParser：它也在注册表里（统一拒绝口径），
+    """真实可解析的扩展名。必须排除 RejectParser：它也在注册表里（统一拒绝口径），
     但把 .doc 算进"支持列表"会让接口和界面都在说谎。
     """
     return sorted(s for s, p in REGISTRY.items() if p.kind != "unsupported")
 
 
-def engine_available(name: str | None) -> bool:
-    """可选引擎是否装了（只看导入性，绝不加载模型——加载一次要几秒到几十秒）。"""
-    if not name:
-        return True
+def _module_importable(module: str) -> bool:
+    """只看导入性，绝不加载模型（加载一次要几秒到几十秒）。"""
     from importlib.util import find_spec
 
-    module = {"ocr": "rapidocr_onnxruntime", "asr": "funasr"}.get(name, name)
     try:
         return find_spec(module) is not None
     except (ImportError, ValueError):  # 父包缺失时 find_spec 会抛，不算可用
         return False
 
 
+def audio_decoder_available() -> bool:
+    """音频能否解码：soundfile（libsndfile）在，或系统有 ffmpeg。
+    只看 funasr 装没装不够——模型在、解码器不在时录音照样打不开，
+    报成"支持语音"就是界面写着支持、跑起来报错的假契约。
+    """
+    import shutil
+
+    return _module_importable("soundfile") or shutil.which("ffmpeg") is not None
+
+
+def engine_available(name: str | None) -> bool:
+    """可选引擎是否真的可用（能力探测的唯一口径，前端 accept 由它决定）。"""
+    if not name:
+        return True
+    if name == "ocr":
+        return _module_importable("rapidocr_onnxruntime")
+    if name == "asr":
+        return _module_importable("funasr") and audio_decoder_available()
+    return _module_importable(name)
+
+
 def capabilities() -> dict[str, object]:
     """当前真实能力：给前端上传提示、给 MCP 工具自检、给 RUNBOOK 排障。
 
-    刻意做成"从注册表算出来"而不是手写一份清单：手写清单一定会和代码不同步，
-    不同步的说明书比没有说明书更坏。
+    从注册表现算而不是手写清单：手写的一定会和代码不同步，那比没清单更坏。
     """
     formats = []
     for suffix, parser in sorted(REGISTRY.items()):
@@ -215,10 +227,8 @@ def row_text(values: list[object], sep: str = " ") -> str:
 
 
 def parse_file(filename: str, raw: bytes) -> Doc:
-    """按扩展名派发到具体解析器。
-
-    未登记的类型明确拒绝，不做「先当文本读读看」的模糊处理——
-    把一个 exe 当文本读出来的乱码进了库，后面的审计统计全是假的。
+    """按扩展名派发到具体解析器。未登记的类型明确拒绝，不做「先当文本读读看」——
+    把 exe 读出的乱码存进库，后面的审计统计全是假的。
     """
     suffix = Path(filename or "").suffix.lower()
     parser = REGISTRY.get(suffix)
@@ -244,9 +254,8 @@ def _flatten(piece: str) -> str:
 def split_text(text: str, mode: str = "blank") -> list[str]:
     """把整篇文本切成逐条话术：去空段、压平换行、剥序号（过滤与去重交给 dedupe_limit）。
 
-    mode 决定分隔方式：实际素材有三种常见形态，靠猜一定会猜错。
-    blank=按空行/行首序号切（一段话术=一个自然段）；line=按单换行切（一行一条）；
-    sentence=按句末标点切（语音转写与整段连排的唯一可行切法）。
+    三种形态靠猜一定会猜错，所以 mode 由用户选：blank=按空行/行首序号；
+    line=按单换行；sentence=按句末标点（语音转写与整段连排的唯一可行切法）。
     """
     if mode not in MODES:
         raise ValueError(f"mode 只能是 {' / '.join(MODES)}")
@@ -276,8 +285,7 @@ def dedupe_limit(pieces: list[Piece]) -> list[Piece]:
 def split_doc(doc: Doc, mode: str = "blank") -> list[Piece]:
     """按文档结构切分：块的边界由解析器给出，块内再按 mode 细分。
 
-    为什么要保留块的 pos：商家问「这句是哪来的」时，必须能答到「第 3 页 / 第 2 张幻灯片」，
-    否则溯源字段就是摆设。
+    保留 pos/ref 是因为商家会问"这句是哪来的"，答不到页就等于溯源是摆设。
     """
     pieces: list[Piece] = []
     for block in doc.blocks:

@@ -169,6 +169,33 @@ def test_audio_decode_failure_names_the_missing_decoder() -> None:
 
 
 # ------------------------------------------------------------------ 能力探测
+def test_asr_requires_a_real_decoder_not_just_the_model(monkeypatch) -> None:
+    """装了 funasr 但没有解码器时，录音必须仍报"不可用"。
+
+    这是最容易骗人的状态：探测只看模型在不在，界面就会把 .wav 放进 accept，
+    用户上传后才发现"文件打不开"——正是"文档写着支持、跑起来不行"。
+    """
+    import backend.parse.base as base
+
+    monkeypatch.setattr(base, "_module_importable", lambda name: True)
+    monkeypatch.setattr(base, "audio_decoder_available", lambda: False)
+    assert base.engine_available("asr") is False
+    monkeypatch.setattr(base, "audio_decoder_available", lambda: True)
+    assert base.engine_available("asr") is True
+
+
+def test_decoder_probe_reflects_this_machine(monkeypatch) -> None:
+    """本机没有 soundfile 也没有 ffmpeg：探测必须如实报 False，音频格式全部不可用。"""
+    import backend.parse.base as base
+
+    monkeypatch.setattr(base, "audio_decoder_available", lambda: False)
+    caps = capabilities()
+    assert caps["engines"]["asr"] is False
+    audio = [item for item in caps["formats"] if item["kind"] == "audio"]
+    assert audio and all(not item["available"] for item in audio)
+    assert "soundfile" in audio[0]["note"] or "ffmpeg" in audio[0]["note"]
+
+
 def test_capabilities_describes_what_is_really_installed() -> None:
     """前端的 accept 列表与提示文案必须由这里出，手写清单一定和代码不同步。"""
     caps = capabilities()
