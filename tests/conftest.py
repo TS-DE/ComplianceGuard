@@ -92,6 +92,9 @@ def test_dsn() -> str:
     # 整篇文本列（批次1 路线A）：漏掉这步，写 sources 的用例会在 INSERT 时报未知列
     from scripts.migrate_sources_full_text import migrate as migrate_full_text
     migrate_full_text(engine, apply=True)
+    # 分段锚点绝对偏移（C 阶段）：同上，create_all 不给已存在的 scripts 补列
+    from scripts.migrate_script_anchors import migrate as migrate_anchors
+    migrate_anchors(engine, apply=True)
     engine.dispose()
     yield dsn
 

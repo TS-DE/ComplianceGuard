@@ -191,17 +191,26 @@ POST /api/v1/scripts/import （multipart/form-data，JWT 鉴权）
 {"code":200,"data":{"source":"话术.docx","kind":"docx","engine":"python-docx",
   "confidence":null,"warnings":[],"meta":{"blocks":12},"parse_ms":18,"size_bytes":37012,
   "count":12,"items":["话术1","…"],
-  "items_detail":[{"text":"话术1","pos":1,"ref":"第1段","confidence":null}],
+  "items_detail":[{"text":"话术1","pos":1,"ref":"第1段","confidence":null,
+                   "source_start":0,"source_end":11,"source_occurrences":[[0,11]]}],
   "created":0,"script_ids":[]},"total":null}
 ```
 `commit=true` 额外返回 `source_id`，同机构重复上传同一份内容时返回 `duplicate_of`。
 
 新增展示字段（2026-11-05，A3 检查页双栏所需，不改任何既有字段语义）：
-- `full_text`：整篇解析原文（blocks 连接后的文本）。检查页左栏必须按整篇展示，
-  并把命中定位回**文档级位置**——注意 `hits[].start/end` 是相对**单条话术**的下标，
-  且话术经过剥行首序号与压平空白，**不一定是 `full_text` 的字面子串**，
-  前端定位须用忽略空白的下标映射（`frontend/src/utils/locate.ts`），
-  并在定位不到时如实显示"位置未知"，不许猜一个位置。
+- `full_text`：整篇解析原文（blocks 连接后的文本）。检查页左栏必须按整篇展示。
+- `items_detail[].source_start` / `source_end`：**服务端算好的绝对锚点**（相对 `full_text`，
+  开区间）。切分时按块定位并忽略空白差异，因此话术虽然被剥过行首序号、压过空白，
+  偏移仍然指得回原文。前端**必须按区间渲染高亮**，不再自己搜。
+- `items_detail[].source_occurrences`：这句话在整篇里的**全部**出现区间。
+  去重是按文本入库的（同一句只建一条话术），但原文里两处都还在，
+  界面要把两处都亮出来，否则商家看到的是"写了两遍凭什么只标一遍"。
+- `items_detail[].script_id`：仅 `commit=true` 时返回，把锚点对回刚建好的话术行；
+  商家勾完直接进结果页，中间没有"再预览一次"的机会，所以提交也必须回锚点。
+- **锚点缺失的两种情况要分开显示**：
+  `source_start=null` 表示服务端锚不上（超长素材被 `full_text` 截断、或手工录入的老数据），
+  前端可退回忽略空白的模糊定位（`frontend/src/utils/locate.ts`）；
+  模糊定位也失败时必须显示"位置未知"，**不许猜一个位置**——指错位置比指不出更坏。
 
 - 强制两段式：先 `commit=false` 预览切分结果，人工确认后再 `commit=true` 入库，
   避免一次传错文件把脏数据写进库、污染后续所有审计统计；

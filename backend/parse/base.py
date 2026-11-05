@@ -10,9 +10,7 @@ sheet·csv=行号 / image=OCR 块 / audio=起始毫秒 / text=None
 
 from __future__ import annotations
 
-import re
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from pathlib import Path
@@ -27,23 +25,6 @@ MAX_CHUNKS = 200                     # 一次最多切多少条话术
 MIN_CHARS = 4                        # 4 字起：滤掉"备注""第1页"噪声，又保住"术后零风险"
 LOW_CONFIDENCE = 0.60                # OCR 平均置信度低于此值必须提醒人工核对
 MODES: tuple[str, ...] = ("blank", "line", "sentence")
-
-# 切分优先级：空行 > 行首序号(1. / 1、 / （1）) > 中文序号(一、) > 项目符号
-# 注意：多行模式用编译参数而不是内联 (?m) —— 内联标志只能出现在整个表达式的开头，
-# 放在分支中间会抛 "global flags not at the start of the expression"。
-_SPLIT = re.compile(
-    r"\n\s*\n"
-    r"|^(?=\s*(?:\d+[.、)）]|[（(]\d+[)）]|[一二三四五六七八九十]+[、.]|[-*•]\s))",
-    re.MULTILINE,
-)
-# 按句切：语音转写没有空行也没有段落，只有标点。
-# 没有这一档，一段 30 秒口播会变成一条超长"话术"，逐条审查和引文定位全都失效。
-_SENTENCE = re.compile(r"(?<=[。！？!?；;])\s*|\n+")
-# 切分后要剥掉的行首序号：序号是文档结构，不是话术内容
-_LEADING_NO = re.compile(
-    r"^\s*(?:\d+[.、)）]|[（(]\d+[)）]|[一二三四五六七八九十]+[、.]|[-*•])\s*"
-)
-
 
 class ParseError(ValueError):
     """解析失败。继承 ValueError 是为了让既有路由的 `except ValueError` 继续生效。"""
@@ -94,6 +75,14 @@ class Piece:
     pos: int | None = None
     ref: str | None = None
     confidence: float | None = None
+    # 整篇文本（Doc.text / sources.full_text）里的绝对字符区间 [start, end)。
+    # 与 pos 的区别：pos 只到"块"这一级（第 3 页 / 表格第 12 行），同块内两处相同
+    # 文案靠 pos 分不开；None 表示锚不上，界面必须显示"位置未知"而不是猜一个位置。
+    start: int | None = None
+    end: int | None = None
+    # 这句话在整篇里的**全部**出现区间。去重是按文本做的（同一句只入库一条话术），
+    # 但原文里两处都还在，只给一个位置界面就只能亮一处。
+    spans: tuple[tuple[int, int], ...] = ()
 
 
 class Parser(ABC):
@@ -242,64 +231,6 @@ def parse_file(filename: str, raw: bytes) -> Doc:
     if not doc.text.strip():
         raise ParseError(f"{filename} 解析后没有任何文字内容（可能是空文档或纯图片页）")
     return doc
-
-
-def _flatten(piece: str) -> str:
-    """剥序号、压平换行、去装饰符。内部换行压成空格但保留标点——引文校验要求原文可逐字定位。"""
-    flat = _LEADING_NO.sub("", piece)
-    flat = re.sub(r"\s+", " ", flat).strip(" \t·•-*")
-    return flat
-
-
-def split_text(text: str, mode: str = "blank") -> list[str]:
-    """把整篇文本切成逐条话术：去空段、压平换行、剥序号（过滤与去重交给 dedupe_limit）。
-
-    三种形态靠猜一定会猜错，所以 mode 由用户选：blank=按空行/行首序号；
-    line=按单换行；sentence=按句末标点（语音转写与整段连排的唯一可行切法）。
-    """
-    if mode not in MODES:
-        raise ValueError(f"mode 只能是 {' / '.join(MODES)}")
-    if mode == "line":
-        chunks: Iterable[str | None] = text.splitlines()
-    elif mode == "sentence":
-        chunks = _SENTENCE.split(text)
-    else:
-        chunks = _SPLIT.split(text)
-    return [piece for piece in (_flatten(b or "") for b in chunks) if piece]
-
-
-def dedupe_limit(pieces: list[Piece]) -> list[Piece]:
-    """过滤过短 + 去重保序 + 限量；与 split_text 共用同一套判据，两条入口不会切出不同结果。"""
-    out: list[Piece] = []
-    seen: set[str] = set()
-    for piece in pieces:
-        if len(piece.text) < MIN_CHARS or piece.text in seen:
-            continue
-        seen.add(piece.text)
-        out.append(piece)
-        if len(out) >= MAX_CHUNKS:
-            break
-    return out
-
-
-def split_doc(doc: Doc, mode: str = "blank") -> list[Piece]:
-    """按文档结构切分：块的边界由解析器给出，块内再按 mode 细分。
-
-    保留 pos/ref 是因为商家会问"这句是哪来的"，答不到页就等于溯源是摆设。
-    """
-    pieces: list[Piece] = []
-    for block in doc.blocks:
-        for raw_piece in split_text(block.text, mode):
-            pieces.append(Piece(raw_piece, block.pos, block.ref, block.confidence))
-    return dedupe_limit(pieces)
-
-
-def split_scripts(text: str, mode: str = "blank") -> list[str]:
-    """整篇文本 → 逐条话术。刻意复用 split_doc 这一条路径：
-    两个入口若各切一遍，同一份素材会出现「接口和页面结果不一致」这种查不动的 bug。
-    """
-    whole = Doc(filename="", kind="text", engine="memory", blocks=[Block(text)])
-    return [piece.text for piece in split_doc(whole, mode)]
 
 
 def extract_text(filename: str, raw: bytes) -> str:

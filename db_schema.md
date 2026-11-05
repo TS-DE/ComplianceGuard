@@ -51,6 +51,8 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 | redteam_meta | JSON | NULL | run_id、target_axis、strength、strategy、expected_violation；判定后追加verdict/actual_axes/audit_id |
 | source_id | BIGINT | FK→sources.id, NULL, ON DELETE SET NULL, INDEX | **素材溯源**：这句话出自哪份上传文件；手工录入与红队样本为 NULL |
 | source_pos | INT | NULL | 素材内的机器位置（页码/幻灯片号/段落序号/行号/块序号），含义随 `sources.kind` 变 |
+| source_start | INT | NULL | **绝对锚点起点**：该条话术在 `sources.full_text` 里的字符下标（忽略空白后定位）。与 `source_pos` 的分工：pos 只到"块"这一级，同块内两句相同文案靠 pos 分不开 |
+| source_end | INT | NULL | 绝对锚点终点（开区间）。前端按 [start,end) 渲染高亮；两列同时为 NULL 时界面必须显示"位置未知"，**不许前端猜位置** |
 | source_ref | VARCHAR(40) | NULL | 给人看的位置："第3页" / "Sheet1·第12行" / "第4张幻灯片备注" / "OCR块2" / "语音第3句" |
 | parse_confidence | DECIMAL(5,4) | NULL | 该条的 OCR/ASR 识别置信度；**文本层为 NULL（意为"不存在识别误差"，不是 0）** |
 | content | TEXT | NOT NULL | 待审话术原文 |
@@ -280,3 +282,4 @@ users（独立，仅鉴权）
 | 2026-11-01 | rules 增 `detector`（检测手段）+ `exemptions`（法定豁免清单），并补 §3.1 轴分配表 / §3.2 detector 语义 / §3.3 exemptions 用法 | **严重度与检测手段是正交维度**；法条自带的"不适用情形"须独立成白名单，否则误杀 |
 | 2026-11-01 | 轴从 8 条扩到 10 条（新增 `cure_rate` 治愈率、`endorsement` 广告代言） | 《广告法》第16条(二)显式禁止说明治愈率；《医美广告执法指南》第五条(六)单列"推荐官/体验官" |
 | 2026-11-04 | 新增 §1.7 `sources` 表 + `scripts` 四列溯源（source_id/source_pos/source_ref/parse_confidence），关系链补 clients→sources→scripts | 商家给的是整份素材（PDF/海报/录音），解析出的页码与置信度必须有地方存，否则"这句违规话从哪来"无法回答。迁移见 `scripts/migrate_sources_provenance.py`（幂等，只加表加列） |
+| 2026-11-05 | `scripts` 增 `source_start` / `source_end`（INT NULL，绝对字符区间） | 页码级 `source_pos` 分不开同一块里的两句相同文案，前端只能退回模糊定位，实测出现"1 处命中在原文里定位失败"与"点第 5 条滚到第 1 条"。锚点改由解析层按块一次算好并入库，前端按区间渲染，模糊定位退为兜底。迁移见 `scripts/migrate_script_anchors.py`（幂等，只加列；前后 SHOW CREATE 只差这两列，`AUTO_INCREMENT` 未变） |

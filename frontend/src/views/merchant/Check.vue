@@ -39,6 +39,12 @@ import type { HitRender, ResultRow } from './parts/types'
 interface Chunk {
   scriptId: number; text: string
   ref: string | null; confidence: number | string | null
+  /**
+   * 这条话术在素材里的锚点（绝对偏移 + 全部出现位置）。
+   * 带上整条 ImportPiece 而不是只带偏移数字：定位失败时界面要能区分
+   * "服务端说没有锚点"与"前端模糊搜索没搜到"，两者的下一步动作不一样。
+   */
+  piece: ImportPiece
 }
 
 interface Group {
@@ -90,6 +96,31 @@ const steps = [
 ]
 
 /**
+ * 一条话术在整篇里的区间：服务端锚点优先，模糊定位只当兜底。
+ *
+ * `source_start/source_end` 是解析层按块算好的绝对区间，同一句出现两次时各自不同，
+ * 所以走锚点这条路不需要游标；只有老数据（手工录入、没有锚点）才退回 locate，
+ * 那时才需要按顺序推进游标，否则短句会被定位到同前缀的长句上。
+ */
+function pieceSpan(fullText: string, piece: ImportPiece, cursor: number):
+  { start: number; end: number } | null {
+  if (typeof piece.source_start === 'number' && typeof piece.source_end === 'number') {
+    return { start: piece.source_start, end: piece.source_end }
+  }
+  return locate(fullText, piece.text, cursor)
+}
+
+/** 这句话在整篇里的全部出现区间；没有锚点时退化成"只有一处"。 */
+function pieceRegions(fullText: string, piece: ImportPiece,
+                      cursor: number): Array<{ start: number; end: number }> {
+  if (piece.source_occurrences?.length) {
+    return piece.source_occurrences.map(([start, end]) => ({ start, end }))
+  }
+  const span = pieceSpan(fullText, piece, cursor)
+  return span ? [span] : []
+}
+
+/**
  * 左栏标记。
  * 预览阶段画"切分边界"（中性描边，不是风险色，否则预览看起来像已经判过）；
  * 结果阶段画命中区间，降级的命中一律显示为赭黄而不是朱红。
@@ -101,20 +132,24 @@ const marks = computed<Mark[]>(() => {
   if (stage.value === 'preview') {
     let cursor = 0
     for (const pickIndex of [...group.picked].sort((a, b) => a - b)) {
-      const span = locate(group.fullText, group.pieces[pickIndex].text, cursor)
-      if (span) cursor = span.end
-      // 定位不到的切分段落就不画边界：宁缺毋错，画错位置会让人以为系统在他正文里指错了话
-      if (span) out.push({ key: `p-${pickIndex}`, start: span.start, end: span.end, severity: 'piece' })
+      const regions = pieceRegions(group.fullText, group.pieces[pickIndex], cursor)
+      if (regions.length) cursor = regions[regions.length - 1].end
+      // 一个都定位不到就不画边界：宁缺毋错，画错位置会让人以为系统在他正文里指错了话
+      regions.forEach((span, at) => out.push({
+        key: `p-${pickIndex}-${at}`, start: span.start, end: span.end, severity: 'piece'
+      }))
     }
     return out
   }
   for (const row of currentRows.value) {
     for (const hit of row.hits) {
       if (!hit.span) continue
-      out.push({
-        key: hit.key, start: hit.span.start, end: hit.span.end,
-        severity: hit.view.downgraded ? 'soft' : hit.view.severity
-      })
+      const severity = hit.view.downgraded ? 'soft' : hit.view.severity
+      out.push({ key: hit.key, start: hit.span.start, end: hit.span.end, severity })
+      // 同一句话在别处也出现过，那些位置一起亮：只标一处会让商家以为系统没看见第二遍
+      ;(hit.extra ?? []).forEach((span, at) => out.push({
+        key: `${hit.key}-x${at}`, start: span.start, end: span.end, severity
+      }))
     }
   }
   return out
@@ -198,11 +233,29 @@ async function preview() {
  */
 const cursors = new Map<number, number>()
 
-function toHit(groupIndex: number, fullText: string, pieceText: string, scriptId: number,
+function toHit(groupIndex: number, fullText: string, piece: ImportPiece, scriptId: number,
                index: number, hit: Hit): HitRender {
   const quote = hit.original_quote ?? hit.quote
-  const located = locateInSource(fullText, pieceText, quote, cursors.get(groupIndex) ?? 0)
-  if (located) cursors.set(groupIndex, located.nextCursor)
+  const anchorStart = typeof piece.source_start === 'number' ? piece.source_start : null
+  const regions = pieceRegions(fullText, piece, cursors.get(groupIndex) ?? 0)
+  // 引文只在**这句话术自己的区间**里找：整篇搜会让右侧第 5 条点亮、左栏滚到第 1 条
+  const inside = regions.map((region) => {
+    const found = locate(fullText.slice(region.start, region.end), quote)
+    return found
+      ? { start: region.start + found.start, end: region.start + found.end, own: region.start === anchorStart }
+      : null
+  }).filter((item): item is { start: number; end: number; own: boolean } => item !== null)
+  let spans = inside
+  if (!spans.length) {
+    // 没有服务端锚点（手工录入的老数据）才退回整篇模糊定位，并如实推进游标
+    const located = locateInSource(fullText, piece.text, quote, cursors.get(groupIndex) ?? 0)
+    if (located) {
+      cursors.set(groupIndex, located.nextCursor)
+      spans = [{ start: located.quote.start, end: located.quote.end, own: true }]
+    }
+  }
+  const primary = spans.find(item => item.own) ?? spans[0] ?? null
+  const others = spans.filter(item => item !== primary)
   const view: HitView = {
     key: `${scriptId}-${index}`, axis: hit.axis, axisLabel: axisLabel(hit.axis),
     lawArticle: hit.law_article, itemNo: hit.item_no ?? null, quote,
@@ -211,8 +264,9 @@ function toHit(groupIndex: number, fullText: string, pieceText: string, scriptId
     detector: hit.detector ?? null
   }
   return {
-    key: view.key, view, span: located?.quote,
-    context: located ? contextOf(fullText, located.quote) : null
+    key: view.key, view, span: primary ?? undefined,
+    extra: others.map(({ start, end }) => ({ start, end })),
+    context: primary ? contextOf(fullText, primary) : null
   }
 }
 
@@ -232,10 +286,17 @@ async function runCheck() {
       const items = pickedIndexes.map(pi => group.pieces[pi].text)
       const saved = await importScripts(buildForm(true, group, items))
       group.sourceId = saved.source_id ?? null
+      // 提交响应里的 items_detail 带 script_id：锚点优先信服务端刚算的这份，
+      // 预览那份只当兜底（老服务端不返回 script_id 时仍能工作）
+      const anchors = new Map<number, ImportPiece>()
+      ;(saved.items_detail ?? []).forEach(piece => {
+        if (typeof piece.script_id === 'number') anchors.set(piece.script_id, piece)
+      })
       group.chunks = saved.script_ids.map((scriptId, position) => ({
         scriptId, text: items[position],
         ref: group.pieces[pickedIndexes[position]].ref,
-        confidence: group.pieces[pickedIndexes[position]].confidence
+        confidence: group.pieces[pickedIndexes[position]].confidence,
+        piece: anchors.get(scriptId) ?? group.pieces[pickedIndexes[position]]
       }))
       group.chunks.forEach(chunk => index.set(chunk.scriptId, { group, chunk }))
     }
@@ -255,7 +316,7 @@ async function runCheck() {
       const chunk = entry?.chunk
       const groupIndex = group ? groups.value.indexOf(group) : 0
       const hits = (item.hits ?? []).map((hit, hitIndex) => (group && chunk
-        ? toHit(groupIndex, group.fullText, chunk.text, item.script_id, hitIndex, hit)
+        ? toHit(groupIndex, group.fullText, chunk.piece, item.script_id, hitIndex, hit)
         : { key: `${item.script_id}-${hitIndex}`, view: {} as HitView, context: null }))
       return {
         scriptId: item.script_id,

@@ -278,7 +278,7 @@ def test_formats_endpoint_reports_real_capabilities(client: TestClient, auth_hea
 def test_audio_upload_fails_loudly_when_engine_missing(
         client: TestClient, auth_headers: dict, db, monkeypatch) -> None:
     """没装 ASR 时上传录音必须 422 并说明装什么，绝不能返回"0 条话术"。"""
-    import backend.parse.media as media
+    import backend.parse.parsers.media as media
     from backend.db.models import Client
 
     account = Client(name="语音机构", industry="medical_beauty", contact=None, plan="free")
@@ -339,3 +339,59 @@ def test_agent_tool_parse_document_stays_inside_data_dir(monkeypatch, tmp_path) 
         with pytest.raises(ParseError) as exc:
             ingest_tool.parse_local(sneaky)
         assert "data/" in str(exc.value)
+
+
+# ---------------------------------------------------------------- 分段锚点（C 阶段）
+def test_preview_and_commit_carry_absolute_anchors(
+        client: TestClient, auth_headers: dict, db) -> None:
+    """预览与提交都要给绝对偏移，并且提交后库里读回同一个区间。
+
+    商家勾完直接进结果页，中间没有"再预览一次"的机会；提交不回锚点，
+    结果页就只能退回模糊定位——那是本阶段要消灭的兜底。
+    同一句写两遍：入库一条（按文本去重是既有策略），但两处位置都要给出来。
+    """
+    from backend.db.models import Client, Script
+
+    line = "保证三个月恢复正常肤色"
+    # 用空行分段：接口默认 mode=blank，单换行不会被切开（这是切分档的既有语义，测试迁就它）
+    raw = f"{line}\n\n中间的说明文字若干行\n\n{line}".encode("utf-8")
+    account = Client(name="锚点机构", industry="medical_beauty", contact=None, plan="free")
+    db.add(account)
+    db.commit()
+
+    preview = _upload(client, auth_headers, account.id, raw, commit=False, name="锚点.txt")
+    assert [i["text"] for i in preview["items_detail"]] == [line, "中间的说明文字若干行"]
+    first = preview["items_detail"][0]
+    assert first["source_start"] == 0 and first["source_end"] == len(line)
+    assert preview["full_text"][first["source_start"]:first["source_end"]] == line
+    assert len(first["source_occurrences"]) == 2, "同一句的两处位置都要给出去"
+    assert [preview["full_text"][s:e] for s, e in first["source_occurrences"]] == [line, line]
+
+    committed = _upload(client, auth_headers, account.id, raw, commit=True, name="锚点.txt")
+    item = committed["items_detail"][0]
+    assert (item["source_start"], item["source_end"]) == (first["source_start"], first["source_end"])
+    # 期望值从原文独立算出来，不在测试里手数偏移——手算本身就是一种错源
+    whole, middle = raw.decode("utf-8"), "中间的说明文字若干行"
+    rows = [db.get(Script, sid) for sid in committed["script_ids"]]
+    assert [r.source_start for r in rows] == [item["source_start"], whole.index(middle)]
+    assert [r.source_end for r in rows] == [item["source_end"], whole.index(middle) + len(middle)]
+    # 清理按外键方向来：audits → scripts → sources → clients，跳步就是 1451
+    from backend.db.models import Audit, Source
+
+    db.query(Audit).filter(Audit.script_id.in_(committed["script_ids"])).delete(synchronize_session=False)
+    db.query(Script).filter(Script.client_id == account.id).delete(synchronize_session=False)
+    db.query(Source).filter(Source.client_id == account.id).delete(synchronize_session=False)
+    db.query(Client).filter(Client.id == account.id).delete()
+    db.commit()
+
+
+def test_anchor_beyond_stored_text_is_reported_unknown() -> None:
+    """锚点落在被截断的 full_text 之外时必须报"位置未知"，不许给一个看着对其实错的位置。"""
+    from backend.parse import Block, Doc, Piece
+    from backend.tools import ingest_tool
+
+    doc = Doc(filename="超长.txt", kind="text", engine="paste", blocks=[Block("短句")])
+    piece = Piece("短句", 0, "第1段", None, 999, 1005, ((999, 1005),))
+    item = ingest_tool._detail(ingest_tool.IngestResult(doc=doc, raw=b"x", pieces=[piece]), piece)
+    assert item["source_start"] is None and item["source_end"] is None
+    assert item["source_occurrences"] == [], "截断范围外的出现位置一并丢掉"

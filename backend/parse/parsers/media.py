@@ -30,8 +30,10 @@ from backend.parse.base import (
     Parser,
     engine_available,
     register,
-    split_text,
 )
+# split_text 住在 split.py（切分与锚定是同一套字符串判据）；这里直接指到叶子模块，
+# 不走 backend.parse 门面——门面正在导入本模块才会注册解析器，走门面是循环导入。
+from backend.parse.split import split_text
 
 OCR_MAX_PAGES = 20        # 单次最多 OCR 几页：同步接口不设上限就会把请求挂死
 OCR_MAX_SIDE = 2200       # 送进 OCR 前的最长边像素，更大只会被内部降采样，慢且不更准

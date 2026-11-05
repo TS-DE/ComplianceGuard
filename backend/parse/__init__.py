@@ -17,18 +17,23 @@ from backend.parse.base import (
     extract_text,
     parse_file,
     register,
+    supported_suffixes,
+)
+from backend.parse.split import (
+    dedupe_limit,
+    doc_index,
+    occurrences,
     split_doc,
     split_scripts,
     split_text,
-    supported_suffixes,
 )
 
 # 导入这两个模块只为把解析器登记进 REGISTRY（副作用导入），所以刻意不起别名、也不进 __all__。
-from backend.parse import documents, media  # noqa: F401
+from backend.parse.parsers import documents, media  # noqa: F401
 
 __all__ = [
     "Block", "Doc", "MAX_BYTES", "MAX_CHUNKS", "MIN_CHARS", "MODES", "ParseError",
     "Parser", "Piece", "REGISTRY", "capabilities", "decode_bytes", "engine_available",
-    "extract_text", "parse_file", "register", "split_doc", "split_scripts",
-    "split_text", "supported_suffixes",
+    "dedupe_limit", "doc_index", "extract_text", "occurrences", "parse_file", "register",
+    "split_doc", "split_scripts", "split_text", "supported_suffixes",
 ]

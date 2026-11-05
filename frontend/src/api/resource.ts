@@ -183,6 +183,15 @@ export const parseCapabilities = () => request<Capabilities>('GET', '/sources/fo
 
 export interface ImportPiece {
   text: string; pos: number | null; ref: string | null; confidence: number | null
+  /**
+   * 服务端算好的绝对锚点（相对 full_text，开区间）。
+   * null 表示这条锚不上——界面必须显示"位置未知"，不许前端自己猜一个位置。
+   */
+  source_start?: number | null; source_end?: number | null
+  /** 这句话在整篇里的全部出现区间：同一句写两遍时两处都要能亮出来 */
+  source_occurrences?: Array<[number, number]>
+  /** 仅提交（commit=true）时返回：把锚点对回刚建好的话术 */
+  script_id?: number
 }
 export interface ImportResult {
   source: string; filename: string; kind: string; engine: string

@@ -728,3 +728,47 @@ F 阶段的取消按钮（D 阶段逻辑）必须同期落地，否则用户体�
 
 **规则 / 评测**：`rules` 表数据版本 +2（v3→v4，两轴定义互斥化，旧版保留）；
 `EVAL.md` 新增 §2.1「轴命中怎么读」——统计必须读 `axes`/`evidence`，不得读 `axis` 主轴。
+
+## C · 分段锚点绝对偏移（含一次 parse 层目录重构）
+
+**改动**：① `Piece` 增加 `start/end/spans`，切分时**按块**就地算出绝对字符区间（忽略空白差异，
+所以剥过行首序号、压过换行的话术仍然指得回原文），`spans` 给这句话在整篇里的**全部**出现位置；
+② `scripts` 新增 `source_start` / `source_end`（INT NULL）并入库，预览与提交**都**返回锚点
+（`items_detail` 另带 `source_occurrences` 与 `script_id`）；③ 前端渲染改为按区间高亮，
+模糊定位退成兜底路径，服务端锚不上与前端搜不到分开显示（后者仍显示"位置未知"，不许猜位置）；
+④ 目录重构：`backend/parse/` 拆成 `base.py`（契约+注册表+能力探测+编解码，307→240 行）、
+`split.py`（切分与锚定）、`parsers/{documents,media}.py`——加第 4 个真实文件会破"每目录 ≤3 个"，
+按约束写明的方向用子包，而不是把注释删了凑行数。
+
+**为什么锚点必须在解析层算**：只有 `split_doc` 知道每条 piece 属于哪个块。放到 tools 层整篇模糊搜，
+同块内两句相同文案会一起指到第一处——那正是"点第 5 条滚到第 1 条"的成因；而且逐条重扫长文
+是 O(n²)，200 条 × 20 万字符会把预览从毫秒级拖成秒级（这洞我在写成 tools 层时发现并改掉了）。
+
+**去重与"分别高亮"的关系**：`dedupe_limit` 按文本去重，同一句写两遍只入库**一条**话术
+（省掉一次重复审查与重复计费）。改它等于改入库条数与批量成本，不由这一层决定，所以锚点给出
+`spans` 全集，让界面两处都亮、记录仍是一条。
+
+**实际验证**：
+- `set PYTHONNOUSERSITE=1&& python -m pytest tests -q` → **372 passed in 16.48s**（新增 9 条：
+  锚点单测 7 + 预览/提交 e2e 1 + 截断越界报"未知" 1）。
+- 库内真实素材重解析：8 份 / 41 条话术，**锚点覆盖率 41/41 = 100%**，偏移切回原文与话术
+  不一致 **0 条**。
+- 库里没有的形态另造真文件补测（不拿挑过的样例充数）：docx 2/2、xlsx 3/3、pptx 2/2（含备注）、
+  **OCR 海报 2/2**、重复句 2/2 且 `spans=2`（两处都给出来），偏移错 0。
+- `cd frontend && npm run build` → **✓ built in 6.32s**，无类型错误。
+- 迁移：`python -m scripts.migrate_script_anchors` 预览两列 → `--apply --show` 执行 → 复跑"跳过"。
+  `SHOW CREATE TABLE scripts` 前后逐列对比只多 `source_start`/`source_end` 两列，
+  `AUTO_INCREMENT` 保持 182 未变（没有删行、没有动数据）。
+- e2e 里我一度把期望偏移写成手数出来的 `11+len(line)`（错），改成从原文 `whole.index(middle)`
+  独立推导；`.txt` 上传走默认 `mode=blank`，单换行不切开，测试数据改成空行分段而不是迁就实现。
+
+**风险 / 遗留**：① 手工录入（非素材）的 `scripts` 两列恒为 NULL，前端仍走模糊定位兜底——
+这是既有数据的现实，不是新功能；② 超过 `FULL_TEXT_STORE_LIMIT`（20 万字符）的素材，
+越界锚点按规则置 NULL，界面上会显示"位置未知"而不是错位置；③ 浏览器里的实际高亮效果
+（点击结果自动滚动、两处同时亮）我没有真机点过，需要你在 1280 宽度下确认一次；
+④ `backend/parse/__init__.py` 的门面 re-export 是这次唯一的路径变化，外部调用方
+（含 RUNBOOK 里的 `from backend.parse import capabilities`）全部不受影响，
+4 处测试里 `import backend.parse.media` 改成了 `backend.parse.parsers.media`
+（monkeypatch 的目标模块必须是被调用的那一个，指错对象会静默失效）。
+
+**规则 / 评测**：`rules` 表数据与词表本轮未改；判定链路未改；表结构变更见 `db_schema.md` 变更记录。

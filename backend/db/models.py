@@ -148,6 +148,12 @@ class Script(Base):
     )
     # pos 给机器（排序、按页统计），ref 给人（"第3页" / "Sheet1·第12行" / "语音第4句"）
     source_pos: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # 这一条在素材整篇文本（sources.full_text）里的绝对字符区间 [start, end)。
+    # 为什么还要单独存：pos 只到"块"这一级（第 3 页 / 表格第 12 行），
+    # 同一块里出现两句相同的话术时靠 pos 分不开，前端只能退回模糊定位——
+    # 那正是"命中在原文里定位失败"的来源。NULL = 锚不上，界面必须显式说"位置未知"。
+    source_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source_ref: Mapped[str | None] = mapped_column(String(40), nullable=True)
     # OCR/ASR 单块置信度；NULL 表示来自文本层，不存在识别误差
     parse_confidence: Mapped[Decimal | None] = mapped_column(Numeric(5, 4), nullable=True)

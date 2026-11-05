@@ -16,6 +16,11 @@ export interface HitRender {
   context: { before: string; after: string } | null
   /** 文档级区间：给左栏画高亮用；没定位上就是 undefined（不猜位置） */
   span?: { start: number; end: number }
+  /**
+   * 同一句话在原文别处的出现位置。服务端去重是按文本入库的（一句话只建一条记录），
+   * 但原文里两处都还在——只亮一处，商家看到的就是"我写了两遍凭什么只标一遍"。
+   */
+  extra?: Array<{ start: number; end: number }>
 }
 
 export interface ResultRow {

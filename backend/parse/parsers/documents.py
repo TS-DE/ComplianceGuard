@@ -246,7 +246,7 @@ class PdfParser(Parser):
     @staticmethod
     def _ocr_pages(raw: bytes, pages: list[int], warnings: list[str]) -> list[Block]:
         """扫描页走 OCR。引擎缺失时不谎报成功：整本都是扫描页就报错，混排则跳过并警告。"""
-        from backend.parse.media import OCR_MAX_PAGES, ocr_pdf_pages
+        from backend.parse.parsers.media import OCR_MAX_PAGES, ocr_pdf_pages
 
         if len(pages) > OCR_MAX_PAGES:
             raise ParseError(

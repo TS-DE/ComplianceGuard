@@ -11,7 +11,7 @@ import io
 
 import pytest
 
-import backend.parse.media as media
+import backend.parse.parsers.media as media
 from backend.parse import ParseError, capabilities, parse_file, split_doc
 
 

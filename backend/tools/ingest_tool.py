@@ -66,8 +66,7 @@ class IngestResult:
             "created": 0,
             "script_ids": [],
             "items": [piece.text for piece in self.pieces],
-            "items_detail": [{"text": piece.text, "pos": piece.pos, "ref": piece.ref,
-                              "confidence": piece.confidence} for piece in self.pieces],
+            "items_detail": [_detail(self, piece) for piece in self.pieces],
             # 整篇原文：检查页左栏按原文展示，并把命中定位回文档级位置。
             # 命中的 start/end 是相对**单条话术**的下标，而话术经过剥序号与压平空白，
             # 不一定是原文的字面子串——所以必须给整篇，前端才能带上下文指位置。
@@ -114,6 +113,25 @@ def resolve_stored(rel_path: str) -> Path:
     if not target.is_file():
         raise ParseError("原始素材文件不在磁盘上（可能已被清理），仅可查解析结果")
     return target
+
+
+def _detail(result: IngestResult, piece: Piece) -> dict:
+    """一条话术的溯源视图，预览与入库共用同一个形状。
+
+    偏移量全部由解析层算好（`backend/parse/split.py`），这里只做两件事：
+    按存下来的那份整篇文本裁剪、以及组装响应。
+    为什么要裁：锚点是相对 `doc.text` 算的，而库里存的是 `full_text[:LIMIT]`——
+    偏移必须和前端手上那份文本对得上，超出截断范围的一律置 None，
+    宁可显示"位置未知"，也不能给一个看着对、其实错的位置。
+    """
+    limit = len(result.doc.text[:FULL_TEXT_STORE_LIMIT])
+    spans = [[start, end] for start, end in piece.spans if end <= limit]
+    start, end = spans[0] if spans else [None, None]
+    if piece.start is not None and piece.end is not None and piece.end <= limit:
+        start, end = piece.start, piece.end      # 块内定位更准，优先于整篇搜的第一处
+    return {"text": piece.text, "pos": piece.pos, "ref": piece.ref,
+            "confidence": piece.confidence, "source_start": start, "source_end": end,
+            "source_occurrences": spans}
 
 
 def parse(filename: str, raw: bytes, mode: str = "blank") -> IngestResult:
@@ -186,17 +204,26 @@ def commit(db: Session, result: IngestResult, client_id: int, scene: str | None,
     source = source_repo.create(db, source_fields(result, client_id, user_id,
                                                   stored_path, len(pieces)))
     created: list[int] = []
+    detail: list[dict] = []
     for piece in pieces:
         # 与 service 层同一口径：Repository.create 收的是 dict，不是 Pydantic 对象
         row = script_repo.create(db, ScriptCreate(
             client_id=client_id, scene=scene or None,
             content=piece.text).model_dump())
-        # 溯源在创建之后补写：ScriptCreate 是既有 schema，不为了四个可选字段去改它的校验语义
+        item = _detail(result, piece)
+        # 溯源在创建之后补写：ScriptCreate 是既有 schema，不为了六个可选字段去改它的校验语义
         script_repo.update(db, row, {"source_id": source.id, "source_pos": piece.pos,
+                                     "source_start": item["source_start"],
+                                     "source_end": item["source_end"],
                                      "source_ref": piece.ref,
                                      "parse_confidence": piece.confidence})
         created.append(row.id)
+        detail.append(dict(item, script_id=row.id))
     return {"source_id": source.id, "created": len(created), "script_ids": created,
+            # 提交也回一份带偏移的条目：商家勾完就进结果页，此时还没有"再预览一次"的机会，
+            # 少了这份数据，结果页只能退回模糊定位——那正是本阶段要消灭的兜底当主力。
+            "items": [piece.text for piece in pieces],
+            "items_detail": detail,
             "kind": result.doc.kind, "engine": result.doc.engine,
             "confidence": result.doc.confidence, "warnings": result.doc.warnings,
             "parse_ms": result.parse_ms}

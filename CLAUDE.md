@@ -67,7 +67,7 @@ D:\ComplianceGuard\
 │   ├── services/         # 业务编排：audit / rewrite / redteam / report
 │   ├── agents/           # 5 个 Agent + base.py + mcp_client.py
 │   ├── tools/            # rag_tool / db_tool / ingest_tool（MCP 工具的本地实现）
-│   ├── parse/            # 素材摄取：base 抽象+注册表 / documents 文档结构 / media OCR·ASR
+│   ├── parse/            # 素材摄取：base 抽象+注册表 / split 切分与绝对锚点 / parsers 子包(documents,media)
 │   ├── mcp_server/       # MCP 服务端（stdio）
 │   └── rag/              # ingest / store / retriever（Chroma）
 ├── frontend/             # Vue3 + Vite + TS + Element Plus

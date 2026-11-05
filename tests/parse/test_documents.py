@@ -175,7 +175,7 @@ def test_pdf_text_layer_blocks_by_page() -> None:
 
 def test_pdf_blank_page_goes_to_ocr_and_keeps_page_ref(monkeypatch) -> None:
     """混排 PDF：第 2 页没有文字层 → 交给 OCR，页码溯源仍是"第2页"，与文字层页同一口径。"""
-    import backend.parse.media as media
+    import backend.parse.parsers.media as media
 
     def fake_ocr(raw: bytes, pages: list[int]) -> list:
         assert pages == [2]
@@ -191,7 +191,7 @@ def test_pdf_blank_page_goes_to_ocr_and_keeps_page_ref(monkeypatch) -> None:
 
 def test_pdf_without_ocr_engine_warns_instead_of_faking_success(monkeypatch) -> None:
     """引擎缺失时如实降级：混排文件给出警告并跳过扫描页，整本都是扫描页则明确报错。"""
-    import backend.parse.media as media
+    import backend.parse.parsers.media as media
 
     def missing(raw: bytes, pages: list[int]) -> list:
         raise ParseError(media.OCR_INSTALL_HINT)
