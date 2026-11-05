@@ -39,30 +39,50 @@ def normalize_with_map(original):
     return normalized, [start for start, end in spans]
 
 def downgrade_descriptive_hits(hits):
-    """把"只描述效果、不含承诺词"的硬命中降级为软提示，而不是放行。
+    """把"只描述效果、不含承诺词"或"落在否定语境里"的硬命中降级为软提示，而不是放行。
 
     为什么要分级：模型把「皮肤愈合后，应更显光滑」「可能需要大约三个月时间才能
     恢复正常肤色」判成了功效断言。这两句是预后 / 恢复周期的常规告知，
     没有向顾客承诺确定结果。真正的红线是"把可能性包装成确定性"。
+
+    为什么否定语境必须排在承诺词**之前**判：
+    「磨皮术的效果可能不是永久性的」里 `永久` 既是命中词又是承诺词，
+    按旧顺序它会因"含承诺词"而保持硬违规——可这句话恰恰是在**否认**永久性。
+    承诺词表被否定结构修饰时不再算承诺，这是 T1 语境闸的落点。
 
     刻意保留命中、只降严重度：
     - 命中仍在 -> 商家仍会被提示"这句话有风险"，不会因降级被吞掉；
     - hard -> soft -> 分数 0 变 1 -> 界面显示"疑似违规 · 建议复核"。
 
     判据放在代码里而不是让模型自己给等级：可复算、可解释，
-    也符合"分数由代码算"的铁律。
+    也符合"分数由代码算"的铁律。降级同时打 `needs_recheck`，交给 T2 整篇复核裁决。
     """
     for hit in hits:
         if hit.get('severity') != 'hard':
             continue
         quote = hit.get('quote') or ''
+        if hit.get('negated_suspected'):
+            hit['severity'] = 'soft'
+            hit['downgraded'] = True
+            hit['needs_recheck'] = True
+            hit['downgrade_reason'] = (
+                f"命中片段「{quote}」左侧出现否定（{hit.get('negation_signal')}），"
+                "断言词被否定结构修饰，不按承诺处理；降级为疑似并送整篇复核"
+            )
+            continue
+        if hit.get('context_hedge'):
+            # 假设/引用/科普语境先留痕再决定是否降级：
+            # 「如果不做术后护理，效果永久」的命中片段是承诺词本身，
+            # 若把下面的承诺词早退放在前面，这句就永远送不进复核——标记了却没人管。
+            hit['needs_recheck'] = True
         if any(word in quote for word in COMMITMENT_WORDS):
-            continue  # 有承诺词，保持硬命中
+            continue  # 有承诺词且未被否定，保持硬命中（是否误判交给整篇复核）
         hedges = [word for word in HEDGE_WORDS if word in quote]
         if not hedges:
             continue  # 既无承诺词也无模糊限定词，无从判断，保持原判
         hit['severity'] = 'soft'
         hit['downgraded'] = True
+        hit['needs_recheck'] = True
         hit['downgrade_reason'] = (
             f"表述含模糊限定词（{'、'.join(hedges[:3])}）且无保证性承诺词，"
             "按一般预后/恢复周期告知处理，降级为疑似风险"

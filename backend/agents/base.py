@@ -128,9 +128,74 @@ class LLMJudgeDetector(Detector):
         return hits
 
 
+def _sentence_span(text: str, at: int) -> tuple[int, int]:
+    """取 at 所在句子的区间；句子边界按中英文句读与换行切。
+
+    语境信号只看同句：上一句的"如果"救不了本句的承诺，跨句合并会把
+    "你会不会后悔？保证一次见效"整条放行。
+    """
+    ends = "。！？!?；;\n"
+    start = max((text.rfind(mark, 0, at) for mark in ends), default=-1)
+    start = start + 1 if start >= 0 else 0
+    stop = len(text)
+    for mark in ends:
+        found = text.find(mark, at + 1)
+        if 0 <= found < stop:
+            stop = found
+    return start, stop
+
+
+def mark_hit_context(text: str, hit: dict) -> dict:
+    """给命中打语境标记（否定 / 假设-引用-科普），只标记不丢弃。
+
+    命中片段本身是从原文逐字截出来的（N6 还会再校验一次），所以直接 find 定位；
+    定位不到就不标记——宁缺毋错，让复核阶段去判断。
+    """
+    from backend.core.constants import (
+        CONTEXT_HEDGE_WORDS, NEGATION_WINDOW, NEGATION_WORDS)
+
+    quote = hit.get("quote") or ""
+    if not quote:
+        return hit
+    at = text.find(quote)
+    if at < 0:
+        return hit
+    left = text[max(0, at - NEGATION_WINDOW):at]
+    negations = [word for word in NEGATION_WORDS if word in left]
+    if negations:
+        hit["negated_suspected"] = True
+        hit["negation_signal"] = max(negations, key=len)
+    start, stop = _sentence_span(text, at)
+    sentence = text[start:stop]
+    hedges = [word for word in CONTEXT_HEDGE_WORDS if word in sentence]
+    if hedges:
+        hit["context_hedge"] = True
+        hit["context_signal"] = max(hedges, key=len)
+    return hit
+
+
+class ContextGateDetector(Detector):
+    """在确定性检测器外套一层语境标记（OCP：加语境规则不改任何检测器实现）。
+
+    为什么是装饰器而不是在 ComplianceAuditAgent 里写 if：
+    判定链路本已经很长，再往里塞特例就会变成"谁都能加一条 if"的地方；
+    套在注册表上，新增检测手段自动获得同一层标记，测试也能单点验证。
+
+    标记不影响命中存废（T1 刻意不丢弃命中），只供分级闸、整篇复核与人工审计使用。
+    """
+
+    def __init__(self, inner: Detector):
+        """inner 是被包装的检测器；本装饰器不改变其异常语义。"""
+        self.inner = inner
+
+    def detect(self, text: str, rule: Rule) -> list[dict]:
+        """返回带语境标记的候选；内层抛出的异常原样传播。"""
+        return [mark_hit_context(text, hit) for hit in self.inner.detect(text, rule)]
+
+
 DETECTORS: dict[str, Detector] = {
-    "keyword": KeywordDetector(),
-    "regex": RegexDetector(),
+    "keyword": ContextGateDetector(KeywordDetector()),
+    "regex": ContextGateDetector(RegexDetector()),
     "llm_judge": LLMJudgeDetector(),
 }
 
