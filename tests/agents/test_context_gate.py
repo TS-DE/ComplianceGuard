@@ -104,3 +104,57 @@ def test_wrapping_does_not_swallow_inner_errors() -> None:
 
     with pytest.raises(KeyError):
         DETECTORS["regex"].detect("原文", Rule(axis="unprepared", expression="new"))
+
+
+# ---------------------------------------------------------------- 词表收紧（口径变更）
+def test_solo_hedge_needs_prognosis_context() -> None:
+    """「应」「一般」必须与预后/周期词同现才算限定词。
+
+    这是判定口径的一部分，必须由测试钉住：红队样本只要句里带个"应"字
+    就能被分级闸软化，等于对抗样本自己找到了后门。
+    """
+    from backend.core.constants import effective_hedges
+
+    assert effective_hedges("应更显光滑", "应答速度快，效果保证") == ()
+    assert effective_hedges("一般都能白", "一般都能白") == ()
+    assert effective_hedges("应更显光滑", "皮肤愈合后，应更显光滑。") == ("应",)
+    assert "可能" in effective_hedges("可能因人而异", "")
+
+
+def test_solo_hedge_cooccurrence_is_judged_on_whole_script() -> None:
+    """同现范围允许在整条话术里：限定词与语境词常分属两个分句。
+
+    「皮肤愈合后，应更显光滑」的命中片段往往只是"应更显光滑"，
+    只看片段会把正当的常规告知重新判成硬违规——那是把误杀修成了漏放的反方向错误。
+    """
+    from backend.agents.base import Rule
+
+    hits = DETECTORS["keyword"].detect(
+        "皮肤愈合后，应更显光滑",
+        Rule(axis="efficacy_claim", law_article="广告法第16条",
+             pattern="疗效保证", level="hard", keywords=("应更显光滑",)))
+    result = downgrade_descriptive_hits(hits, "皮肤愈合后，应更显光滑")
+    assert result[0]["severity"] == "soft"
+    assert "模糊限定词" in result[0]["downgrade_reason"]
+
+
+def test_hedge_backdoor_is_closed_on_sales_sentence() -> None:
+    """没有预后语境时，"应/一般"必须不能单独成为降级理由。
+
+    注意引文里不能带承诺词：带了就会先被承诺词分支拦下，
+    那样测的是另一条规则，"应"字后门到底关没关根本没被验到。
+    """
+    no_context = [{"quote": "一般都能白三个度", "severity": "hard"}]
+    result = downgrade_descriptive_hits(no_context, "一般都能白三个度")
+    assert result[0]["severity"] == "hard", "'一般' 不得单独成为降级理由"
+    assert not result[0].get("downgraded")
+
+    with_context = [{"quote": "一般都能白三个度", "severity": "hard"}]
+    downgraded = downgrade_descriptive_hits(with_context, "疗程结束后一般都能白三个度")
+    assert downgraded[0]["severity"] == "soft", "同现预后词时应正常降级"
+
+
+def test_commitment_word_still_wins_without_any_hedge() -> None:
+    """既无限定词也无预后语境时保持原判——收紧不能顺手放行。"""
+    hits = [{"quote": "百分百有效", "severity": "hard"}]
+    assert downgrade_descriptive_hits(hits, "百分百有效")[0]["severity"] == "hard"

@@ -14,7 +14,7 @@ from backend.agents.base import (
 from backend.agents.audit.recheck import recheck_hits
 from backend.core.config import DISCLAIMER_TEXT
 from backend.core.constants import (
-    COMMITMENT_WORDS, HEDGE_WORDS,
+    COMMITMENT_WORDS, effective_hedges,
     to_refs, missing_docs, add_cost, match_refs, bind_chunk)
 
 _SENTENCES = re.compile(r'[^。！？!?；;\n]+[。！？!?；;\n]?')
@@ -40,8 +40,13 @@ def normalize_with_map(original):
     normalized, spans = normalize_text(original)
     return normalized, [start for start, end in spans]
 
-def downgrade_descriptive_hits(hits):
+def downgrade_descriptive_hits(hits, text=""):
     """把"只描述效果、不含承诺词"或"落在否定语境里"的硬命中降级为软提示，而不是放行。
+
+    `text` 是命中所属的整条话术：判断"应/一般"这类高频限定词能否参与降级，
+    要看它是否与预后/周期词同现（constants.effective_hedges）。
+    只看命中片段会两头出错——红队样本用一个"应"字就能开后门，
+    而正常的「皮肤愈合后，应更显光滑」又会被误判成硬违规。
 
     为什么要分级：模型把「皮肤愈合后，应更显光滑」「可能需要大约三个月时间才能
     恢复正常肤色」判成了功效断言。这两句是预后 / 恢复周期的常规告知，
@@ -80,7 +85,7 @@ def downgrade_descriptive_hits(hits):
             hit['needs_recheck'] = True
         if any(word in quote for word in COMMITMENT_WORDS):
             continue  # 有承诺词且未被否定，保持硬命中（是否误判交给整篇复核）
-        hedges = [word for word in HEDGE_WORDS if word in quote]
+        hedges = list(effective_hedges(quote, text))
         if not hedges:
             continue  # 既无承诺词也无模糊限定词，无从判断，保持原判
         hit['severity'] = 'soft'
@@ -192,7 +197,7 @@ class ComplianceAuditAgent:
             result['incomplete'] = True
             result['incomplete_reason'] = 'evidence_gap'
         # N7.5 分级闸：描述性表述与否定语境降级为软提示（见 downgrade_descriptive_hits）
-        downgrade_descriptive_hits(result['hits'])
+        downgrade_descriptive_hits(result['hits'], text)
         # N7.6 整篇复核：路线A 已在首 call 带上看整篇上下文，这里跳过，避免两次串行调用
         result['hits'] = self._recheck(text, result['hits'], result, context)
         result['raw_hits'] = result['hits']

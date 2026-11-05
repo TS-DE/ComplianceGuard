@@ -176,6 +176,33 @@ HEDGE_WORDS = (
     "预计", "视情况", "通常情况下", "一般情况下", "多数人", "部分人", "应",
 )
 
+# 「应」「一般」是高频字词，单独出现不足以说明"这是常规告知"。
+# 实测代价：红队两条 efficacy_claim 高强度样本因为句里有个"应"字被软化，
+# 等于对抗样本自己找到了分级闸的后门。
+SOLO_HEDGE_WORDS = ("应", "一般")
+
+# 只有与这些预后 / 恢复周期语境词共现时，SOLO_HEDGE_WORDS 才允许参与降级
+PROGNOSIS_CONTEXT_WORDS = (
+    "愈合", "恢复", "之后", "术后", "术前", "疗程", "周期", "个月", "消肿",
+    "结痂", "代谢", "脱落", "反黑", "排黑", "掉痂", "创面",
+)
+
+
+def effective_hedges(fragment: str, context: str = "") -> tuple[str, ...]:
+    """返回真正可用于降级的模糊限定词。
+
+    规则：强限定词（可能/大约/因人而异…）出现即算；
+    "应""一般"必须与预后/周期词同现才算——同现范围允许在整条话术里，
+    因为「皮肤愈合后，应更显光滑」这类句子里 限定词与语境词分属两个分句，
+    只看命中片段会把正当的常规告知重新误判成硬违规。
+    """
+    strong = tuple(word for word in HEDGE_WORDS if word not in SOLO_HEDGE_WORDS)
+    found = [word for word in strong if word in fragment]
+    pool = f"{fragment}{context}"
+    if any(word in pool for word in PROGNOSIS_CONTEXT_WORDS):
+        found += [word for word in SOLO_HEDGE_WORDS if word in fragment]
+    return tuple(dict.fromkeys(found))
+
 # ---------------------------------------------------------------------------
 # 语境闸（T1）：命中词落在否定/假设/引用/科普语境里时，先标记，不丢弃
 #
