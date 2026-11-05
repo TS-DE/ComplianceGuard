@@ -1,0 +1,67 @@
+/**
+ * 商家端动效令牌与关键帧（只定义，不绑定任何页面）。
+ *
+ * 动效只用来说明"刚刚发生了什么"：内容进入、状态切换、定位强调、等待中。
+ * 时长 150–300ms，统一缓动；不做无限循环装饰（骨架闪光只在加载占位期间存在）。
+ * 系统开启"减少动效"时，本文件定义的全部动画与过渡关闭。
+ */
+:root {
+  --motion-fast: 150ms;
+  --motion-base: 220ms;
+  --motion-slow: 300ms;
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 位移与闪光色：位移只给 8px，闪光取哑金的极浅一档，不做大面积色块 */
+  --motion-shift: 8px;
+  --motion-pulse-color: rgba(180, 136, 75, 0.28);
+  --motion-skeleton-base: #F1E9DA;
+  --motion-skeleton-shine: #FAF5EC;
+}
+
+/* 淡入 + 自下而上 8px：分段进入、阶段切换、数据到位都用这一种 */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(var(--motion-shift)); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 背景闪一次后回到常态：定位命中时告诉用户"就是这里" */
+@keyframes pulse-once {
+  0%   { background-color: var(--motion-pulse-color); }
+  100% { background-color: transparent; }
+}
+
+/* 骨架占位的光带：只在数据未到时出现，数据到位即随占位一起移除 */
+@keyframes skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to   { background-position: -100% 0; }
+}
+
+/* 工具类：供 utils/motion.ts 与后续组件按类名调用 */
+.motion-fade-up {
+  animation: fade-up var(--motion-base) var(--ease-out) both;
+}
+
+.motion-pulse {
+  animation: pulse-once var(--motion-slow) var(--ease-out) 1;
+}
+
+.motion-skeleton {
+  background: linear-gradient(90deg,
+    var(--motion-skeleton-base) 25%,
+    var(--motion-skeleton-shine) 50%,
+    var(--motion-skeleton-base) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s linear infinite;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-fade-up,
+  .motion-pulse,
+  .motion-skeleton {
+    animation: none !important;
+    transition: none !important;
+  }
+  .motion-fade-up { opacity: 1; transform: none; }
+  .motion-skeleton { background: var(--motion-skeleton-base); }
+}
