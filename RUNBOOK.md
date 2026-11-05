@@ -73,6 +73,7 @@ npm run dev
 ## 5. 演示前检查清单
 - [ ] `/health` 200
 - [ ] MCP `--selftest` 8 个工具
+- [ ] MCP `--selftest-mcp` 输出 `"assertion": "PASS"`（真起 stdio 子进程、经协议调用一次工具并断言返回）
 - [ ] `set PYTHONNOUSERSITE=1&& python -m scripts.doc_lint` **红灯 0 条**（文档与代码对账，红灯不许收工）
 - [ ] `set PYTHONNOUSERSITE=1&& python -m pytest tests -q` 全绿 + `cd frontend && npm run build` 通过
 - [ ] 锚点集 30 条已入库、向量库已建

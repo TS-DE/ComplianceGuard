@@ -65,10 +65,11 @@ D:\ComplianceGuard\
 │   ├── crud/             # 纯数据库操作，不含业务判断
 │   ├── api/v1/           # 路由层：auth / resources(四套 CRUD) / ingest(素材摄取与档案) / ai
 │   ├── services/         # 业务编排：audit / rewrite / redteam / report
-│   ├── agents/           # 5 个 Agent + base.py + mcp_client.py
+│   ├── agents/           # 5 个业务 Agent（base / compliance / redteam，已达每目录上限）
 │   ├── tools/            # rag_tool / db_tool / ingest_tool（MCP 工具的本地实现）
+│   ├── model/            # 模型后端：urllib / langchain + LLM_BACKEND 选择器
 │   ├── parse/            # 素材摄取：base 抽象+注册表 / split 切分与绝对锚点 / parsers 子包(documents,media)
-│   ├── mcp_server/       # MCP 服务端（stdio）
+│   ├── mcp_server/       # MCP 服务端（stdio）+ client.py（真实协议客户端，MCP_MODE=client 才走）
 │   └── rag/              # ingest / store / retriever（Chroma）
 ├── frontend/             # Vue3 + Vite + TS + Element Plus
 ├── data/

@@ -871,3 +871,57 @@ LangChain 只承担"这一次 chat 调用交给谁"，所以文档口径写清**
 如果老师追问"为什么不用"，答案在 CLAUDE.md §2 那一行，不要临场编。
 
 **规则 / 评测**：`rules` 表数据、词表、判定口径本轮均未改；评测样本不变，只增了后端一致性核对。
+
+## T-C · MCP 真实协议调用：一半达成，一半按预案停下（不假装）
+
+**做了什么**：① 新增 `backend/mcp_server/client.py`：`StdioServerParameters` + `ClientSession`
+真实起子进程走 stdio，`MCPClient` 一个进程一条 session（专用线程跑事件循环、
+调用线程 `run_coroutine_threadsafe` 投递、锁串行化）；Windows 两个坑按统筹方提醒钉死——
+显式传 `sys.executable`（不写 `python`，否则命中 C 盘全局解释器）与子进程 env
+`PYTHONNOUSERSITE=1`（否则读到 C 盘 user-site 副本包）。
+② 开关 `MCP_MODE=inline|client`，默认 inline；业务侧唯一接缝 `_cached_law_lookup` 按开关分流。
+③ `--selftest-mcp`：真起子进程、经协议调用一次工具并**断言返回**。
+④ `decode()` 优先取 `structuredContent`，只在缺失时解析文本——两处各解一遍迟早出现
+"文本与结构不一致"的分裂结果。
+⑤ 放在 `mcp_server/` 而不是 `agents/mcp_client.py`：`agents/` 已有 base/compliance/redteam
+三个真实文件，加第四个就破"每目录 ≤3"；协议客户端本来就属于 MCP 侧。目录树同步改实话。
+
+**已经过硬的证据**（原样贴）：
+```
+{"transport":"stdio","tools":8,"called":"db_query_rules","rows":1,
+ "first":{"axis":"absolute_terms","level":"hard","detector":"regex","version":1},
+ "assertion":"PASS"}
+```
+子进程日志同时可见 `ListToolsRequest` 与 `CallToolRequest`，说明这条确实走了协议而不是内链。
+
+**没做到的部分（停止条件 2 的预案，用了约 1.5 小时）**：
+`MCP_MODE=client` 下跑真实审查，**第一次 `rag_search_law` 永远不返回**，撞穿超时；
+第二次起同一工具 7.2s 正常。三组对照事实：
+- 同一 session 里第一次调用 `db_query_rules` → 0.5s OK，所以"首条请求"本身没问题；
+- 同一套检索在**独立进程**里：`import backend.rag.retrieve` 1.3s + 首次 search 5.4s = 6.7s；
+- 关掉 chromadb 匿名遥测（`ANONYMIZED_TELEMETRY=False`）不改变；我们代码里 0 处 `tiktoken`。
+判定链路本身没有因此出错：第一条按 `score=-1 未完成` 结案，**没有被当成合规放行**（铁律成立）。
+
+**两次误判都已公开收回**（不是私下改掉）：
+① 我先判"jieba 把 `Building prefix dict...` 打到 stdout 冲掉了 JSON-RPC 响应"——
+隔离探针实测 stdout 0 字节、那些噪声走 stderr，**判断错了**；`warm_libraries()` 只保留为
+降噪 + 提前加载，注释里写明它不是这条超时的修复。
+② 我写的护栏测试一开始断言方向是反的（断言"污染存在"），且去掉预热的对照组证明它抓不到东西
+——即**空跑**；改为"先证明捕获机制有效（故意打印必须被抓到），再要求真实路径 stdout 为空"，
+11 条测试全绿且有对照组支撑。
+
+**验收口径按预案调整**：`requirements.md:54` 改为"8 个工具按 MCP 契约注册，可被外部客户端经
+stdio 真实调用（`--selftest-mcp` 断言返回）；业务内链默认复用同一实现以减少序列化"，
+`.env.example` 里把 client 模式的实测边界与这条未解挂起写清楚，并明确"演示时不要打开"。
+
+**实际验证**：`tests/mcp/test_client.py` 新增 11 条离线测试（协议语义部分不依赖子进程：
+`decode()` 四种输入、`server_params()` 钉解释器与 user-site、构造客户端零副作用、
+inline 模式拒绝协议调用、位置参数按 inputSchema 顺序映射、未注册工具名在发出前就拒）；
+`set PYTHONNOUSERSITE=1&& python -m pytest tests -q`、`python -m scripts.doc_lint`、
+`npm run build` 结果见提交信息。
+
+**风险 / 遗留**：① **未解**：子进程首次触达 Chroma 的调用挂到超时，后续正常。留给下一轮的
+排查入口已列（不重复我已排除的三条）；如果评审要现场演示 MCP，用 `--selftest-mcp`，
+不要用 `MCP_MODE=client` 跑审查；② client 模式没有全量回归过，只是"能握手、能列、能调通
+非检索工具"的程度；③ `warm_libraries()` 若在别的机器上让握手变慢，直接删掉它没有功能损失
+（它只降噪）。

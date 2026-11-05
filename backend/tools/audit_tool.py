@@ -28,9 +28,18 @@ def _cached_law_lookup(query: str, top_k: int) -> tuple[str, ...]:
     使结论可复现；跨进程仍可能变化，所以 compliance 里还有证据缺口兜底。
     用 JSON 字符串做缓存值，避免调用方就地修改命中对象污染缓存。
     """
-    from backend.mcp_server.server import rag_search_law
+    from backend.mcp_server.client import mcp_mode    # 只取开关，不在顶层拖上 mcp 依赖
 
-    items = rag_search_law(query, top_k)
+    if mcp_mode() == 'client':
+        # 走真实 MCP 协议（stdio 子进程）：requirements.md 那条"Agent 真实经 MCP 调用"
+        # 只能这样验；默认仍是内联复用同一实现，因为协议模式每次要多一次进程与序列化开销
+        from backend.mcp_server.client import call_tool
+
+        items = call_tool('rag_search_law', query, top_k)
+    else:
+        from backend.mcp_server.server import rag_search_law
+
+        items = rag_search_law(query, top_k)
     return tuple(json.dumps(item, ensure_ascii=False, sort_keys=True) for item in items)
 
 
