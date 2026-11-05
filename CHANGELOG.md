@@ -501,3 +501,15 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 
 **规则 / 评测**：未改 `rules` 数据与法条归档；新增表字段与迁移脚本，
 `db_schema.md` 同步记录迁移链路。
+## FE-A1 · 前端设计系统与外壳（换皮不改业务逻辑）
+
+**改动**：建立 `frontend/src/styles/tokens.css`（冷灰档案纸四档底色 + 四个风险语义色 + 8pt 栅格 + 唯一一档 3px 圆角 + 衬线引文/无衬线界面的字体分工）与 `base.css`（在这一处把 Element Plus 主题变量映射到 token，组件里不许再写色值；附 `prefers-reduced-motion` 与 `:focus-visible` 兜底）。新建 `components/` 按类别分子目录、每目录 ≤3 个 `.vue`：`risk/RiskBadge`、`risk/ScoreRing`、`risk/HitCard`、`data/StatCard`、`data/EmptyState`、`data/DiffView`、`layout/StepProgress`。判定→视觉的唯一出口是 `utils/risk.ts::riskState()`：页面里再出现 `score !== 0 ? 绿 : 红` 就会把"判定未完成"显示成合规，这是本项目最贵的一类错，所以宁可多一层映射也不允许各处自己判断。`ScoreRing` 刻意不做成百分制——`score` 取值域是 -1~2（db_schema.md 的 CHECK 约束），渲染成"73 分"就是凭空造量表。新增依赖 `diff@9`（jsdiff，词级差异；差异算法错得很安静，不自己造）。外壳改纸白＋边线、导航用标题首字作字标（**不装图标库**：本轮只允许 ECharts 与 diff 两个新依赖）、顶栏去掉与页面 h1 重复的小标、免责声明常驻侧栏底部；`go()` 显式跳转与 `router-view :key` 两处旧逻辑原样保留（它们是"点了没反应"踩坑后加的）。`frontend/README.md` 写下设计主张与七条验收标准，后续改版以此为准。
+
+本轮**未动任何业务页面内部逻辑**，导航项也按现状保留（A2 才压缩商家端到 4 项）。
+
+**实际验证**：`cd frontend && npm run build`（`vue-tsc --noEmit && vite build`）→ **✓ built in 6.12s，零类型错误**；产物里 `ReviewQueue/Check/ScriptList/Portal` 等 11 个页面 chunk 全部正常产出，说明旧页面在新主题下仍可编译挂载。`set PYTHONNOUSERSITE=1&& python -m pytest tests -q` → **332 passed**，与本轮开工前持平（前端改动不该影响后端，用测试确认没有误碰）。
+构建首轮真实报错并已修：`ScoreRing` 里误写 `transform` 重复属性 + 无效 CSS 属性 `dasharray`；`DiffView` 里 `as const` 用在三元表达式上（TS 不允许）；`ScoreRing` 的填充比例数组 `[1/3,2/3,1]` 与索引 `(2-score)` 方向反了，会把"合规"画成最空的环——已改为 `[1,2/3,1/3]` 并在注释里写明映射。
+
+**风险 / 遗留**：① "无控制台报错、页面渲染正常"只验证到编译与构建层面，**浏览器里的人眼确认仍缺**（A1 验收标准第 1 条要求的就是这一项）；请在重启 vite 后走一遍 8 个页面。② 旧页面各自的 scoped 样式仍写着 EP 变量与少量硬编码色（如 Portal 的 `.stat.danger`），在新主题下颜色语义是否仍自洽，需要肉眼过一遍再决定是逐页清理还是留到 A2/A3 改写时一并处理。③ ECharts 未装（等 A4 趋势图真要用了再登记）。
+
+**规则 / 评测**：无规则、法条、评测集与表结构变更；后端零改动。新增前端依赖一项已在此登记。

@@ -1,0 +1,108 @@
+/**
+ * 全局基础样式 + Element Plus 变量映射。
+ *
+ * 只在这一处覆盖 EP 的主题变量，组件里不再各自改：
+ * 否则会出现"这个页面蓝、那个页面青"的双轨视觉，而 EP 的内建色还藏在弹层/日期选择里。
+ * 用 CSS 变量而不是 SCSS 主题编译：不用动 vite 配置，也不引入 sass 依赖。
+ */
+
+@import './tokens.css';
+
+:root {
+  /* EP 主色与圆角全部接到本项目的 token 上 */
+  --el-color-primary: var(--cg-accent);
+  --el-color-primary-light-3: #3F8288;
+  --el-color-primary-light-5: #6FA0A4;
+  --el-color-primary-light-7: #A9C9CB;
+  --el-color-primary-light-8: #C7DBDC;
+  --el-color-primary-light-9: var(--cg-accent-soft);
+  --el-color-primary-dark-2: var(--cg-accent-ink);
+
+  --el-color-danger: var(--cg-hard);
+  --el-color-warning: var(--cg-soft);
+  --el-color-success: var(--cg-ok);
+  --el-color-info: var(--cg-pending);
+
+  --el-text-color-primary: var(--cg-ink);
+  --el-text-color-regular: var(--cg-ink-soft);
+  --el-text-color-secondary: var(--cg-ink-mute);
+  --el-border-color: var(--cg-rule);
+  --el-border-color-light: var(--cg-rule);
+  --el-border-color-lighter: var(--cg-rule);
+  --el-fill-color-blank: var(--cg-sheet);
+  --el-bg-color: var(--cg-sheet);
+  --el-bg-color-page: var(--cg-paper);
+
+  --el-border-radius-base: var(--cg-radius);
+  --el-border-radius-small: var(--cg-radius);
+  --el-font-family: var(--cg-font-ui);
+  --el-font-size-base: var(--cg-t-body);
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--cg-paper);
+  color: var(--cg-ink);
+  font-family: var(--cg-font-ui);
+  font-size: var(--cg-t-body);
+  /* 数字一律等宽对齐：审查记录里的金额、条数、耗时是拿来"对比"的，不对齐就比不出来 */
+  font-variant-numeric: tabular-nums;
+}
+
+/* 键盘可达性：焦点必须看得见，但不做成粗蓝框那种噪音 */
+:visible:focus-visible {
+  outline: 2px solid var(--cg-accent);
+  outline-offset: 2px;
+  border-radius: var(--cg-radius);
+}
+
+/* 动画一律尊重系统"减少动效"设置：这里的动效只用于状态反馈，不该强制播放 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* EP 的卡片与表格本来就是"卷面"，去掉它默认的阴影堆叠，只留边线 */
+.el-card {
+  box-shadow: var(--cg-shadow) !important;
+  border: var(--cg-line);
+  border-radius: var(--cg-radius);
+}
+
+.el-table th.el-table__cell {
+  background: var(--cg-margin);
+  color: var(--cg-ink-soft);
+  font-weight: 600;
+}
+
+.el-table .cell {
+  line-height: 1.6;
+}
+
+/* 页面级小标题的"案卷感"：用一条左边线代替 emoji 或图标堆砌 */
+.cg-section-title {
+  font-size: var(--cg-t-h2);
+  font-weight: 650;
+  margin: 0 0 var(--cg-s-3);
+  padding-left: var(--cg-s-2);
+  border-left: 3px solid var(--cg-rule-strong);
+}
+
+.cg-muted {
+  color: var(--cg-ink-mute);
+  font-size: var(--cg-t-aux);
+}
+
+/* 免责声明：每页常驻，字号小但必须可读，不做成灰色水印 */
+.cg-disclaimer {
+  color: var(--cg-ink-mute);
+  font-size: var(--cg-t-aux);
+  line-height: 1.7;
+}
