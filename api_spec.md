@@ -246,3 +246,35 @@ A1 在这里调 MCP 工具 `parse_source` 自己取内容 —— 商家递来海
 - **不写 `audits`**：预审是"试一下"，留档要改走 `/scripts/import commit=true` + `/audit/batch`；
 - **逐条上限 20**，超出时 `truncated=true` + `total_items`，**不许把"审了 20 条"演成"整份审完"**；
 - **单条模型故障只标该条** `score=-1 / incomplete=true`（铁律 5：未完成 ≠ 合规），其余继续。
+
+
+## L3 人机回环（2026-11-05）
+
+机器判定必然有拿不准的时刻：判定未完成、分级闸降级后的疑似、以及分数为 1 的轻微风险。
+这三个接口构成"待复核 → 人工裁定 → 真值回流"的闭环；没有它们，`score=-1` 就只是
+界面上的一个标签，机器拿不准的记录永远没人处理。
+
+### GET /api/v1/audit/review-queue
+| 参数 | 说明 |
+|---|---|
+| `status` | `pending`(默认) / `confirmed` / `dismissed` / 空表示全部已裁定 |
+| `page` / `page_size` | 分页，page_size ≤ 100 |
+
+返回 `data[]`：`id, script_id, script_content, score, hit_count, incomplete, hits, review_status, review_note, reviewed_at, created_at`。
+商家账号只返回自己机构的记录（`data_scope` 裁剪）。
+
+### POST /api/v1/audit/{audit_id}/review
+```json
+{"verdict": "confirmed | dismissed", "note": "可选，≤500 字"}
+```
+- `confirmed` = 认定系统判定正确；`dismissed` = 认定机器判错
+- **裁定是终态**：重复裁定返回 **422**「已由人工裁定为 X，不可重复裁定」
+- 越权裁定（商家裁别家记录）返回 **404**，不暴露存在性
+- 返回 `{id, review_status, reviewed_at}`
+
+### GET /api/v1/audit/review-stats
+```json
+{"pending": 15, "confirmed": 3, "dismissed": 1, "judged": 4, "agree_rate": 0.75}
+```
+`agree_rate = confirmed / (confirmed + dismissed)`；**未裁定记录不计入分母**，
+无已裁定记录时为 `null`（不填 0 冒充"一致率为零"）。商家只统计自己机构。

@@ -75,7 +75,19 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 | cost | DECIMAL(10,6) | NULL, DEFAULT NULL | NULL=未配置单价未计价；0=确为零成本；估算元 |
 | latency_ms | INT | NOT NULL, DEFAULT 0 | 端到端耗时 |
 | incomplete | TINYINT(1) | NOT NULL, DEFAULT 0 | 1=有轴调用失败，**不许当合规** |
+| review_status | ENUM('pending','confirmed','dismissed') | NULL, DEFAULT NULL | 人工复核状态；NULL=无需复核 |
+| reviewed_by | BIGINT | NULL | 裁定人（users.id） |
+| review_note | VARCHAR(500) | NULL | 复核备注 |
+| reviewed_at | DATETIME | NULL | 裁定时间 |
 | created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP, INDEX `ix_audits_created_at` | 报告按时间窗聚合 |
+
+> **L3 人机回环（2026-11-05）**：新增 4 个复核字段，迁移脚本
+> `scripts/migrate_audit_review.py`（幂等；`--backfill` 按同一口径回填历史）。
+> **入队口径**：`incomplete=1`、`score=1`、或命中里含 `downgraded=true` → `pending`；
+> 硬违规与合规 → NULL（机器已明确，不需要人再看）。
+> **裁定是终态**：`confirmed`/`dismissed` 不可被再次裁定覆盖，避免人工投入被静默改写。
+> `review_status` 是系统准确率的**真值来源**：一致率 = confirmed / (confirmed + dismissed)，
+> 未裁定记录不计入分母。
 
 ### 1.5 `rules` — 规则库（CRUD 4，Agent 工具读取）
 

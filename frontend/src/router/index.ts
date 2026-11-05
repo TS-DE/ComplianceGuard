@@ -24,12 +24,14 @@ const router = createRouter({
         { path: '/rules', component: () => import('../views/rule/RuleList.vue'), meta: { title: '规则库' } },
         { path: '/redteam', component: () => import('../views/redteam/RedTeam.vue'), meta: { title: '红队压测' } },
         { path: '/clients', component: () => import('../views/client/ClientList.vue'), meta: { title: '机构管理' } },
+        { path: '/reviews', component: () => import('../views/review/ReviewQueue.vue'), meta: { title: '待复核' } },
         { path: '/sources', component: () => import('../views/source/SourceList.vue'), meta: { title: '素材档案' } },
         // 商家侧（复用话术库与审查记录组件，数据由服务端按机构裁剪）
         { path: '/merchant', component: () => import('../views/merchant/Portal.vue'), meta: { title: '我的工作台' } },
         { path: '/merchant/check', component: () => import('../views/merchant/Check.vue'), meta: { title: '文案检查' } },
         { path: '/merchant/scripts', component: () => import('../views/script/ScriptList.vue'), meta: { title: '我的话术' } },
         { path: '/merchant/audits', component: () => import('../views/audit/AuditList.vue'), meta: { title: '审查历史' } },
+        { path: '/merchant/reviews', component: () => import('../views/review/ReviewQueue.vue'), meta: { title: '待复核' } },
         { path: '/merchant/sources', component: () => import('../views/source/SourceList.vue'), meta: { title: '素材档案' } }
       ]
     },

@@ -475,3 +475,29 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 （测试号见 `tests/agents/test_compliance.py`）。两条真实误杀样本
 （「皮肤愈合后，应更显光滑」「可能需要大约三个月时间才能恢复正常肤色」）
 已作为回归样本固化。
+
+## D6 · L3 人机回环：待复核队列与人工裁定（2026-11-05）
+
+**改动 / 行为变化**：补上缺失的 L3。此前 `score=-1` 只在界面挂"待人工复核"标签，
+没有队列、没有裁定入口、没有回流，标签挂着没人能处理。
+新增 `audits.review_status/reviewed_by/review_note/reviewed_at` 四个字段；
+**入队口径**：`incomplete=1`、`score=1`、或命中含 `downgraded=true` → `pending`，
+硬违规与合规 → NULL。三个接口 `GET /audit/review-queue`、
+`POST /audit/{id}/review`、`GET /audit/review-stats`。裁定为终态，
+重复裁定返回 422；越权按 404。一致率分母只算已裁定记录。
+前端新增 `views/review/ReviewQueue.vue`，平台端与商家端各一条入口。
+
+**实际验证**：迁移预览→执行→幂等复跑输出"跳过：audits 已有全部复核字段"；
+`SHOW COLUMNS FROM audits` 见四个新列；`--backfill` 把 15 条历史记录回填为 pending。
+真实 HTTP 闭环：造「皮肤愈合后，应更显光滑。」→ 审查 score=1 → 队列查得 total=1 →
+裁定 dismissed 落库（reviewed_at 有值）→ 重复裁定 422「不可重复裁定」→
+统计 `{pending:0, confirmed:0, dismissed:1, judged:1, agree_rate:0.0}`。
+`pytest tests -q` → **332 passed**（新增 `tests/test_review.py` 7 条）。
+
+**风险 / 遗留**：回填只写 pending、不覆盖已有裁定，可重复执行。
+裁定不可撤销是刻意取舍（避免人工结论被无痕改写），后续若要支持改判需引入
+独立的重裁记录而不是就地覆盖。人工复核结果目前只用于统计一致率，
+**尚未自动生成规则候选**——这是组件⑤的下一步，需要人工审核后才允许 bump 规则版本。
+
+**规则 / 评测**：未改 `rules` 数据与法条归档；新增表字段与迁移脚本，
+`db_schema.md` 同步记录迁移链路。

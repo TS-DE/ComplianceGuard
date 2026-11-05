@@ -236,6 +236,27 @@ export interface BatchAuditItem {
   latency_ms: number
   error?: string
 }
+// L3 人机回环：机器拿不准的记录进队列，人工裁定后成为系统准确率的真值来源。
+export interface ReviewItem {
+  id: number; script_id: number; script_content: string | null
+  score: number; hit_count: number; incomplete: boolean
+  hits: Hit[]
+  review_status: 'pending' | 'confirmed' | 'dismissed' | null
+  review_note: string | null; reviewed_at: string | null; created_at: string | null
+}
+export interface ReviewStats {
+  pending: number; confirmed: number; dismissed: number
+  judged: number
+  /** 人工与机器的一致率；未裁定任何记录时为 null，不填 0 冒充 */
+  agree_rate: number | null
+}
+export const reviewQueue = (params?: object) =>
+  page<ReviewItem>('/audit/review-queue', params)
+export const reviewAudit = (id: number, verdict: 'confirmed' | 'dismissed', note?: string) =>
+  request<{ id: number; review_status: string; reviewed_at: string | null }>(
+    'POST', `/audit/${id}/review`, { verdict, note: note || null })
+export const reviewStats = () => request<ReviewStats>('GET', '/audit/review-stats')
+
 export const auditBatch = (clientId: number, scriptIds: number[]) =>
   request<{ count: number; results: BatchAuditItem[] }>(
     'POST', '/audit/batch', { client_id: clientId, script_ids: scriptIds }, undefined, 300000)

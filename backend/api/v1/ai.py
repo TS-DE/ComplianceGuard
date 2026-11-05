@@ -113,6 +113,98 @@ def run_audit_batch(payload: BatchAuditRequest, db: DbSession,
     return ok({"count": len(results), "results": results})
 
 
+class ReviewRequest(BaseModel):
+    """人工裁定入参：确认系统判定，或推翻它。"""
+
+    verdict: Literal["confirmed", "dismissed"]
+    note: str | None = Field(default=None, max_length=500)
+
+
+def _assert_audit_in_scope(db, audit_id, user):
+    """商家只能处理自己机构的审查；越权按 404，不暴露存在性。"""
+    from backend.core.security import data_scope
+    from backend.crud.audit import AuditRepository as _Repo
+
+    scoped = data_scope(user)
+    repo = _Repo(db)
+    # repo.audit 返回的是快照 dict（含 script_id），不是 ORM 实例
+    snapshot = repo.audit(audit_id)
+    if snapshot is None:
+        raise AppError(CODE_NOT_FOUND, f"审查记录 {audit_id} 不存在")
+    if scoped is not None:
+        script = repo.script(snapshot["script_id"])
+        if not script or script.get("client_id") != scoped:
+            raise AppError(CODE_NOT_FOUND, f"审查记录 {audit_id} 不存在")
+    return snapshot
+
+
+@router.get("/audit/review-queue", tags=["audit"])
+def review_queue(db: DbSession, current_user: CurrentUser,
+                 status: Annotated[str | None, Query(max_length=20)] = "pending",
+                 page: Annotated[int, Query(ge=1)] = 1,
+                 page_size: Annotated[int, Query(ge=1, le=100)] = 20) -> dict:
+    """待人工复核队列（L3 人机回环的入口）。
+
+    只列"机器拿不准"的记录：判定未完成、疑似（分级降级）、或分数为 1。
+    商家只看到自己机构的记录。
+    """
+    from backend.core.security import data_scope
+    from backend.crud.audit import AuditRepository
+    from backend.crud.special import scripts as script_repo
+
+    scoped = data_scope(current_user)
+    rows, total = AuditRepository(db).review_queue(
+        status=status or None, client_id=scoped, page=page, page_size=page_size)
+    ids = {row.script_id for row in rows}
+    contents = {}
+    if ids:
+        from sqlalchemy import select
+
+        from backend.db.models import Script
+
+        contents = dict(db.execute(
+            select(Script.id, Script.content).where(Script.id.in_(ids))).all())
+    items = [{
+        "id": row.id,
+        "script_id": row.script_id,
+        "script_content": contents.get(row.script_id),
+        "score": row.score,
+        "hit_count": row.hit_count,
+        "incomplete": row.incomplete,
+        "hits": [h for h in (row.hits_json or []) if h.get("status") == "active"],
+        "review_status": row.review_status,
+        "review_note": row.review_note,
+        "reviewed_at": row.reviewed_at.isoformat() if row.reviewed_at else None,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+    } for row in rows]
+    return ok(items, total=total)
+
+
+@router.post("/audit/{audit_id}/review", tags=["audit"])
+def review_audit(audit_id: Annotated[int, Path(gt=0)], payload: ReviewRequest,
+                 db: DbSession, current_user: CurrentUser) -> dict:
+    """人工裁定：confirmed=认定系统判定正确；dismissed=认定机器判错。
+
+    裁定结论是系统准确率的真值来源，因此不可重复覆盖（见仓储层）。
+    """
+    from backend.crud.audit import AuditRepository
+
+    _assert_audit_in_scope(db, audit_id, current_user)
+    row = AuditRepository(db).review(audit_id, payload.verdict,
+                                     current_user.id, payload.note)
+    return ok({"id": row.id, "review_status": row.review_status,
+               "reviewed_at": row.reviewed_at.isoformat() if row.reviewed_at else None})
+
+
+@router.get("/audit/review-stats", tags=["audit"])
+def review_stats(db: DbSession, current_user: CurrentUser) -> dict:
+    """复核统计：待办数 + 人工与机器的一致率（分母只算已裁定）。"""
+    from backend.core.security import data_scope
+    from backend.crud.audit import AuditRepository
+
+    return ok(AuditRepository(db).review_stats(client_id=data_scope(current_user)))
+
+
 @router.post("/audit/{audit_id}/rewrite", tags=["audit"])
 def rewrite_audit(audit_id: Annotated[int, Path(gt=0)], db: DbSession,
                   current_user: CurrentUser) -> dict:

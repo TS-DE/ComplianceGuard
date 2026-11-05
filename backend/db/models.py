@@ -217,6 +217,16 @@ class Audit(Base):
         Integer, nullable=False, server_default=text("0")
     )
     # 1 = 有轴调用失败，报告里不许当合规
+    # ---- 人工复核（L3 人机回环）----
+    # NULL=无需复核；pending=在待复核队列；confirmed=确认系统判定；dismissed=人工推翻
+    review_status: Mapped[str | None] = mapped_column(
+        Enum("pending", "confirmed", "dismissed",
+             values_callable=lambda e: [m for m in e], name="review_status"),
+        nullable=True,
+    )
+    reviewed_by: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    review_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     incomplete: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("0")
     )
