@@ -140,9 +140,15 @@ class AuditTool:
         result["llm_calls"] = getattr(self.model, "calls", [])[call_offset:]
         return dict(result, id=audit_id, audit_id=audit_id, script_id=script_id)
 
-    def rewrite_audit(self, audit_id):
-        """以原话术与有效命中生成改写，复核后持久化状态。"""
-        from backend.core.errors import NotFoundError
+    def rewrite_audit(self, audit_id, budget_seconds=None):
+        """以原话术与有效命中生成改写，复核后持久化状态。
+
+        `budget_seconds` 是**整次请求**的时间预算：单次读超时（JUDGE_TIMEOUT=180）
+        拦不住"重试 3 次 × 每个候选各判一遍"的累加，实测就是这样出现过 10 分钟假死。
+        预算用尽时抛 DeadlineExceededError；此时还没走到 update_rewrite，
+        库里与响应里都不会出现半成品改写稿。
+        """
+        from backend.core.errors import DeadlineExceededError, ModelCallError, NotFoundError
         from backend.tools.db_tool import require_positive
         require_positive(audit_id, "audit_id")
         audit = self.repository.audit(audit_id)
@@ -150,7 +156,27 @@ class AuditTool:
             raise NotFoundError("audit", audit_id)
         script = self.repository.script(audit["script_id"])
         hits = [hit for hit in audit["hits"] if hit.get("status", "active") == "active"]
-        result = self.rewriter.rewrite(script["content"], hits, client_id=script["client_id"])
+        deadline = perf_counter() + budget_seconds if budget_seconds else None
+        # 预算要发给**所有真的会打模型的持有者**：tool / rewriter / auditor。
+        # 当下生产上它们是同一个实例，只设 self.model 也能过——但那是在赌对象身份；
+        # 一旦有人单独注入模型实例，90 秒上限就会悄悄失效且没有任何报错。
+        holders = []
+        for candidate in (self.model, getattr(self.rewriter, 'model', None),
+                          getattr(self.auditor, 'model', None)):
+            if candidate is not None and hasattr(candidate, 'deadline') \
+                    and not any(candidate is held for held in holders):
+                holders.append(candidate)
+        try:
+            for holder in holders:
+                holder.deadline = deadline
+            result = self.rewriter.rewrite(script["content"], hits, client_id=script["client_id"])
+        except ModelCallError as exc:
+            if exc.kind == 'deadline_exceeded':
+                raise DeadlineExceededError(int(budget_seconds or 0)) from None
+            raise
+        finally:
+            for holder in holders:
+                holder.deadline = None      # 预算属于这一次请求，不许漏给下一个请求
         # A2 返回的是生成用量；逐稿复核同样产生费用，必须累计而非只记最佳稿。
         result = dict(result)
         checks = [candidate["recheck"] for candidate in result.get("candidates", [])]
@@ -255,6 +281,10 @@ class UrllibChatModel(ChatModel):
         self.pass_thinking = str(config.get("JUDGE_PASS_THINKING_PARAM", "true")).lower() == "true"
         self.actual_thinking = self.thinking if self.pass_thinking else None
         self.calls = []
+        # 总时间预算（perf_counter 的绝对时刻）：单次读超时不等于总耗时上限，
+        # 3 次重试 × 180s 就是 9 分钟假死——改写接口用它把整次请求封顶。
+        self.deadline = None
+        self.attempt_timeout = self.timeout   # 每次尝试真正用的读超时（预算紧时会被压小）
         self.api_key = config.get("JUDGE_API_KEY")
         self.base_url = config.get("JUDGE_BASE_URL", DASHSCOPE_URL).rstrip("/")
         self.transport = transport if transport is not None else self._request
@@ -266,8 +296,10 @@ class UrllibChatModel(ChatModel):
         request = Request(self.base_url + path, data=json.dumps(payload).encode("utf-8"),
                           headers={"Authorization": f"Bearer {self.api_key}",
                                    "Content-Type": "application/json"})
-        # urllib timeout作用于单次阻塞读操作，不是请求总耗时截止时间。
-        with urlopen(request, timeout=self.timeout) as response:
+        # urllib timeout作用于单次阻塞读操作，不是请求总耗时截止时间——所以总预算必须由
+        # 调用方把剩余时间写进 self.attempt_timeout；否则"90 秒硬超时"在"单次调用很久"
+        # 这种情况下根本不成立（最坏会到 90 + 180 秒）。
+        with urlopen(request, timeout=self.attempt_timeout) as response:
             return json.load(response)
 
     def complete(self, messages: list[dict]) -> dict:
@@ -277,6 +309,15 @@ class UrllibChatModel(ChatModel):
         last_error=None
         for attempt in range(3):
             before=perf_counter()
+            if self.deadline is not None:
+                remaining = self.deadline - before
+                if remaining <= 0:
+                    # 预算用尽就立刻收手：继续重试只是把"9 分钟假死"再演一遍
+                    raise ModelCallError("模型调用超过总时间预算", "deadline_exceeded", 1)
+                # 剩余预算压进单次读超时，硬上限才对"单次很慢"这种情况成立
+                self.attempt_timeout = max(1, min(self.timeout, int(remaining) or 1))
+            else:
+                self.attempt_timeout = self.timeout
             try:
                 payload=dict(model=self.model,messages=messages,temperature=0,response_format={'type':'json_object'})
                 if self.actual_thinking is not None:

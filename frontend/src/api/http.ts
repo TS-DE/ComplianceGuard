@@ -32,6 +32,8 @@ http.interceptors.response.use(response => {
   Reflect.set(response, 'pageTotal', value.total)
   return response
 }, (error: unknown) => {
+  // 用户主动取消不是故障：不弹红条、不动登录态，只把取消信号原样交给调用方
+  if (axios.isCancel(error)) return Promise.reject(new CanceledError())
   if (axios.isAxiosError(error)) {
     const body: unknown = error.response?.data
     const message = body && typeof body === 'object' && 'msg' in body && typeof body.msg === 'string' ? body.msg : '网络请求失败，请稍后重试'
@@ -42,12 +44,36 @@ http.interceptors.response.use(response => {
 /**
  * timeoutMs 可按请求覆盖：默认 180 秒够单条审查，但红队一次要生成 16 条再逐条判定，
  * 实测约 141 秒、与默认超时贴得太近，必须放宽到 300 秒，否则浏览器先超时而后端还在跑。
+ *
+ * `signal` 是用户主动取消的通道。取消**不当错误处理**：不弹红条、不改登录态，
+ * 只让调用方知道"这次没要结果了"。后端仍会把这一次跑完（我们的审查是同步任务，
+ * 没有服务端取消钩子），所以取消的语义是"我不再等它"，界面上必须如实这么写。
  */
+export class CanceledError extends Error {
+  constructor() {
+    super('已取消')
+    this.name = 'CanceledError'
+  }
+}
+
+export function isCanceled(error: unknown): boolean {
+  if (error instanceof CanceledError) return true
+  return axios.isAxiosError(error) && error.code === 'ERR_CANCELED'
+}
+
 export async function request<T>(
-  method: string, url: string, data?: unknown, params?: object, timeoutMs?: number
+  method: string, url: string, data?: unknown, params?: object, timeoutMs?: number,
+  signal?: AbortSignal
 ): Promise<T> {
-  const response = await http.request<T>({ method, url, data, params, ...(timeoutMs ? { timeout: timeoutMs } : {}) })
-  return response.data
+  try {
+    const response = await http.request<T>({
+      method, url, data, params, signal, ...(timeoutMs ? { timeout: timeoutMs } : {})
+    })
+    return response.data
+  } catch (error: unknown) {
+    if (axios.isCancel(error)) throw new CanceledError()
+    throw error
+  }
 }
 export async function page<T>(url: string, params?: object): Promise<Page<T>> {
   const response = await http.get<T[]>(url, { params })

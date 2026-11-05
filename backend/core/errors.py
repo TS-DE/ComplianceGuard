@@ -21,6 +21,7 @@ CODE_NOT_FOUND = 404
 CODE_CONFLICT = 409
 CODE_UNPROCESSABLE = 422
 CODE_SERVER_ERROR = 500
+CODE_GATEWAY_TIMEOUT = 504
 
 
 class AppError(Exception):
@@ -45,6 +46,19 @@ class ConflictError(AppError):
 
     def __init__(self, msg: str) -> None:
         super().__init__(CODE_CONFLICT, msg)
+
+
+class DeadlineExceededError(AppError):
+    """一次请求的总时间预算用尽 -> 504。
+
+    为什么不复用 ModelCallError：模型层错误说的是"这一 call 失败"，
+    这里要说的是"整次请求放弃，且没有产生可展示的部分结果"——
+    前端据此才能给"超时未完成，可重试"，而不是把半成品改写稿当结论显示。
+    """
+
+    def __init__(self, budget_seconds: int, stage: str = "改写") -> None:
+        super().__init__(CODE_GATEWAY_TIMEOUT,
+                         f"{stage}超过 {budget_seconds} 秒时间预算，本次未完成且未产生结果，请稍后重试")
 
 
 class UnauthorizedError(AppError):

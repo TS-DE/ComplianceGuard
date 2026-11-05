@@ -120,10 +120,15 @@ def test_audit_routes_validate_and_call_tool(client, auth_headers, monkeypatch):
     from backend.core.config import DISCLAIMER_TEXT
 
     class Tool:
+        seen = {}
+
         def run_audit(self, script_id, client_id):
             return dict(id=7, score=2, disclaimer=DISCLAIMER_TEXT)
 
-        def rewrite_audit(self, audit_id):
+        def rewrite_audit(self, audit_id, budget_seconds=None):
+            # budget_seconds 是接口层传来的整次请求预算，打桩必须收下这个参数，
+            # 否则路由改签名而测试仍绿，测的就不是真调用路径
+            Tool.seen['budget'] = budget_seconds
             return dict(id=audit_id, rewrite_passed=True, disclaimer=DISCLAIMER_TEXT)
 
     monkeypatch.setattr(routes, "build_audit_tool", lambda session: Tool())
@@ -135,6 +140,7 @@ def test_audit_routes_validate_and_call_tool(client, auth_headers, monkeypatch):
     assert response.json()["data"]["id"] == 7
     response = client.post("/api/v1/audit/7/rewrite", headers=auth_headers)
     assert response.json()["data"]["rewrite_passed"] is True
+    assert Tool.seen['budget'] == 90, "整次请求的默认预算必须由路由传到服务层，而不是各自取默认值"
 
 
 def test_production_chat_transport_uses_chat_config_not_embedding(monkeypatch):

@@ -25,6 +25,7 @@ import {
   type BatchAuditItem, type Capabilities, type Hit, type ImportPiece
 } from '../../api/resource'
 import { useAuth } from '../../stores/auth'
+import { isCanceled } from '../../api/http'
 import { acceptOf, missingEnginesOf, refuseReason } from '../../utils/parseAccept'
 import { contextOf, locate, locateInSource } from '../../utils/locate'
 import type { HitView } from '../../utils/risk'
@@ -67,6 +68,11 @@ const stage = ref<'input' | 'preview' | 'result'>('input')
 const parsing = ref(false)
 const checking = ref(false)
 const progress = ref('')
+// 一次运行一个 AbortController。用 let 而不是 ref：它不参与渲染，
+// 放进响应式只会在每次点"停止"时多触发一轮无意义的更新。
+let runController: AbortController | null = null
+// 已耗时秒数：没有它，"6 秒的正常审查"和"10 分钟的假死"在界面上长得一模一样
+const elapsed = ref(0)
 const rows = ref<ResultRow[]>([])
 const rawResults = ref<BatchAuditItem[]>([])
 const activeKey = ref<string | null>(null)
@@ -274,6 +280,8 @@ function toHit(groupIndex: number, fullText: string, piece: ImportPiece, scriptI
 async function runCheck() {
   if (!pickedCount.value) { ElMessage.warning('至少勾选一条'); return }
   checking.value = true
+  runController = new AbortController()
+  const signal = runController.signal
   rows.value = []
   rawResults.value = []
   const index = new Map<number, { group: Group; chunk: Chunk }>()
@@ -304,9 +312,15 @@ async function runCheck() {
     const results: BatchAuditItem[] = []
     for (let start = 0; start < ids.length; start += 20) {
       const batchIds = ids.slice(start, start + 20)
+      elapsed.value = 0
+      const timer = setInterval(() => { elapsed.value += 1 }, 1000)
       progress.value = `检查中 ${Math.min(start + 20, ids.length)}/${ids.length}，每条约 6 秒…`
-      const batch = await auditBatch(clientId.value, batchIds)
-      results.push(...batch.results)
+      try {
+        const batch = await auditBatch(clientId.value, batchIds, signal)
+        results.push(...batch.results)
+      } finally {
+        clearInterval(timer)
+      }
     }
     rawResults.value = results
     cursors.clear()
@@ -333,12 +347,22 @@ async function runCheck() {
     stage.value = 'result'
     const bad = results.filter(item => !item.error && item.score === 0).length
     ElMessage.success(`已检查 ${results.length} 条，其中 ${bad} 条需要修改`)
-  } catch {
-    // 失败不伪造结果：已入库的部分在「我的资产」里仍然能看到
+  } catch (error: unknown) {
+    // 取消要单独说：静默吞掉的话，用户看到的是"点了没反应"，比报错更让人怀疑系统坏了。
+    // 后端那一次仍然会跑完（同步任务没有服务端取消钩子），所以措辞是"已停止等待"，
+    // 不谎称"已终止"。
+    if (isCanceled(error)) ElMessage.info('已停止等待，可重新发起检查')
+    // 其他失败不伪造结果：已入库的部分在「我的资产」里仍然能看到
   } finally {
     checking.value = false
+    runController = null
     progress.value = ''
   }
+}
+
+/** 停止等待：只断开这次的连接，不动已入库的数据。 */
+function cancelChecking() {
+  runController?.abort()
 }
 
 function toggle(index: number) {
@@ -470,8 +494,11 @@ onMounted(async () => {
             </div>
           </div>
           <el-button type="primary" :loading="checking" :disabled="!pickedCount" @click="runCheck">
-            {{ checking && progress ? progress : `检查这 ${pickedCount} 条` }}
+            {{ checking && progress ? `${progress}（已 ${elapsed} 秒）` : `检查这 ${pickedCount} 条` }}
           </el-button>
+          <!-- 取消不是"关掉请求就完事"：后端这一次还会跑完，所以按钮写"停止等待"，
+               并明确告诉用户已经入库的话术仍在「我的档案」里，避免他以为数据丢了 -->
+          <el-button v-if="checking" plain @click="cancelChecking">停止等待</el-button>
           <p class="cg-muted">顺序执行，单条约 6 秒；超过 20 条自动分批跑完。</p>
         </div>
 

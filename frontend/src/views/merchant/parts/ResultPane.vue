@@ -12,6 +12,7 @@ import HitCard from '../../../components/risk/HitCard.vue'
 import RiskBadge from '../../../components/risk/RiskBadge.vue'
 import DiffView from '../../../components/data/DiffView.vue'
 import { lawArticle, rewriteAudit } from '../../../api/resource'
+import { isCanceled } from '../../../api/http'
 // 类型声明在本文件第一个 script 块里，Vue 会把两块合成一个模块，不需要自己 import 自己
 import type { HitRender, ResultRow, RewriteState } from './types'
 
@@ -43,8 +44,14 @@ async function adopt(row: ResultRow) {
   if (state.busy) return
   state.busy = true
   state.error = null
+  state.elapsed = 0
+  // 改写是这条链路上最容易长时间不返回的一步（实测出现过十分钟级别），
+  // 所以它必须能停、必须显示已经等了多久，并且停了以后还能再来一次。
+  const controller = new AbortController()
+  state.cancel = () => controller.abort()
+  const timer = setInterval(() => { state.elapsed = (state.elapsed ?? 0) + 1 }, 1000)
   try {
-    const result = await rewriteAudit(row.auditId) as {
+    const result = await rewriteAudit(row.auditId, controller.signal) as {
       rewritten_text?: string; rewrite_passed?: boolean | null
       recheck?: { score?: number }
     }
@@ -54,8 +61,13 @@ async function adopt(row: ResultRow) {
     state.recheckScore = result.recheck?.score ?? null
     if (!result.rewritten_text) state.error = '模型没有给出改写稿，未做二次过审'
   } catch (error: unknown) {
-    state.error = error instanceof Error ? error.message : '改写失败'
+    // 取消和失败要分开说：把"我自己点了停止"报成"改写失败"，
+    // 用户会得到一个系统坏了的假结论
+    if (isCanceled(error)) state.error = '已停止等待，可重新点击改写'
+    else state.error = error instanceof Error ? error.message : '改写失败'
   } finally {
+    clearInterval(timer)
+    state.cancel = null
     state.busy = false
   }
 }
@@ -97,8 +109,12 @@ async function adopt(row: ResultRow) {
         <div v-if="row.hits.length" class="actions">
           <button class="adopt" :disabled="!row.auditId || rewrites[row.scriptId]?.busy"
                   @click="adopt(row)">
-            {{ rewrites[row.scriptId]?.busy ? '改写并二次过审中…' : '采纳改写建议（含二次过审）' }}
+            {{ rewrites[row.scriptId]?.busy
+               ? `改写并二次过审中…已 ${rewrites[row.scriptId]?.elapsed ?? 0} 秒`
+               : '采纳改写建议（含二次过审）' }}
           </button>
+          <button v-if="rewrites[row.scriptId]?.busy" class="stop"
+                  @click="rewrites[row.scriptId]?.cancel?.()">停止等待</button>
           <span class="cg-muted">改写稿是内部使用建议，不改变事实主张的强度</span>
         </div>
 
@@ -139,6 +155,9 @@ async function adopt(row: ResultRow) {
 .adopt { align-self: flex-start; border: 1px solid var(--cg-accent); background: var(--cg-accent);
   color: #fff; padding: 5px 12px; border-radius: var(--cg-radius); cursor: pointer; font-size: var(--cg-t-aux); }
 .adopt:disabled { opacity: .55; cursor: progress; }
+/* 停止等待是次要动作：描边而不填色，避免和主按钮抢注意力 */
+.stop { align-self: flex-start; border: 1px solid var(--cg-line); background: transparent;
+        color: var(--cg-ink-2); padding: 6px 10px; font: inherit; cursor: pointer; }
 .diff { margin-top: var(--cg-s-2); }
 .empty { padding: var(--cg-s-5) 0; text-align: center; }
 </style>

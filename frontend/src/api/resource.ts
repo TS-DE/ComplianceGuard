@@ -84,8 +84,11 @@ export interface DailyReport {
   // 素材形态分布：这批结论是从海报、表格还是手工录入里来的；no_material = 无上传素材
   by_source?: Record<string, number>
 }
-export const rewriteAudit = (id: number) =>
-  request<{ rewritten_text?: string | null; rewrite_passed?: boolean | null; recheck?: unknown }>('POST', `/audit/${id}/rewrite`)
+export const rewriteAudit = (id: number, signal?: AbortSignal) =>
+  request<{ rewritten_text?: string | null; rewrite_passed?: boolean | null; recheck?: unknown }>(
+    // 超时给 120s：必须比后端 REWRITE_TIMEOUT=90 更宽，否则浏览器先断开，
+    // 用户看到的是"网络请求失败"而不是后端那句有意义的"超时未完成，可重试"
+    'POST', `/audit/${id}/rewrite`, undefined, undefined, 120000, signal)
 
 // ---------- 红队压测 ----------
 // 后端约束：scenes 恰好 1 个、axes 1~4 个且限定 4 类、strength 只接受 'all'。
@@ -275,6 +278,6 @@ export const reviewAudit = (id: number, verdict: 'confirmed' | 'dismissed', note
     'POST', `/audit/${id}/review`, { verdict, note: note || null })
 export const reviewStats = () => request<ReviewStats>('GET', '/audit/review-stats')
 
-export const auditBatch = (clientId: number, scriptIds: number[]) =>
+export const auditBatch = (clientId: number, scriptIds: number[], signal?: AbortSignal) =>
   request<{ count: number; results: BatchAuditItem[] }>(
-    'POST', '/audit/batch', { client_id: clientId, script_ids: scriptIds }, undefined, 300000)
+    'POST', '/audit/batch', { client_id: clientId, script_ids: scriptIds }, undefined, 300000, signal)

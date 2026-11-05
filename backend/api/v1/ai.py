@@ -229,8 +229,15 @@ def review_stats(db: DbSession, current_user: CurrentUser) -> dict:
 @router.post("/audit/{audit_id}/rewrite", tags=["audit"])
 def rewrite_audit(audit_id: Annotated[int, Path(gt=0)], db: DbSession,
                   current_user: CurrentUser) -> dict:
-    """鉴权后生成并复核改写，返回可审计的复核结果。"""
-    return ok(build_audit_tool(db).rewrite_audit(audit_id))
+    """鉴权后生成并复核改写，返回可审计的复核结果。
+
+    整次请求受 REWRITE_TIMEOUT（默认 90 秒）封顶：超过预算返回 504 且**没有部分结果**，
+    因为库里那一步（update_rewrite）在预算耗尽时根本走不到。
+    """
+    from backend.rag.embedding import llm_config
+
+    budget = int(llm_config().get("REWRITE_TIMEOUT", 90))
+    return ok(build_audit_tool(db).rewrite_audit(audit_id, budget_seconds=budget))
 
 
 

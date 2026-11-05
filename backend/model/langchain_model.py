@@ -46,6 +46,7 @@ class LangChainChatModel(ChatModel):
         self.api_key = config.get("JUDGE_API_KEY")
         self.base_url = config.get("JUDGE_BASE_URL", DASHSCOPE_URL).rstrip("/")
         self.calls = []
+        self.deadline = None          # 与 UrllibChatModel 同义：整次请求的绝对截止时刻
         self._client = client
         # 重试交给外面那个循环：LangChain 自带的 max_retries 会把"第几次失败"藏起来，
         # 而 attempts 明细是本项目排查假死的唯一入口
@@ -78,6 +79,8 @@ class LangChainChatModel(ChatModel):
         attempts, last_error, message = [], None, None
         for attempt in range(self._max_attempts):
             before = perf_counter()
+            if self.deadline is not None and before > self.deadline:
+                raise ModelCallError("模型调用超过总时间预算", "deadline_exceeded", 1)
             try:
                 message = self.client.invoke(messages)
                 attempts.append(dict(latency_ms=(perf_counter() - before) * 1000, error=None))

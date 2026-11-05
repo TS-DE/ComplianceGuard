@@ -44,6 +44,10 @@ export interface ResultRow {
 
 export interface RewriteState {
   busy?: boolean
+  /** 已等待秒数：改写是最容易长时间不返回的一步，不给数字用户只能靠猜 */
+  elapsed?: number
+  /** 停止等待的句柄；null 表示当前没有在等 */
+  cancel?: (() => void) | null
   error?: string | null
   before?: string
   after?: string
