@@ -93,11 +93,13 @@ def test_seed_cli_previews_by_default_and_rejects_wrong_count(monkeypatch):
     monkeypatch.setattr(seed, "create_engine", lambda dsn: Engine())
     def run(conn, apply=False):
         calls.append(apply)
-        return {"total": 0, "inserted": 0, "pending": 11, "skipped": 0, "detectors": {}}
+        # 违反不变量的状态：11 个轴却有 12 条 enabled，efficacy_claim 出现重复版本
+        return {"total": 15, "inserted": 0, "pending": 11, "skipped": 0, "detectors": {},
+                "enabled": 12, "axes": 11, "duplicates": ["efficacy_claim"]}
     monkeypatch.setattr(seed, "seed_rules", run)
     assert seed.main([]) == 0
     assert calls == [False]
-    with pytest.raises(RuntimeError, match="11"):
+    with pytest.raises(RuntimeError, match="回滚"):
         seed.main(["--apply"])
 
 

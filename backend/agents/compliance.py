@@ -129,6 +129,11 @@ def aggregate_claims(hits):
         claim['evidence'].append(hit)
         if hit['severity'] == 'hard':
             claim['severity'] = 'hard'
+    for claim in claims.values():
+        # claim 是从首条命中复制出来的，`downgraded` 也会被一起复制——同句里若首条恰好是
+        # 被降级的疗效提示、后面还跟着真实硬违规，整句就会按"仅提示"算分（0 变 1），
+        # 结论取决于模型返回顺序。只有本句**每条**证据都被降级时才算降级。
+        claim['downgraded'] = all(e.get('downgraded') for e in claim['evidence'])
     return list(claims.values())
 
 class ComplianceAuditAgent:
