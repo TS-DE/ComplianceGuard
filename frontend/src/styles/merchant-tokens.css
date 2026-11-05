@@ -1,0 +1,157 @@
+/**
+ * 商家端设计令牌（第二套视觉系统）。
+ *
+ * 为什么不复用 tokens.css：运营端是"案卷"——长时间阅读、比对法条、逐条裁定，
+ * 所以要素净、零装饰、信息密度优先。商家端是"收银台对面的人"——他只关心
+ * "我这条海报能不能发、哪里不行、怎么改"，看一眼就要安心往下走。
+ * 两种任务需要两种视觉，硬用一套的结果就是上一版那种"越来越拉跨"。
+ *
+ * 关键约束（统筹方定的）：**两套 shell + 两套令牌**，不是在同一 layout 里
+ * 按角色 `v-if` 换样式。条件样式会让同一个组件承担两套语义，改一边就碰另一边。
+ *
+ * 因此这里所有变量都挂在 `.merchant-shell` 上，只在这棵树内生效：
+ * 运营端组件即使被商家端复用（如 SourceList），也仍然读它自己的变量，
+ * 不会被这套配色"传染"。
+ */
+.merchant-shell {
+  /* —— 底色与纸感 —— */
+  --cg-m-bg: #FBF7EF;              /* 象牙白：不是纯白，长时间看不刺眼 */
+  --cg-m-surface: #FFFDF8;
+  --cg-m-surface-2: #F5EEE1;       /* 次级面板，用于分隔功能区而不加边框 */
+  --cg-m-line: #E7DCC8;            /* 细线，配合金色描边 */
+
+  /* —— 文字：陶土 + 深棕 —— */
+  --cg-m-ink: #3B2A1D;             /* 深棕，正文与标题 */
+  --cg-m-ink-2: #6B5540;           /* 弱化文字，说明与脚注 */
+  --cg-m-ink-3: #97836C;           /* 更弱：时间戳、辅助标签 */
+  --cg-m-accent: #B4884B;          /* 哑金：品牌与主按钮，克制不发光 */
+  --cg-m-accent-ink: #FFFDF8;
+  --cg-m-focus: #A8763D;           /* 焦点环，与金色同族但不刺眼 */
+
+  /* —— 判定语义色：与运营端同一含义，同一色相族，避免两边各说各话 —— */
+  --cg-m-hard: #A8402F;            /* 硬违规（陶土红）*/
+  --cg-m-soft: #9C6B1E;            /* 疑似违规（赭黄）*/
+  --cg-m-pending: #5A6673;         /* 待人工/未完成（石墨）*/
+  --cg-m-ok: #24685A;              /* 未见违规（青）*/
+  --cg-m-hard-bg: #FBEDE9;
+  --cg-m-soft-bg: #FBF3E4;
+  --cg-m-ok-bg: #EBF3F0;
+
+  /* —— 形：只用 2–6px 的小圆角，不做胶囊不做方正硬边 —— */
+  --cg-m-radius: 4px;
+  --cg-m-radius-lg: 6px;
+  --cg-m-radius-sm: 2px;
+
+  /* —— 空间：4 的倍数，卡片内边距比运营端松一档 —— */
+  --cg-m-s-1: 4px;
+  --cg-m-s-2: 8px;
+  --cg-m-s-3: 12px;
+  --cg-m-s-4: 16px;
+  --cg-m-s-5: 24px;
+  --cg-m-s-6: 32px;
+  --cg-m-s-8: 56px;
+
+  /* —— 字阶：商家端正文比运营端大一档，标题不靠粗细靠字号拉开 —— */
+  --cg-m-t-micro: 12px;
+  --cg-m-t-aux: 13px;
+  --cg-m-t-body: 15px;
+  --cg-m-t-h4: 17px;
+  --cg-m-t-h3: 20px;
+  --cg-m-t-h2: 26px;
+  --cg-m-t-display: 34px;
+  --cg-m-leading: 1.65;
+
+  /* —— 动效：只在"位置变化"与"状态确认"上用，不做入场动画 ——
+     审查要等 6~8 秒，花哨的动效只会放大等待的焦虑；
+     但滚动到命中处、点完反馈变灰这类"我做了件事"的确认必须看得见。 */
+  --cg-m-ease: cubic-bezier(.22, .61, .36, 1);
+  --cg-m-fast: 120ms var(--cg-m-ease);
+  --cg-m-slow: 320ms var(--cg-m-ease);
+
+  /* —— 阴影：只允许一层极浅的"抬升"，用来分开卡片与底色 —— */
+  --cg-m-shadow: 0 1px 2px rgba(59, 42, 29, .06), 0 4px 14px rgba(59, 42, 29, .05);
+
+  /* —— 引用原文仍用衬线：法条与商家原话要一眼区别于界面文字 —— */
+  --cg-m-font-quote: "Source Han Serif SC", "Noto Serif CJK SC", "SimSun", serif;
+  --cg-m-font-ui: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+
+  background: var(--cg-m-bg);
+  color: var(--cg-m-ink);
+  font-family: var(--cg-m-font-ui);
+  font-size: var(--cg-m-t-body);
+  line-height: var(--cg-m-leading);
+  min-height: 100vh;
+}
+
+/*
+ * ── 通用令牌 → 商家配色 的映射层 ───────────────────────────────
+ *
+ * 商家端会复用运营端的组件（Element Plus 表格、命中卡 HitCard、原文 SourceText），
+ * 这些组件读的是通用 `--cg-*`。要么给每个组件加 prop 换肤（等于条件样式，
+ * 统筹方明确禁止），要么在这一层做映射——这里选后者：
+ * 在 `.merchant-shell` 子树里把通用变量指向商家值，组件本身一个字都不改。
+ *
+ * 刻意**不映射间距**（--cg-s-*）：两套尺度不同，硬映射会让复用组件的
+ * 内外边距错位，而这种错位只有肉眼能发现。配色可以换皮肤，几何不行。
+ */
+.merchant-shell {
+  --cg-paper: var(--cg-m-bg);
+  --cg-sheet: var(--cg-m-surface);
+  --cg-margin: var(--cg-m-surface-2);
+  --cg-rule: var(--cg-m-line);
+  --cg-rule-strong: #D6C6A6;
+  --cg-ink: var(--cg-m-ink);
+  --cg-ink-soft: var(--cg-m-ink-2);
+  --cg-ink-mute: var(--cg-m-ink-3);
+  --cg-hard: var(--cg-m-hard);
+  --cg-hard-bg: var(--cg-m-hard-bg);
+  --cg-soft: var(--cg-m-soft);
+  --cg-soft-bg: var(--cg-m-soft-bg);
+  --cg-pending: var(--cg-m-pending);
+  --cg-pending-bg: #EDE9E1;
+  --cg-ok: var(--cg-m-ok);
+  --cg-ok-bg: var(--cg-m-ok-bg);
+  --cg-accent: var(--cg-m-accent);
+  --cg-accent-soft: #F4EADB;
+  --cg-accent-ink: #6E4A18;
+  --cg-radius: var(--cg-m-radius);
+  --cg-shadow: var(--cg-m-shadow);
+  --cg-font-quote: var(--cg-m-font-quote);
+  --cg-t-body: var(--cg-m-t-body);
+  --cg-t-aux: var(--cg-m-t-aux);
+  --cg-t-h1: var(--cg-m-t-h3);
+  --cg-t-h2: var(--cg-m-t-h4);
+  --cg-t-display: var(--cg-m-t-display);
+  /* Element Plus 的主题变量也一起走这套：表格、按钮、标签才会跟着换色 */
+  --el-color-primary: var(--cg-m-accent);
+  --el-text-color-primary: var(--cg-m-ink);
+  --el-text-color-regular: var(--cg-m-ink-2);
+  --el-text-color-secondary: var(--cg-m-ink-3);
+  --el-border-color: var(--cg-m-line);
+  --el-border-color-lighter: var(--cg-m-line);
+  --el-fill-color-light: var(--cg-m-surface-2);
+  --el-bg-color: var(--cg-m-surface);
+  --el-bg-color-overlay: var(--cg-m-surface);
+}
+
+/* 焦点可见性不是装饰，是可访问性：去掉 outline 必须换成可见的环 */
+.merchant-shell :focus-visible {
+  outline: 2px solid var(--cg-m-focus);
+  outline-offset: 2px;
+  border-radius: var(--cg-m-radius-sm);
+}
+
+.merchant-shell h2, .merchant-shell h3, .merchant-shell h4 { color: var(--cg-m-ink); margin: 0; }
+.merchant-shell h2 { font-size: var(--cg-m-t-h2); }
+.merchant-shell h3 { font-size: var(--cg-m-t-h3); }
+.merchant-shell h4 { font-size: var(--cg-m-t-h4); }
+.merchant-shell .m-muted { color: var(--cg-m-ink-2); font-size: var(--cg-m-t-aux); }
+.merchant-shell .m-quote { font-family: var(--cg-m-font-quote); }
+
+@media (prefers-reduced-motion: reduce) {
+  .merchant-shell *, .merchant-shell *::before, .merchant-shell *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

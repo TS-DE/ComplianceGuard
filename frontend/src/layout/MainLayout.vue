@@ -24,18 +24,9 @@ const auth = useAuth()
 const router = useRouter()
 const route = useRoute()
 
-const isMerchant = computed(() => auth.user?.role === 'merchant')
-
-// 导航项本轮不动（A1 只换皮）；A2 会把商家端压到 4 项以内并给出合并理由
-const MERCHANT_MENUS: MenuItem[] = [
-  { path: '/merchant', title: '我的工作台' },
-  { path: '/merchant/check', title: '文案检查', hint: '批量' },
-  { path: '/merchant/scripts', title: '我的话术' },
-  { path: '/merchant/audits', title: '审查历史' },
-  { path: '/merchant/reviews', title: '待复核', hint: '人工' },
-  { path: '/merchant/sources', title: '素材档案', hint: '原文件' }
-]
-
+// 这个壳现在**只服务运营/平台端**：商家端换成 MerchantShell（顶部横向栏 + 两个功能区）。
+// 商家菜单在这里整块删掉，而不是"按角色隐藏几项"——同一个侧栏两套条目，
+// 迟早出现改了一边忘了另一边；而且"待复核"本来就不是商家的活。
 const PLATFORM_MENUS: MenuItem[] = [
   { path: '/dashboard', title: '工作台' },
   { path: '/scripts', title: '话术库' },
@@ -47,8 +38,8 @@ const PLATFORM_MENUS: MenuItem[] = [
   { path: '/sources', title: '素材档案', hint: '原文件' }
 ]
 
-const menus = computed(() => (isMerchant.value ? MERCHANT_MENUS : PLATFORM_MENUS))
-const roleText = computed(() => (isMerchant.value ? '商家端' : '平台管理端'))
+const menus = computed(() => PLATFORM_MENUS)
+const roleText = computed(() => '平台管理端')
 const initial = computed(() => (auth.user?.username ?? '·').slice(0, 1).toUpperCase())
 
 /** 字标：先剥掉"我的/机构/素材"这类前缀再取首字，否则四个菜单都长成"我"。 */

@@ -55,8 +55,8 @@ async function submit() {
       ElMessage.success('注册成功')
     }
     await auth.signIn({ username: form.username, password: form.password })
-    // 按角色落地：商家进商家端，其余进平台管理端。
-    await router.replace(auth.user?.role === 'merchant' ? '/merchant' : '/dashboard')
+    // 按角色落地：商家进自己的两个功能区（审核 / 档案），其余进平台管理端。
+    await router.replace(auth.user?.role === 'merchant' ? '/m/check' : '/dashboard')
   } catch {
     // API 层统一提示，避免重复弹窗。
   } finally {

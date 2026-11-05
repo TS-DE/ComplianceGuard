@@ -156,6 +156,13 @@ export async function allClients() {
 }
 export const runAudit = (row: ScriptRow) => request<AuditResult>('POST', '/audit/run', { script_id: row.id, client_id: row.client_id })
 export const rewrite = (id: number) => request<unknown>('POST', `/audit/${id}/rewrite`)
+/**
+ * 商家反馈（👍/👎）。允许反复提交：主观感受会随看完的条数变化，
+ * 拦一次就等于让人不再点，而我们要的正是这些点击分布。
+ */
+export const auditFeedback = (id: number, feedback: 'useful' | 'not_useful', note?: string | null) =>
+  request<{ id: number; feedback: string; feedback_note: string | null }>(
+    'POST', `/audit/${id}/feedback`, { feedback, note: note ?? null })
 export const redteam = { run: (data: unknown) => request<unknown>('POST', '/redteam/run', data), gaps: (id: string) => request<unknown>('GET', `/redteam/${encodeURIComponent(id)}/gaps`) }
 export const reports = { daily: (date: string) => request<unknown>('GET', '/reports/daily', undefined, { date }), redteam: (id: string) => request<unknown>('GET', `/reports/redteam/${encodeURIComponent(id)}`) }
 

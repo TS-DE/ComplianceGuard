@@ -11,7 +11,7 @@ import { reactive } from 'vue'
 import HitCard from '../../../components/risk/HitCard.vue'
 import RiskBadge from '../../../components/risk/RiskBadge.vue'
 import DiffView from '../../../components/data/DiffView.vue'
-import { lawArticle, rewriteAudit } from '../../../api/resource'
+import { auditFeedback, lawArticle, rewriteAudit } from '../../../api/resource'
 import { isCanceled } from '../../../api/http'
 // 类型声明在本文件第一个 script 块里，Vue 会把两块合成一个模块，不需要自己 import 自己
 import type { HitRender, ResultRow, RewriteState } from './types'
@@ -22,6 +22,23 @@ const emit = defineEmits<{ (event: 'locate', key: string | null): void }>()
 const law = reactive<Record<string, string | null>>({})
 const lawBusy = reactive<Record<string, boolean>>({})
 const rewrites = reactive<Record<number, RewriteState>>({})
+// 反馈按 audit 记录存（audits.feedback），所以控件挂在**整条结论**上而不是每个命中卡上：
+// 挂在命中上会给出"我可以逐条推翻"的假暗示，而后端根本没有 per-hit 反馈这回事
+const votes = reactive<Record<number, 'useful' | 'not_useful' | null>>({})
+const voteBusy = reactive<Record<number, boolean>>({})
+
+async function vote(row: ResultRow, pick: 'useful' | 'not_useful') {
+  if (!row.auditId || voteBusy[row.scriptId]) return
+  voteBusy[row.scriptId] = true
+  try {
+    const saved = await auditFeedback(row.auditId, pick)
+    votes[row.scriptId] = saved.feedback as 'useful' | 'not_useful'
+  } catch {
+    votes[row.scriptId] = null      // 没存上就说没存上，不能显示"已记录"
+  } finally {
+    voteBusy[row.scriptId] = false
+  }
+}
 
 async function loadLaw(hit: HitRender) {
   const key = `${hit.view.lawArticle}|${hit.view.itemNo ?? ''}`
@@ -85,9 +102,11 @@ async function adopt(row: ResultRow) {
                :class="{ on: props.activeKey?.startsWith(`${row.scriptId}-`) }">
         <header class="head">
           <RiskBadge :score="row.score" :incomplete="row.incomplete" :error="row.error" />
-          <button class="jump" @click="emit('locate', `${row.scriptId}-0`)">
+          <!-- 溯源写成纯文本：点它曾经是"定位原文"那个多余步骤，
+               现在点任意命中就自动滚过去，不需要再让用户多做一次动作 -->
+          <span class="ref" :title="row.ref ? '这句话在素材里的位置' : '没有素材来源，位置未知'">
             {{ row.ref || '位置未知' }}
-          </button>
+          </span>
           <span class="src">{{ row.sourceLabel }}</span>
           <span v-if="row.latencyMs" class="ms">{{ row.latencyMs }} ms</span>
         </header>
@@ -105,6 +124,17 @@ async function adopt(row: ResultRow) {
         <p v-if="row.unlocated.length" class="warn">
           {{ row.unlocated.length }} 处命中在原文里定位失败，未高亮：{{ row.unlocated.join('、') }}
         </p>
+
+        <div class="vote">
+          <span class="m-muted">这条判得怎么样？</span>
+          <button :class="{ on: votes[row.scriptId] === 'useful' }"
+                  :disabled="!row.auditId || voteBusy[row.scriptId]"
+                  @click="vote(row, 'useful')">有用</button>
+          <button :class="{ on: votes[row.scriptId] === 'not_useful' }"
+                  :disabled="!row.auditId || voteBusy[row.scriptId]"
+                  @click="vote(row, 'not_useful')">没用</button>
+          <span class="muted-note">{{ votes[row.scriptId] ? '已记录，可改' : '不选也不影响判定' }}</span>
+        </div>
 
         <div v-if="row.hits.length" class="actions">
           <button class="adopt" :disabled="!row.auditId || rewrites[row.scriptId]?.busy"
@@ -143,8 +173,20 @@ async function adopt(row: ResultRow) {
   padding-bottom: var(--cg-s-3); border-bottom: var(--cg-line); }
 .row:last-child { border-bottom: none; }
 .head { display: flex; align-items: center; gap: var(--cg-s-2); flex-wrap: wrap; }
-.jump { border: none; background: none; padding: 0; cursor: pointer; font-size: var(--cg-t-aux);
-  color: var(--cg-accent); border-bottom: 1px dashed var(--cg-accent); }
+/* 纯文本，不是按钮：它曾经是"定位原文"那一步，点命中已经会自动滚过去 */
+.ref { font-size: var(--cg-t-aux); color: var(--cg-ink-mute); }
+.vote { display: flex; align-items: center; gap: var(--cg-s-2); margin-top: var(--cg-s-2); }
+.vote button {
+  /* --cg-line 是边框简写（1px solid 颜色），不能再套一层 `1px solid var(--cg-line)`：
+     那会展开成 `1px solid 1px solid #…`，浏览器直接丢掉整条声明 */
+  border: var(--cg-line); background: transparent; cursor: pointer;
+  border-radius: var(--cg-radius); padding: 2px var(--cg-s-2); font-size: var(--cg-t-micro);
+  color: var(--cg-ink-soft); transition: border-color var(--cg-m-fast), color var(--cg-m-fast);
+}
+.vote button:hover:not(:disabled) { border-color: var(--cg-accent); color: var(--cg-ink); }
+.vote button.on { border-color: var(--cg-accent); color: var(--cg-accent); font-weight: 600; }
+.vote button:disabled { opacity: .5; cursor: not-allowed; }
+.muted-note { font-size: var(--cg-t-micro); color: var(--cg-ink-mute); }
 .src { font-size: 11px; color: var(--cg-ink-mute); }
 .ms { margin-left: auto; font-size: 11px; color: var(--cg-ink-mute); font-family: var(--cg-font-num); }
 .text { margin: 0; font-size: var(--cg-t-aux); color: var(--cg-ink-soft); }

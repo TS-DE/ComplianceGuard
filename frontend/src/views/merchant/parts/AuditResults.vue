@@ -75,8 +75,7 @@ const hitList = (item: BatchAuditItem): Hit[] => item.hits ?? []
 
     <p class="muted note">本系统输出为合规风险辅助提示，不构成法律意见，也不能替代《医疗广告审查证明》的行政前置审查。</p>
 
-    <el-button style="margin-top: 4px" @click="router.push('/merchant/audits')">到审查历史查看完整记录</el-button>
-    <el-button style="margin-top: 4px" @click="router.push('/merchant/sources')">看这批素材的原始档案</el-button>
+    <el-button style="margin-top: 4px" @click="router.push('/m/archive')">到「我的档案」看完整记录</el-button>
   </el-card>
 </template>
 
