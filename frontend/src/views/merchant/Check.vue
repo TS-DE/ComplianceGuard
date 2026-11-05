@@ -17,7 +17,7 @@
  * 两条不肯让步的边界：定位失败就写"位置未知"并列出引文，绝不猜位置；
  * 主题只显示"解析首行摘录（非模型提炼）"，没有可靠来源就显示未启用。
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { UploadUserFile } from 'element-plus'
 import {
@@ -25,6 +25,7 @@ import {
   type BatchAuditItem, type Capabilities, type Hit, type ImportPiece
 } from '../../api/resource'
 import { useAuth } from '../../stores/auth'
+import { useCheckDraft } from '../../stores/checkDraft'
 import { isCanceled } from '../../api/http'
 import { acceptOf, missingEnginesOf, refuseReason } from '../../utils/parseAccept'
 import { contextOf, locate, locateInSource } from '../../utils/locate'
@@ -56,6 +57,7 @@ interface Group {
 }
 
 const auth = useAuth()
+const draft = useCheckDraft()
 const tab = ref<'paste' | 'file'>('paste')
 const scene = ref('')
 const mode = ref('blank')
@@ -401,7 +403,53 @@ onMounted(async () => {
   } catch {
     // 能力清单拿不到就退回最保守的两种切分方式，不让页面打不开
   }
+  const found = draft.restore(clientId.value)
+  if (found) {
+    stage.value = draft.stage
+    scene.value = draft.scene
+    mode.value = draft.mode
+    groups.value = draft.groups.map((group, position) => ({
+      key: `draft-${group.sourceId ?? position}`, filename: group.filename,
+      kind: group.kind, engine: group.engine,
+      // 草稿里没存解析期的 confidence/warnings（它们属于那一次解析，重建代价低、
+      // 误用代价也低：需要时重新解析即可），恢复时用空值占位并在界面上标为草稿
+      confidence: null, warnings: [], fullText: group.fullText,
+      pieces: group.pieces, file: null, text: null,
+      // 草稿里没有 File 对象（sessionStorage 存不了），所以 picked 用记录下来的下标重建
+      picked: new Set(group.picked), sourceId: group.sourceId, error: null, chunks: []
+    }))
+    // 分段与结论都还在，只有文件本体需要重选——这句话必须显示出来，
+    // 不然商家会以为自己上次上传白做了
+    ElMessage.info(draft.needsReupload
+      ? '已恢复上次的分段与结论；原始文件需重新选择才能再传一次，库里数据不受影响'
+      : '已恢复上次的分段与结论')
+  }
 })
+
+// 状态一变色就落盘：等用户点"保存"等于没做——刷新是意外，不是计划内的动作
+watch([stage, scene, mode, groups, rows], () => {
+  draft.remember(clientId.value, {
+    stage: stage.value, scene: scene.value, mode: mode.value,
+    groups: groups.value.map(group => ({
+      filename: group.filename, kind: group.kind, engine: group.engine,
+      sizeBytes: group.file?.size ?? null, sourceId: group.sourceId,
+      fullText: group.fullText, pieces: group.pieces,
+      picked: [...group.picked]
+    })),
+    results: rows.value.map(row => ({
+      scriptId: row.scriptId, auditId: row.auditId, groupIndex: row.groupIndex,
+      text: row.text, score: row.score, incomplete: row.incomplete
+    }))
+  })
+}, { deep: true })
+
+function clearDraft() {
+  draft.clear()
+  groups.value = []
+  rows.value = []
+  stage.value = 'input'
+  ElMessage.success('本次草稿已清空（已入库的话术与审查记录不受影响）')
+}
 </script>
 
 <template>
@@ -499,6 +547,8 @@ onMounted(async () => {
           <!-- 取消不是"关掉请求就完事"：后端这一次还会跑完，所以按钮写"停止等待"，
                并明确告诉用户已经入库的话术仍在「我的档案」里，避免他以为数据丢了 -->
           <el-button v-if="checking" plain @click="cancelChecking">停止等待</el-button>
+          <!-- 草稿要能显式清掉：只有自动恢复、没有出口，用户想"重新开始一次"就只能刷新或换浏览器 -->
+          <el-button v-if="draft.savedAt && !checking" text @click="clearDraft">清空本次草稿</el-button>
           <p class="cg-muted">顺序执行，单条约 6 秒；超过 20 条自动分批跑完。</p>
         </div>
 

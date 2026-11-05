@@ -969,3 +969,42 @@ rewriter/auditor 独立实例也各自收到预算、langchain 后端同一条�
 （批量的总耗时随条数线性变化，硬编码上限会误伤大批量，需要统筹方定策略）；
 ③ 取消后后端那一次继续跑完并照常计费落库，这是事实而非 bug，但如果以后要做"真取消"，
 得引入任务表 + 轮询/取消接口，不是前端能单独解决的。
+
+## E · 商家三段状态持久化（材料 → 分段 → 结论）
+
+**改动**：新增 `frontend/src/stores/checkDraft.ts`（Pinia + sessionStorage），
+检查页 `onMounted` 按 `client_id` 自动恢复、状态一变即落盘、并给显式"清空本次草稿"出口。
+
+**三条不能假装的设计约束**：
+1. **File 对象存不进 sessionStorage**。所以"材料"这一栏持久化的是文件名/大小/已入库的
+   `source_id`，恢复时界面直接说"分段与结论都在，原始文件需重新选择才能再传一次，
+   库里数据不受影响"。偷偷丢掉文件而不告诉用户，会被理解成"我上次上传白做了"。
+2. **按 client_id 分键**（`cg-check-draft.<clientId>`），并在读取时校验
+   `shape.clientId === clientId` 与 `shape === SHAPE_VERSION`：结构变了或归属不对直接丢弃。
+   拿旧 schema 或另一家机构的数据来渲染，比丢一次草稿危险得多——租户隔离在草稿层
+   也必须是真的，不能只在数据库 `data_scope` 那一层是真的。
+3. **配额写满必须告知**：`sessionStorage.setItem` 抛错（超配额 / 隐私模式禁用）时，
+   清掉旧草稿并把 `savedAt` 置空——不能让用户界面显示"已保存"而实际什么都没留下。
+
+**只清显式动作**：`clear()` 只由"清空本次草稿"按钮触发，页面卸载绝不自动删；
+同时明确提示"已入库的话术与审查记录不受影响"，把草稿和业务数据的边界说清楚，
+否则用户不敢点这个按钮。
+
+**顺带修掉一个类型漂移的隐患**：我最初在 store 里另抄了一份 `DraftPiece`
+（字段与接口契约的 `ImportPiece` 几乎同形），被 vue-tsc 当场抓出
+`source_start` 可选性不一致——这正是"两处各写一遍、迟早分家"的第一现场。
+改为直接复用 `ImportPiece`，锚点字段以后随契约一起走，不需要我在两个文件里同步。
+
+**实际验证**：`cd frontend && npm run build` → **✓ built in 6.14s**（vue-tsc 无类型错误；
+第一次构建有 2 个真实类型错，均已修：恢复出的 group 缺 `confidence/warnings/error/chunks`，
+草稿 pieces 与接口类型不同形）。`python -m scripts.doc_lint` → 红灯 0 条。
+**没有前端单元测试**：项目里本来就没有测试运行器（`package.json.scripts` 只有
+dev/build/preview），本轮不擅自引入 vitest 扩范围；恢复流程需要你在浏览器里真点一次
+（传文件 → 出结论 → F5 → 看是否回到结论页且提示"已恢复"）。
+
+**风险 / 遗留**：① 草稿只在**同一浏览器标签会话**内有效（sessionStorage 关闭页签即清），
+要跨会话续用得换 localStorage + 过期策略，本轮按任务书写的 sessionStorage 执行；
+② 恢复的分组 `chunks` 为空，所以结论区的数据来自 `results` 列表而不是重新审查——
+如果以后要在恢复态上继续"采纳改写"，得先按 `script_id` 把 audit 记录取回来；
+③ 无 FE 测试设施这条与 F 阶段一起暴露：商家端重设计做完后，
+高亮/滚动/取消这类交互全靠手工回归，成本会越来越高，建议 D8 前补 vitest。
