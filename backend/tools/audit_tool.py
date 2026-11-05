@@ -74,6 +74,22 @@ class AuditTool:
         if client_id is not None and not self.repository.client(client_id):
             raise NotFoundError("client", client_id)
 
+    def _source_text(self, script):
+        """取该话术所属素材的整篇文本（路线A 首 call 的上下文）。
+
+        读库里的 `sources.full_text` 而不是重读原始文件：海报与扫描件重读要再跑一次
+        OCR（实测单张 4 秒起），为了上下文而重跑识别等于用更慢换更准。
+        手工录入与红队样本没有 source_id → 返回 None，判定链路自动退回
+        "有语境信号才复核"的策略；这里不做任何"没上下文就当没问题"的降级。
+        """
+        source_id = script.get("source_id")
+        if not source_id:
+            return None
+        from backend.db.models import Source
+
+        row = self.repository.session.get(Source, source_id)
+        return row.full_text if row else None
+
     def run_audit(self, script_id, client_id):
         """读取原文、校验归属，完整审查后原子落库并返回结果。"""
         from backend.core.errors import NotFoundError, BusinessValidationError
@@ -86,11 +102,12 @@ class AuditTool:
             raise NotFoundError("script", script_id)
         if script["client_id"] != client_id:
             raise BusinessValidationError("话术不属于指定机构")
+        context = self._source_text(script)
         call_offset=len(getattr(self.model,"calls",[])) if isinstance(getattr(self.model,"calls",None),list) else 0
         started = perf_counter()
         from backend.rag.embedding import usage_meter
         with usage_meter() as rag_usage:
-            result = self.auditor.review(script["content"], client_id=client_id)
+            result = self.auditor.review(script["content"], client_id=client_id, context=context)
         result["cost_breakdown"] = dict(a1=dict(cost=result["cost"],prompt_tokens=result["prompt_tokens"],
             completion_tokens=result["completion_tokens"]), **rag_usage)
         result["cost"] = add_cost(add_cost(result["cost"],rag_usage["rag_rewrite"]["cost"]),rag_usage["embedding"]["cost"])

@@ -37,7 +37,8 @@ python -m uvicorn backend.main:app --reload --port 8000
 python -m backend.mcp_server.server --selftest
 
 # 6) 前端
-cd frontend && npm run dev
+cd frontend
+npm run dev
 ```
 
 ## 2. 环境变量（`.env`，不入库）

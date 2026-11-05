@@ -161,7 +161,12 @@ def test_item_not_in_file_is_rejected(client: TestClient, auth_headers: dict, db
 
 
 def test_duplicate_upload_is_pointed_out(client: TestClient, auth_headers: dict, db) -> None:
-    """同一份素材重复上传要指出来（按内容指纹，不按文件名）。"""
+    """同一份素材重复上传要指出来（按内容指纹，不按文件名）。
+
+    注意这里必须复用同一串字节：python-docx 会把创建时间写进 docProps，
+    两次生成的"同样内容"字节并不相同，指纹也就不同——那样这条用例会在跨秒时偶发失败。
+    要验的语义是"商家改了文件名重传同一张海报"，所以文件名变、字节不变。
+    """
     from backend.db.models import Client
 
     account = Client(name="重复机构", industry="medical_beauty", contact=None, plan="free")
@@ -170,7 +175,7 @@ def test_duplicate_upload_is_pointed_out(client: TestClient, auth_headers: dict,
     raw = _docx(PARAGRAPHS)
 
     first = _upload(client, auth_headers, account.id, raw, commit=True)
-    second = _upload(client, auth_headers, account.id, _docx(PARAGRAPHS),
+    second = _upload(client, auth_headers, account.id, raw,
                      commit=True, name="话术-改了三遍-最终版.docx")
     assert second["duplicate_of"] == first["source_id"], "改了文件名也还是同一份素材"
 

@@ -86,6 +86,10 @@ def downgrade_descriptive_hits(hits):
         hit['severity'] = 'soft'
         hit['downgraded'] = True
         hit['needs_recheck'] = True
+        # 这一行原本漏了：否定语境分支写了 severity_before_gate，模糊限定词分支没写，
+        # 于是"被词表降级的命中"在复核里永远走不到升回 hard 的分支——
+        # 复核明明可以说"这在整篇里确实是打包票"，却被我这个缺失的记号挡在外面。
+        hit['severity_before_gate'] = 'hard'
         hit['downgrade_reason'] = (
             f"表述含模糊限定词（{'、'.join(hedges[:3])}）且无保证性承诺词，"
             "按一般预后/恢复周期告知处理，降级为疑似风险"
@@ -135,8 +139,13 @@ class ComplianceAuditAgent:
         if detectors is None:
             self.detectors['llm_judge'] = LLMJudgeDetector(model)
 
-    def review(self, text, client_id=None):
-        """执行 N1–N8；轴失败标未完成，检索故障继续检测但不伪造依据。"""
+    def review(self, text, client_id=None, context=None):
+        """执行 N1–N8；轴失败标未完成，检索故障继续检测但不伪造依据。
+
+        `context` = 该片段所属素材的整篇文本（批次1 路线A）。
+        给了上下文，语义判定就在同一次调用里看完全局，第二次复核调用随之取消；
+        没给（手工录入、红队样本这类无素材来源的），仍按"有语境信号才复核"处理。
+        """
         started = perf_counter()
         normalized, offsets = normalize_with_map(text)  # N1
         normalized_at = perf_counter()
@@ -172,7 +181,7 @@ class ComplianceAuditAgent:
         result['timings_ms']['retrieve'] = (perf_counter() - before) * 1000
         before = perf_counter()
         semantic = [rule for rule in rules if rule.detector == 'llm_judge']
-        self._run_semantic(normalized, semantic, candidates, result)
+        self._run_semantic(normalized, semantic, candidates, result, context)
         result['timings_ms']['detect'] = (perf_counter() - before) * 1000
         before = perf_counter()
         self._validate(text, normalized, offsets, candidates, result)  # N6–N7
@@ -184,8 +193,8 @@ class ComplianceAuditAgent:
             result['incomplete_reason'] = 'evidence_gap'
         # N7.5 分级闸：描述性表述与否定语境降级为软提示（见 downgrade_descriptive_hits）
         downgrade_descriptive_hits(result['hits'])
-        # N7.6 整篇复核：片段判完再让模型带着上下文看一遍，处置由代码决定（T2）
-        result['hits'] = self._recheck(text, result['hits'], result)
+        # N7.6 整篇复核：路线A 已在首 call 带上看整篇上下文，这里跳过，避免两次串行调用
+        result['hits'] = self._recheck(text, result['hits'], result, context)
         result['raw_hits'] = result['hits']
         result['hits'] = aggregate_claims(result['raw_hits'])
         result['hit_count'] = len(result['hits'])  # N8
@@ -195,7 +204,7 @@ class ComplianceAuditAgent:
         logging.getLogger(__name__).warning('audit_timings_ms=%s', result['timings_ms'])
         return result
 
-    def _recheck(self, original, hits, result):
+    def _recheck(self, original, hits, result, context=None):
         """N7.6 整篇复核：把处置逻辑交给 audit.recheck，这里只负责接入链路。
 
         只复核**语境上有疑问**的命中（否定/假设-引用-科普/被词表降级过）。
@@ -205,8 +214,14 @@ class ComplianceAuditAgent:
 
         顺序固定在 分级闸之后、聚合与算分之前 —— 复核结论优先于词表降级，
         而算分必须在最终命中集上做，否则分数与命中对不上。
+
+        `context` 非空说明首 call 已经看过整篇（路线A），此处必须跳过：
+        留着它就是把刚省掉的那 2~12 秒又加回去，还会让"是否复核过"在看板上说不清。
         """
         if not hits:
+            return hits
+        if context:
+            result['recheck_skipped'] = 'context_in_first_call'
             return hits
         ambiguous = [hit for hit in hits if hit.get('needs_recheck')
                      or hit.get('negated_suspected') or hit.get('context_hedge')]
@@ -215,13 +230,14 @@ class ComplianceAuditAgent:
             return hits
         return recheck_hits(self.model, original, hits, result)
 
-    def _run_semantic(self, text, rules, candidates, result):
+    def _run_semantic(self, text, rules, candidates, result, context=None):
         """合并模式一次调用；多路保留独立用量容器，缺轴必须未完成。"""
         if not rules:
             return
         if self.semantic_mode == 'merged':
             try:
-                rows, usage, missing = merged_judgment(self.model, text, rules, result['law_refs'])
+                rows, usage, missing = merged_judgment(self.model, text, rules,
+                                                       result['law_refs'], context)
                 candidates.extend(rows)
                 for key in ('prompt_tokens', 'completion_tokens', 'cost'):
                     result[key] = add_cost(result[key], usage[key]) if key == 'cost' else result[key] + usage[key]

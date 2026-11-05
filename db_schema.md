@@ -136,6 +136,7 @@ DSN：`mysql+pymysql://root:123456@localhost:3306/compliance_guard?charset=utf8m
 | warnings | JSON | NULL | 低置信度提醒、扫描页未做 OCR 等，**原样透出给人看，不静默丢弃** |
 | parse_ms | INT | NULL | 解析耗时；OCR/ASR 的性能证据 |
 | item_count | INT | NOT NULL, DEFAULT 0 | 切出的话术条数 |
+| full_text | LONGTEXT | NULL | **整篇解析文本**。判定链路"首 call 看整篇"（批次1 路线A）的上下文来源；不重读原始文件是因为海报要重跑 OCR（实测单张 4 秒起）。上限 20 万字符，超出截断 |
 | created_by | BIGINT | FK→users.id, NULL, ON DELETE SET NULL | 谁传的 |
 | created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
 

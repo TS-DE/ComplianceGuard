@@ -85,32 +85,53 @@ class BatchAuditRequest(BaseModel):
 @router.post("/audit/batch", tags=["audit"])
 def run_audit_batch(payload: BatchAuditRequest, db: DbSession,
                     current_user: CurrentUser) -> dict:
-    """顺序审查一批话术，逐条返回结果。
+    """并发审查一批话术，结果顺序与 script_ids 一致。
 
-    为什么顺序而不是并发：模型接口的限流与成本都按并发放大，
-    而且一条失败不应影响其余——顺序执行时每条独立 try，失败只记该条。
+    为什么改成并发：目标是"尽可能快"，单条耗时几乎全在模型调用上，串行等于把等待乘条数。
+    上限取 constants.BATCH_AUDIT_WORKERS=4——不计成本 ≠ 打爆模型接口，也 ≠ 拖到浏览器超时。
 
-    越权保护：商家只能审自己机构的话术，任何一条不属于自己即整批拒绝，
-    避免"混入一条别人的"这种探测手法。
+    三条约束：① 每个任务自带 Session（SQLAlchemy Session 不是线程安全的，
+    把请求级 session 分给多个线程会随机报 detached/DirtyRelation）；
+    ② 越权校验仍串行且先于任何调用，一条不属于本机构即整批拒绝；③ 单条失败只标该条。
     """
+    from concurrent.futures import ThreadPoolExecutor
+
+    from backend.core.constants import BATCH_AUDIT_WORKERS
     from backend.core.security import data_scope
     from backend.crud.special import scripts as script_repo
 
     scoped = data_scope(current_user)
-    tool = build_audit_tool(db)
-    results = []
-    for script_id in payload.script_ids:
+    tasks, results = [], [None] * len(payload.script_ids)
+    for position, script_id in enumerate(payload.script_ids):
         script = script_repo.get(db, script_id)
         if script is None:
-            results.append({"script_id": script_id, "error": "话术不存在"})
+            # 保持既有契约：话术不存在只标该条，不改变整批的状态码（本轮没被要求动这里）
+            results[position] = {"script_id": script_id, "error": "话术不存在"}
             continue
         if scoped is not None and script.client_id != scoped:
             raise AppError(CODE_NOT_FOUND, f"话术 {script_id} 不存在")
+        tasks.append((position, script_id))
+
+    def one(script_id: int) -> dict:
+        from backend.db.session import SessionLocal
+
+        session = SessionLocal()
         try:
-            results.append(tool.run_audit(script_id, script.client_id))
-        except Exception as exc:  # 单条失败不拖垮整批
-            results.append({"script_id": script_id, "error": str(exc)})
-    return ok({"count": len(results), "results": results})
+            return build_audit_tool(session).run_audit(script_id, scoped or payload.client_id)
+        except Exception as exc:  # 单条故障不拖垮整批
+            session.rollback()
+            return {"script_id": script_id, "error": str(exc)}
+        finally:
+            session.close()
+
+    workers = max(1, min(BATCH_AUDIT_WORKERS, len(tasks)))
+    # pool.map 保序：结果必须与 script_ids 一一对应，界面靠下标回贴到原始素材位置
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for position, outcome in zip([pos for pos, _ in tasks],
+                                     pool.map(one, [sid for _, sid in tasks])):
+            results[position] = outcome
+    return ok({"count": len(results), "results": results,
+               "meta": {"workers": workers if tasks else 0, "parallel": len(tasks) > 1}})
 
 
 class ReviewRequest(BaseModel):

@@ -140,6 +140,8 @@ def test_merged_and_multi_results_equal():
         model = Model()
         result = ComplianceAuditAgent(lambda: rules, lambda q:[dict(code='广告法第16条')],
                                      model, semantic_mode=mode).review('非常安全')
-        assert model.calls == (1 if mode == 'merged' else 8)
+        # T2 起每条含命中的审查多一次整篇复核调用：merged 1+1、multi 8+1。
+        # 这里跟着链路步数改断言，不是放宽——两模式命中结果仍然必须一致（下一行）。
+        assert model.calls == (2 if mode == 'merged' else 9)
         results.append(result['raw_hits'])
     assert results[0] == results[1]

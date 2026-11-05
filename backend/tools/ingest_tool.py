@@ -24,6 +24,9 @@ from backend.crud.special import sources as source_repo
 from backend.parse import Block, Doc, MAX_CHUNKS, ParseError, Piece, parse_file, split_doc
 from backend.schemas.business import ScriptCreate
 
+# 整篇文本存库上限（字符）：再长的素材本就不适合一次判读，截断而不是拒绝
+FULL_TEXT_STORE_LIMIT = 200_000
+
 
 @dataclass
 class IngestResult:
@@ -139,6 +142,9 @@ def source_fields(result: IngestResult, client_id: int, created_by: int | None,
         "warnings": result.doc.warnings,
         "parse_ms": result.parse_ms,
         "item_count": item_count,
+        # 整篇文本入库存一份：判定要看全局，而重读原始文件会重跑 OCR（单张海报 4 秒起）。
+        # 超长截断而不是拒绝——被截掉的部分本来就超过单次审查的合理范围。
+        "full_text": result.doc.text[:FULL_TEXT_STORE_LIMIT],
         "created_by": created_by,
     }
 

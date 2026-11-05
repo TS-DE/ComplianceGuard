@@ -82,9 +82,14 @@ def test_run_persists_metadata_and_recheck_does_not_write(db):
     assert saved.hit_count == 1
     assert saved.hits_json[0]["status"] == "active"
     assert saved.law_refs_json
-    assert saved.prompt_tokens == 10
-    assert saved.completion_tokens == 2
-    assert saved.cost == Decimal("0.0001")
+    # T2 只复核"语境上有疑问"的命中。本句是无否定的常规绝对化用语，
+    # 复核必须被跳过：多花一次调用不改变任何结论，却给单条加 2~12 秒。
+    # 所以这里钉的是"跳没跳"这个设计，而不是钉一个调用次数——次数会随链路步骤变。
+    assert "recheck" not in result["timings_ms"], "无语境信号不应发起整篇复核"
+    assert result["recheck_skipped"] == "no_context_signal"
+    assert saved.prompt_tokens == result["prompt_tokens"] == 10
+    assert saved.completion_tokens == result["completion_tokens"] == 2
+    assert saved.cost == result["cost"] == Decimal("0.0001")
     assert saved.model is not None
     assert saved.latency_ms >= 0
     assert "不构成法律意见" in result["disclaimer"]
@@ -98,7 +103,11 @@ def test_run_persists_metadata_and_recheck_does_not_write(db):
     db.refresh(saved)
     assert saved.rewritten_text == "请到院咨询适宜方案"
     assert saved.rewrite_passed is True
-    assert saved.cost == Decimal("0.0004")
+    # 累计费用 = 首次审查 + 改写与二次过审（T2 之后二次过审内部还含整篇复核调用）。
+    # 这里断言"落库账 = 两次上报之和"，不再钉死具体数字：链路的步数变了，账必须跟着变，
+    # 但"少记一次调用"必须被这条断言抓到。
+    assert saved.cost == result["cost"] + rewritten["cost"]
+    assert saved.cost > result["cost"], "改写与复核的调用必须计入本条总账，不能只记首次"
 
 
 def test_audit_routes_require_authentication(client):

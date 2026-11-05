@@ -102,6 +102,10 @@ class Source(Base):
     warnings: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     parse_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     item_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    # 整篇解析文本：判定链路要"看全局"就必须有它。
+    # 为什么不每次重读原始文件：海报与扫描件要重跑 OCR（实测单张 4 秒起），
+    # 为了拿上下文而重跑一次识别，等于让"更准"用"更慢"来换，方向错了。
+    full_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

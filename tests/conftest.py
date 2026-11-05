@@ -89,6 +89,9 @@ def test_dsn() -> str:
     # 那是"文档说有、库里没有"的假契约，不是逻辑错误。
     from scripts.migrate_sources_provenance import migrate as migrate_provenance
     migrate_provenance(engine, apply=True)
+    # 整篇文本列（批次1 路线A）：漏掉这步，写 sources 的用例会在 INSERT 时报未知列
+    from scripts.migrate_sources_full_text import migrate as migrate_full_text
+    migrate_full_text(engine, apply=True)
     engine.dispose()
     yield dsn
 

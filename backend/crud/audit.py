@@ -31,9 +31,14 @@ class AuditRepository:
         return self.session.get(Client, client_id) is not None
 
     def script(self, script_id):
-        """读取话术快照；不存在返回 None。"""
+        """读取话术快照；不存在返回 None。
+
+        带 source_id 是批次1 路线A 的需要：判定要拿"所属素材的整篇文本"当上下文。
+        这是内部快照加字段，不改任何接口响应结构。
+        """
         row = self.session.get(Script, script_id)
-        return None if row is None else dict(id=row.id, client_id=row.client_id, content=row.content)
+        return None if row is None else dict(id=row.id, client_id=row.client_id,
+                                             content=row.content, source_id=row.source_id)
 
     def audit(self, audit_id):
         """读取改写所需快照；保留所有审计轨迹。"""
