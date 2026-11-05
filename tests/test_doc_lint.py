@@ -13,9 +13,10 @@ import pytest
 
 lint = importlib.import_module('scripts.doc_lint')
 
-# 当前确认存在、且本轮明确要修的"名不符实"：文档声称用了 LangChain/LangGraph，代码里 0 处 import。
-# 写成登记表而不是放宽检查：新增一项技术栈声明就必须先在这里登记，或者把代码补上。
-KNOWN_DEBT = ('技术栈 langchain', '技术栈 langgraph')
+# 已登记的技术栈欠债：T-B 把 LangChain 适配层落地后，这条清单应当是空的。
+# 将来若确实要带着某条红灯过关，在这里写清"哪条、为什么、什么时候修"——
+# 清单是给人看的账，不是让测试让步的口子。
+KNOWN_DEBT: tuple[str, ...] = ()
 
 
 def test_facts_match_code():
@@ -76,16 +77,44 @@ def test_changelog_history_is_not_a_drift(tmp_path, monkeypatch):
 
 
 def test_red_list_equals_registered_debt():
-    """全仓体检：红灯必须恰好等于已登记的两条技术栈欠债。
+    """全仓体检：红灯必须恰好等于已登记欠债（当前为 0 条）。
 
-    T-B 把 langchain 落地后，这条测试会因"欠债清单与实际不符"失败——
-    那是提醒同步把清单收窄，而不是把测试删掉。
+    冒出新的漂移、或欠债清单没同步收窄，这条都会失败——这才是"红灯不许收工"。
     """
     red = lint.run(strict=False)
     unregistered = [line for line in red if not line.startswith(KNOWN_DEBT)]
-    assert not unregistered, f'新的文档漂移：\n' + '\n'.join(unregistered)
-    registered = [line for line in red if line.startswith(KNOWN_DEBT)]
-    assert len(registered) <= len(KNOWN_DEBT)
+    assert not unregistered, '新的文档漂移：\n' + '\n'.join(unregistered)
+    assert len([line for line in red if line.startswith(KNOWN_DEBT)]) == len(KNOWN_DEBT)
+
+
+def test_disclaimed_stack_is_not_a_claim(tmp_path, monkeypatch):
+    """诚实交代"装了但未接入"不该被当成技术栈声明——否则大家只会把说明删掉。"""
+    doc = tmp_path / 'README.md'
+    doc.write_text('langgraph 1.2.16 已安装但未接入代码\n', encoding='utf-8')
+    monkeypatch.setattr(lint, 'ROOT', tmp_path)
+    assert lint.check_tech([doc]) == []
+
+
+def test_claimed_stack_without_import_is_red(tmp_path, monkeypatch):
+    """声称在用而代码 0 处 import：红灯要给出位置与两条出路，不能只说"不一致"。"""
+    doc = tmp_path / 'CLAUDE.md'
+    doc.write_text('| Agent 框架 | LangGraph（多 Agent 编排） |\n', encoding='utf-8')
+    (tmp_path / 'requirements.txt').write_text('langgraph==1.2.16\n', encoding='utf-8')
+    (tmp_path / 'backend').mkdir()
+    monkeypatch.setattr(lint, 'ROOT', tmp_path)
+    red = lint.check_tech([doc])
+    assert len(red) == 1 and 'LangGraph' not in red[0]        # 报告里用小写包名，不重复文档写法
+    assert '声称在用' in red[0] and '0 处 import' in red[0] and 'README' not in red[0]
+    assert 'CLAUDE.md:1' in red[0]
+
+
+def test_history_doc_does_not_claim_a_stack(tmp_path, monkeypatch):
+    """CHANGELOG 写"当时发现 langgraph 0 处 import"是描述问题，不是声明在用。"""
+    doc = tmp_path / 'CHANGELOG.md'
+    doc.write_text('文档声称用了 `langgraph`，现在就是 0 处 import → 红灯\n', encoding='utf-8')
+    (tmp_path / 'backend').mkdir()
+    monkeypatch.setattr(lint, 'ROOT', tmp_path)
+    assert lint.check_tech([doc]) == []
 
 
 def test_strict_mode_exits_nonzero_on_red(monkeypatch):

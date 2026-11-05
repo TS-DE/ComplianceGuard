@@ -33,7 +33,7 @@
 | 后端 | FastAPI + Pydantic V2 + Uvicorn（Python 3.12） |
 | ORM / 数据库 | SQLAlchemy 2.0 + PyMySQL + **MySQL 8.0** |
 | 向量库 | **Chroma**（本地持久化，目录 `data/chroma`） |
-| Agent 框架 | **LangChain**（工具调用/Chain）+ **LangGraph**（多 Agent 编排） |
+| Agent 框架 | **LangChain** 只作模型适配层（`backend/model/langchain_model.py`，`LLM_BACKEND=langchain` 可切换）；**LangGraph 未接入代码**——判定编排是显式实现，N1→N10 顺序写死在 `ComplianceAuditAgent.review`，不为了"用了编排框架"去重写判定链路 |
 | 工具协议 | **MCP**（FastMCP，stdio） |
 | 前端 | Vue3 + Vite + TypeScript + Element Plus |
 | 知识图谱 | Neo4j（**可选**，默认不启用；仅当需要实体关系时才接） |
@@ -264,8 +264,10 @@ DETECTORS: dict[str, Detector] = {...}  # 注册表：新增手段 = 加一行�
 | conda（可选） | 先 `setx CONDA_PKGS_DIRS D:\conda-pkgs`，再 `conda install -p <env> -c conda-forge <包> -y` |
 | Hermes 记忆 | `~/.hermes/MEMORY.md`、`~/.hermes/USER.md` |
 
-**已确认可用**：fastapi 0.141.1 / sqlalchemy 2.0.52 / PyMySQL 1.2.0 / chromadb 1.5.9 /
-langchain 1.4.7 / langgraph 1.2.16 / pydantic 2.13.5 / uvicorn 0.52.4
+**已确认可用**（`pip show` 实测，均在 `E:\Anaconda_download\envs\py312_env`）：fastapi 0.141.1 /
+sqlalchemy 2.0.52 / PyMySQL 1.2.0 / chromadb 1.5.9 / langchain-core 1.7.0 / langchain-openai 1.7.2 /
+pydantic 2.13.5 / uvicorn 0.52.4。env 里另有 langchain 1.4.7 等包；
+langgraph 1.2.16 **已安装、未接入代码**（判定编排是显式实现，见 §2 技术栈行）。
 
 **禁止**：新建虚拟环境、用系统全局 Python、把依赖装到 C 盘（C 盘空间紧张）。
 

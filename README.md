@@ -10,7 +10,7 @@
 > 本系统输出为合规风险辅助提示，**不构成法律意见**，也不能替代《医疗广告审查证明》的行政前置审查。
 
 ## 技术栈
-FastAPI + Pydantic V2 · SQLAlchemy 2.0 + MySQL 8 · Chroma · LangChain/LangGraph · MCP · Vue3
+FastAPI + Pydantic V2 · SQLAlchemy 2.0 + MySQL 8 · Chroma · LangChain（仅模型适配层，LangGraph 未接入）· MCP · Vue3
 
 素材摄取：python-docx / pdfplumber / pypdfium2 / openpyxl / xlrd / python-pptx（文档结构层），
 RapidOCR + onnxruntime（海报与扫描件），FunASR SenseVoiceSmall（录音，可选引擎）。

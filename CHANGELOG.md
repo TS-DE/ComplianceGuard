@@ -816,3 +816,58 @@ MCP 工具 8、规则轴 11、检测器 3=被调用的零件），答辩时不�
 红灯清单仍需人看一眼——这条局限写在代码注释里；② `scripts/` 有 24 个平铺 .py（含 doc_lint 自身），靠豁免过关，
 交付后按主题分目录（迁移要同步改 RUNBOOK 里的调用路径，风险高于收益，故不在本轮做）；
 ③ langgraph 那条如果本轮不落地，必须改文档口径为"编排为显式实现"，不能留着红灯收工。
+
+## T-B · LangChain 只作模型适配层（含我把 env 依赖搞坏又修回的全过程）
+
+**改动**：① 新增 `backend/model/`：`langchain_model.py`（`LangChainChatModel`，与
+`UrllibChatModel` 同签名同返回结构）+ `__init__.py` 的 `make_chat_model()` 按
+`LLM_BACKEND=urllib|langchain` 选择，**默认 urllib**（已实测全绿的那条路，切换要显式、要能一键回退）；
+② 两个组合根改走选择器：`audit_tool.AuditTool.__init__` 与
+`services.compliance.redteam_operations`（原来是写死 `UrllibChatModel(...)`，
+那样"换了后端"只会在组合根之外偷偷发生）；③ `model_error` 补 OpenAI/LangChain SDK 的异常分类
+（`status_code` 走 http、`APITimeoutError` 走 timeout），**保持与 urllib 相同的重试语义**
+（4xx 不重试、5xx 重试两次）——不补就会变成"任何错误重试三次"，两后端不等价；
+④ `requirements.txt` 加 `langchain-core==1.7.0` / `langchain-openai==1.7.2`，`.env.example` 加 `LLM_BACKEND`。
+
+**判定链路一个字没动**：DETECTORS 注册表、线程池、分级闸、三重校验、算分落库全是原样。
+LangChain 只承担"这一次 chat 调用交给谁"，所以文档口径写清**LangGraph 未接入代码**
+（编排是显式实现），不为了"用了编排框架"去重写 N1→N10。
+
+**我把环境搞坏又修回的过程（必须留痕）**：第一轮我用 `--ignore-installed` 装
+`langchain-core<0.4`，而这台机器 env 里**本来就装了 langchain 1.4.7 / langgraph 1.2.16 全家桶**，
+于是 core 被我降级，`pip check` 一片"1.x 需要 >=1.6.13 却是 0.3.86"。
+修复：`--dry-run` 先看清只会动哪两个包 → 装 `langchain-core>=1.6.13,<2`（pip 挑了 1.6.12，
+仍差 0.0.1，再钉 `langchain-core==1.7.6`，pip 元数据最终 1.7.0；包内 `__version__` 常量写 1.7.6，
+上游自身对不上，这里以 `pip show` 为准）→ `pip check` 的 langchain/langgraph 冲突归零。
+加载来源全程验证在 `E:\Anaconda_download\envs\py312_env`，没有落到 C 盘 user-site。
+
+**第一个真机验收直接失败，暴露一个测试盲区**：注入假客户端的 10 条测试全绿，
+真跑却 5 条全部 `score=-1`、每次调用 7–9ms、tokens 0/0。探针打出原始异常：
+`ValidationError: Found timeout supplied twice`——我把 `timeout` 同时传给
+`ChatOpenAI(timeout=...)` 和 `model_kwargs={'timeout':...}`，客户端构造即失败，
+而"能不能构造"这件事 fake client 永远测不到。修完后补了 **真构造 ChatOpenAI（不联网）** 的回归测试；
+顺带发现 `extra_body` 必须单传（混进 model_kwargs 时 pytest 已给出去重警告），
+以及真实字段名是 `request_timeout`（`timeout=` 只是别名，`client.timeout` 这个属性不存在）——
+我第一版断言就是照着猜的属性名写的，跑挂之后才去查字段表。
+
+**实际验证**：
+- 两后端各跑 5 条正反样本（含两轴并存那句）：**5/5 完全一致**（分数、命中轴、严重度、引文），
+  且每条的 `prompt_tokens` 逐条相同（17535 / 16887 / 19064 / 17387 / 17463）——
+  说明交给模型的载荷没变，变的只是传输层；`completion_tokens` 有几枚差异属生成抖动。
+  总耗时 urllib 42.6s vs langchain 23.6s（同批 5 条），langchain 反而更快，不作为结论、只作记录。
+- `set PYTHONNOUSERSITE=1&& pytest tests -q` → **396 passed in 19.24s**（新增 12 条后端契约测试：
+  返回体逐字段同构、错误分类与重试语义等价、用量缺失不记 0、分段内容拼接、密钥与提示词不外泄、
+  真构造客户端、未知后端名直接报错）。
+- `python -m scripts.doc_lint` → **红灯 0 条**：T-A 留下的 langchain/langgraph 两条技术栈红灯，
+  一条靠真实 import 消除，一条靠把说法改诚实（"已安装、未接入"）消除——**没有为了让灯灭而实现 langgraph**。
+- `cd frontend && npm run build` → ✓ built in 5.77s。
+
+**风险 / 遗留**：① 默认后端仍是 urllib，langchain 只做过 5 条样本的一致性验证，
+不是全量回归过的默认路径；要切成默认得再跑一整轮红队与锚点集，本轮不做；
+② `LangChainChatModel` 只覆盖 `complete()`，红队的 `reasoning_content` 采集依赖 SDK 的字段位置，
+真机日志里我未逐条核对思考链长度（urllib 路径已核对过）；
+③ `pip` 元数据 1.7.0 与包内 `__version__` 1.7.6 不一致，若上游修复，版本号要同步改
+`requirements.txt` 与 CLAUDE.md §9；④ langgraph 仍是"已安装、未接入"，
+如果老师追问"为什么不用"，答案在 CLAUDE.md §2 那一行，不要临场编。
+
+**规则 / 评测**：`rules` 表数据、词表、判定口径本轮均未改；评测样本不变，只增了后端一致性核对。

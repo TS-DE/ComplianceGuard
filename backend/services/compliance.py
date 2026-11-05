@@ -196,10 +196,10 @@ def redteam_operations(db, model=None, auditor=None):
     """D4组合根；复用A1，不在API或Agent内执行SQL。"""
     from backend.agents.redteam import RedTeamAgent, JudgeAgent, AuditReportAgent
     from backend.tools.db_tool import RedteamRepository
-    from backend.tools.audit_tool import UrllibChatModel
-    return dict(repository=RedteamRepository(db),generator=RedTeamAgent(model or UrllibChatModel(purpose="redteam"),RedteamRepository(db).load_rules),
+    from backend.model import make_chat_model
+    return dict(repository=RedteamRepository(db),generator=RedTeamAgent(model or make_chat_model(purpose="redteam"),RedteamRepository(db).load_rules),
                 judge=JudgeAgent(auditor or audit_operations(db)),report=AuditReportAgent(RedteamRepository(db),
-                    (model or UrllibChatModel()) if __import__('os').environ.get('REPORT_USE_LLM','false').lower()=='true' else None))
+                    (model or make_chat_model()) if __import__('os').environ.get('REPORT_USE_LLM','false').lower()=='true' else None))
 
 
 def run_redteam(db, client_id, scenes, axes, model=None, auditor=None):

@@ -61,8 +61,11 @@ class AuditTool:
     def __init__(self, repository, model=None, search_law=search_law, detectors=None):
         """输入仓储、模型及检索 callable；不在业务编排内执行 SQL。"""
         from backend.agents.compliance import ComplianceAuditAgent, RewriteAgent
+        from backend.model import make_chat_model
         self.repository = repository
-        self.model = model if model is not None else UrllibChatModel()
+        # 后端由 LLM_BACKEND 选择（默认 urllib）：这里不再写死 UrllibChatModel，
+        # 否则"换了适配层"这件事只能在组合根之外偷偷发生
+        self.model = model if model is not None else make_chat_model()
         known = indexed_docs() if search_law is globals()["search_law"] else None
         self.auditor = ComplianceAuditAgent(repository.load_rules, search_law, self.model, detectors, known_docs=known,
             semantic_mode=__import__("os").environ.get("JUDGE_MODE", "merged") if known is not None else "multi")

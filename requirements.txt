@@ -42,6 +42,12 @@ pillow==12.3.0
 # modelscope
 # soundfile          # libsndfile>=1.1 才能解 mp3；m4a/aac 需要 ffmpeg（本机没有）
 
+# 模型适配层 · LangChain（可选后端 LLM_BACKEND=langchain；默认 urllib 不装也能跑全绿）
+# 版本线必须是 1.x：本机 env 已有 langchain 1.4.7 / langgraph 1.2.16，
+# 装 0.3.x 的 langchain-core 会把它们降级（第一轮我就踩了，pip check 一片红）
+langchain-core==1.7.0
+langchain-openai==1.7.2
+
 # 测试
 pytest==9.1.1
 httpx==0.28.1

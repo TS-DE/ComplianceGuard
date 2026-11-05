@@ -130,6 +130,14 @@ def model_error(exc, timeout, service='聊天服务'):
     """保留HTTP码但不回显URL、reason原文、密钥、响应或用户文本。"""
     from urllib.error import HTTPError, URLError
     if isinstance(exc,ModelCallError): return exc
+    # OpenAI/LangChain SDK 抛的不是 urllib 异常：不认这些类型的话，4xx 会被当成
+    # "网络错误重试三次"，两个后端的重试语义就不等价，"换后端结果一致"这条验收也没法成立。
+    # 刻意用鸭子类型而不是 import openai：默认后端是 urllib，异常层不该绑住可选依赖。
+    status = getattr(exc, 'status_code', None)
+    if isinstance(status, int):
+        return ModelCallError(f'{service} HTTP {status}','http',2 if status>=500 else 1)
+    if type(exc).__name__ in ('APITimeoutError','APIConnectionError','ConnectTimeout','ReadTimeout'):
+        return ModelCallError(f'{service}连接或读超时（{timeout}s）','timeout',2)
     if isinstance(exc,HTTPError):
         return ModelCallError(f'{service} HTTP {exc.code}','http',2 if exc.code>=500 else 1)
     if isinstance(exc,TimeoutError) or (isinstance(exc,URLError) and isinstance(exc.reason,TimeoutError)):

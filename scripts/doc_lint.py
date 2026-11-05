@@ -173,13 +173,27 @@ def check_counts(docs: list[Path], known: dict[str, int]) -> list[str]:
     return red
 
 
+# 明确写着"未使用"的行不是技术栈声明。没有这条护栏，诚实交代"装了但没接进代码"
+# 也会被当成声明而报红灯，最后大家只会把说明删掉——信息变少，红灯变多，两败俱伤。
+NO_CLAIM_HINTS = ('未使用', '未接入', '没用', '未用', '仅安装', '已安装但', '不宣称')
+
+
 def check_tech(docs: list[Path]) -> list[str]:
-    """文档声称的技术栈必须在代码里真的用着。"""
+    """文档声称的技术栈必须在代码里真的用着。
+
+    历史记录（CHANGELOG）不看：它写"当时发现 langgraph 0 处 import"是在描述问题，
+    不是声明在用；拿它报红灯等于逼人改历史——与路径检查同一取舍。
+    """
     red: list[str] = []
-    mentioned = {name for name in TECH_CLAIMS
-                 for path in docs
-                 if re.search(rf'\b{name}\b', path.read_text(encoding='utf-8', errors='replace'), re.I)}
-    for name in sorted(mentioned):
+    claims: dict[str, str] = {}            # 名字 → 第一处"声称使用"的位置
+    for path in docs:
+        if path.name in HISTORY_DOCS:
+            continue
+        for lineno, line in enumerate(path.read_text(encoding='utf-8', errors='replace').splitlines(), 1):
+            for name in TECH_CLAIMS:
+                if re.search(rf'\b{name}\b', line, re.I) and not any(h in line for h in NO_CLAIM_HINTS):
+                    claims.setdefault(name, f'{_label(path)}:{lineno}')
+    for name in sorted(claims):
         folder, needles = TECH_CLAIMS[name]
         hits = 0
         # 拼成变量再喂 findall：f-string 里嵌同种引号在 3.12 之前会直接把语法搞崩
@@ -187,11 +201,12 @@ def check_tech(docs: list[Path]) -> list[str]:
         for source in _py_sources(folder):
             text = source.read_text(encoding='utf-8', errors='replace')
             hits += len(re.findall(import_re, text, re.M))
-        declared = any(needle in (ROOT / 'requirements.txt').read_text(encoding='utf-8', errors='replace')
-                       for needle in needles) if (ROOT / 'requirements.txt').exists() else False
         if hits == 0:
-            red.append(f'技术栈 {name}：文档提到，但 {folder}/**/*.py 里 0 处 import'
-                       + ('' if declared else f'，且 requirements.txt 未声明（{"/".join(needles)}）'))
+            declared = any(needle in (ROOT / 'requirements.txt').read_text(encoding='utf-8', errors='replace')
+                           for needle in needles) if (ROOT / 'requirements.txt').exists() else False
+            red.append(f'技术栈 {name}：{claims[name]} 声称在用，但 {folder}/**/*.py 里 0 处 import'
+                       + ('' if declared else f'，且 requirements.txt 未声明（{"/".join(needles)}）')
+                       + '；要么把代码补上，要么把该行改成"已安装、未接入"')
     return red
 
 
