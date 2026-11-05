@@ -122,11 +122,26 @@ backend/
 | # | 组件 | 本项目落点 | 证据文件 |
 |---|---|---|---|
 | ① | 上下文工程 | `.hermes.md` 做入口，按 D1–D7 阶段 **渐进披露**：D1 只读 `db_schema.md`+`api_spec.md`(auth)，D3 才读 agent 部分 | `.hermes.md` |
-| ② | Agent 专业化 | `AGENTS.md` 拆 5 个业务 Agent + 4 个开发子 Agent（后端/前端/DB/测试），用 `delegate_task` 分工 | `AGENTS.md` |
+| ② | Agent 专业化 | `AGENTS.md` 拆 5 个业务 Agent + **6 个开发子 Agent**（DB / Backend / Agent / Frontend / Test / Doc）。开发子 Agent 是**文档约定的分工角色**（规定"谁能改哪个目录"），不是程序、不会自己跑；业务 Agent 才是产品里真跑流程的类 | `AGENTS.md` |
 | ③ | 持久化记忆 | `~/.hermes/MEMORY.md`（进度、遗留 BUG、接口清单）+ `USER.md`（偏好：中文注释、Pydantic V2、不许裸 except） | 见 §9 |
 | ④ | 架构约束 | ①MySQL 变更必须先出 SQL 预览、禁 DROP/TRUNCATE ②JWT 鉴权不可绕过 ③LLM 失败降级为纯规则 ④每次提交可回滚 ⑤密钥只走 `.env` | `RUNBOOK.md` |
 | ⑤ | 反馈循环 | 红队漏杀样本 → 生成规则候选 → **人工审核后**才入 `rules` 表并 bump version；失败轨迹记入 `CHANGELOG` | `EVAL.md` |
-| ⑥ | 熵管理 | `SKILL.md` 只留**已验证可用**的技能；每月清理过期技能；文档单一真相 | `SKILL.md` |
+| ⑥ | 熵管理 | `SKILL.md` 只留**已验证可用**的技能；文档审校只做三件事——删过时、并重复、标过时；漂移靠 `python -m scripts.doc_lint` 机械检查（路径存在性、数量与代码事实、技术栈是否真有 import、每目录文件数），**红灯不许收工** | `scripts/doc_lint.py` |
+
+### 4.1 术语三分（答辩防绕晕）
+
+项目里"Agent"这个词指三类东西，**数量和性质都不同**，混着说会被问倒：
+
+| 名称 | 数量 | 是什么 | 会不会真跑 |
+|---|---|---|---|
+| 业务智能体 A1–A5 | 5 | 产品里真跑流程的 Python 类（`backend/agents/`：ComplianceAudit / Rewrite / RedTeam / Judge / AuditReport） | **会**，请求进来就跑 |
+| 开发子 Agent | 6 | `AGENTS.md` 里的**分工角色**：规定每个角色只能改哪个目录、交付前要自己跑通哪部分测试 | **不会**，它是规矩不是程序 |
+| MCP 工具 / 规则轴 / 检测器 | 8 / 11 / 3 | 被上面那些类调用的**零件**：工具走 MCP 契约，轴是 `rules` 表的分类，检测器是 `DETECTORS` 注册表 | **不会**，它们不是 Agent |
+
+> 口径来源：工具数取自 `backend/mcp_server/server.py` 的 `@mcp.tool`，轴数取自
+> `data/seeds/rules.json` 的去重 axis，检测器数取自 `backend/agents/base.py` 的 `DETECTORS` 键，
+> 业务智能体数取自 `backend/agents/*.py` 的 `class *Agent`。这四组数字由 doc_lint 与代码对账，
+> 文档里写错会直接报红灯。
 
 ## 5. 项目铁律（违反即 Bug，优先级高于任何"优化建议"）
 
@@ -164,7 +179,7 @@ backend/
 **具体的落地接口（D2/D3 必须照此实现）**：
 
 ```python
-# backend/agents/detectors.py —— OCP + LSP + DIP 的落点
+# backend/agents/base.py —— OCP + LSP + DIP 的落点（检测器与 DETECTORS 注册表同处一文件）
 class Detector(ABC):
     @abstractmethod
     def detect(self, text: str, rule: Rule) -> list[Hit]: ...

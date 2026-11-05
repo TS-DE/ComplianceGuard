@@ -28,7 +28,7 @@
 - 登录后返回 `access_token`（JWT，HS256，默认 24h）
 - 除 `POST /auth/register`、`POST /auth/login`、`GET /health` 外，**全部接口**要求头：
   `Authorization: Bearer <token>`
-- 依赖：`backend/core/deps.py :: get_current_user`
+- 依赖：`backend/core/security.py :: get_current_user`
 
 ### 1.3 分页
 - 请求：`?page=1&page_size=20`（page_size ≤ 100）
@@ -113,7 +113,7 @@
 | `db_save_redteam_result` | `run_id, sample, judge, category` | `{ok:true}` | Agent4 |
 | `audit_recheck` | `text:str, client_id:int` | `{score, hits}` | Agent2 |
 
-**验收**：`python -m backend.mcp_server.server --selftest` 打印 6 个工具名。
+**验收**：`python -m backend.mcp_server.server --selftest` 打印 8 个工具名。
 
 ---
 

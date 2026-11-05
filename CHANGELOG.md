@@ -772,3 +772,47 @@ F 阶段的取消按钮（D 阶段逻辑）必须同期落地，否则用户体�
 （monkeypatch 的目标模块必须是被调用的那一个，指错对象会静默失效）。
 
 **规则 / 评测**：`rules` 表数据与词表本轮未改；判定链路未改；表结构变更见 `db_schema.md` 变更记录。
+
+## T-A · doc_lint：把"文档写着支持、跑起来不行"变成机器可查的红灯
+
+**新增** `scripts/doc_lint.py`（只读，不改任何文件；红灯时退出码 1）四类检查：
+① 文档里写的代码路径必须真实存在；② 文档里的数量声明必须等于代码事实
+（事实基线由源码现数：`mcp_tools=8`、`agents=5`、`axes=11`、`detectors=3`、`dev_agents=6`）；
+③ 文档声称的技术栈必须在代码里有 import（`langchain`/`langgraph` 现在就是 0 处 → 红灯）；
+④ 每目录真实 .py/.vue 数量 ≤3。刻意不 import backend：体检要在装不上依赖的机器上也能跑。
+
+**首轮报出 14 条红灯，修完剩 2 条**（剩下的正是 T-B 要消除的技术栈欠债，不假装它们不存在）：
+- 真漂移已改：`api_spec.md` 把鉴权依赖写成 `backend/core/deps.py`（实际在 `security.py`）、
+  工具数 6→8；`CLAUDE.md` 目录树写成 `backend/agents/detectors.py`（实际在 `base.py`）、
+  已删除的 `api/v1/router/__init__.py`、开发子 Agent **4→6**；
+  `skills/doc-parse-engines.md` 的 `backend/parse/media.py` → `parsers/media.py`（我上一段重构留下的）；
+  `db_schema.md` 10→11 条轴、`requirements.md` F5 8→11 条轴与 MCP 6→8、`RUNBOOK.md` 6→8；
+  `SKILL.md` 的 S5–S9 还挂着 `TODO（D2/D3/D5）` 而实际都已交付 → 按真实状态改为已验证，
+  S7 的口径从"LangChain 工具调用（Tool 绑定）"改成"只作模型适配层"，并把 doc_lint 自己登记成 S11。
+- **检查器自己的三轮假阳性也已修**（这部分比修文档重要，误报会让人开始忽略红灯）：
+  `data/law/*.md` 里的"第五条九项"是法条原文不是数量声明 → 移出扫描范围；
+  `3 条轴漂移` 被当成"轴数声明" → 加 `(?!漂移|样本)`；
+  `~/.hermes/skills/.../SKILL.md` 是家目录路径 → 路径正则加 `(?<![/~.])`；
+  **"删掉 5 处与代码不符的说法：总览图里 6 个工具"是复盘句不是当前声明** → 整行复盘护栏；
+  `CHANGELOG` 提到后来被删掉的文件是历史经过 → 历史记录不参与路径漂移检查（改它等于改历史）。
+- 测试还抓到工具一个真 bug：`path.relative_to(ROOT)` 对仓库外文件直接 ValueError →
+  改为 `_label()` 兜底。
+
+**目录上限做了"登记式豁免"而不是关检查**：`tests/`、`tests/agents/`、`tests/rag/`、`scripts/`
+豁免（pytest 惯例是一个被测模块一个测试文件；scripts 是 RUNBOOK 写死的入口路径），
+豁免规则写在代码里并写明理由，第四个新目录想豁免必须先补理由。`backend/`、`frontend/src/` 仍严格 ≤3。
+
+**同步落纪律**：`RUNBOOK.md` 演示前清单加入"doc_lint 红灯 0 条 + pytest 全绿 + npm build 通过"；
+`CLAUDE.md` §4 组件⑥ 指向 `scripts/doc_lint.py`，并新增 §4.1「术语三分」表
+（业务智能体 5 个=真跑的类／开发子 Agent 6 个=文档约定的分工角色、不会自己跑／
+MCP 工具 8、规则轴 11、检测器 3=被调用的零件），答辩时不会被"你们到底有几个 Agent"绕倒。
+
+**实际验证**：`set PYTHONNOUSERSITE=1&& pytest tests -q` → **381 passed in 24.95s**（新增 9 条
+`tests/test_doc_lint.py`，含"红灯清单必须恰好等于登记欠债"的门禁测试：冒出新的漂移或欠债清单
+没同步收窄都会失败）；`python -m scripts.doc_lint` → 红灯 2 条（langchain / langgraph，T-B 处理）；
+`npm run build` → ✓ built in 6.28s。
+
+**风险 / 遗留**：① 检查器不理解语义，复盘护栏是词表级的，新写法仍可能漏判或误判，
+红灯清单仍需人看一眼——这条局限写在代码注释里；② `scripts/` 有 24 个平铺 .py（含 doc_lint 自身），靠豁免过关，
+交付后按主题分目录（迁移要同步改 RUNBOOK 里的调用路径，风险高于收益，故不在本轮做）；
+③ langgraph 那条如果本轮不落地，必须改文档口径为"编排为显式实现"，不能留着红灯收工。

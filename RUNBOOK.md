@@ -72,7 +72,9 @@ npm run dev
 
 ## 5. 演示前检查清单
 - [ ] `/health` 200
-- [ ] MCP `--selftest` 6 个工具
+- [ ] MCP `--selftest` 8 个工具
+- [ ] `set PYTHONNOUSERSITE=1&& python -m scripts.doc_lint` **红灯 0 条**（文档与代码对账，红灯不许收工）
+- [ ] `set PYTHONNOUSERSITE=1&& python -m pytest tests -q` 全绿 + `cd frontend && npm run build` 通过
 - [ ] 锚点集 30 条已入库、向量库已建
 - [ ] 用真实罚单话术跑通一次"审查→命中→改写"
 - [ ] `.env` 已填、无明文密钥进 git

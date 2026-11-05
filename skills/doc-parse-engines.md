@@ -38,7 +38,7 @@ def capabilities() -> dict:
     return {"formats": formats, "modes": list(MODES),
             "engines": {n: engine_available(n) for n in ("ocr", "asr")}}
 
-# backend/parse/media.py —— 三道闸，顺序不能反
+# backend/parse/parsers/media.py —— 三道闸，顺序不能反
 @lru_cache(maxsize=1)
 def _ocr_engine():
     if not settings.parse_ocr_enabled:

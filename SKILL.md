@@ -22,12 +22,13 @@
 | S2 | SQLAlchemy 2.0 建模 + 幂等建表 + CHECK 约束 | **已验证**（见下文 S2） | 2026-11-01 |
 | S3 | JWT 鉴权依赖注入 | **已验证** | 2026-11-01 |
 | S4 | Pydantic V2 校验与分页参数 | **已验证** | 2026-11-01 |
-| S5 | Chroma collection 建库与 metadata 过滤 | TODO（D2） | — |
-| S6 | MCP 工具注册与 selftest | TODO（D2） | — |
-| S7 | LangChain 工具调用（Tool 绑定） | TODO（D3） | — |
-| S8 | 引文子串校验（quote → 原文定位） | TODO（D3） | — |
-| S9 | Vue3 + Element Plus 表格/表单页骨架 | TODO（D5） | — |
+| S5 | Chroma collection 建库与 metadata 过滤 | **已验证**（`backend/rag/`，检索用例在 `tests/test_retrieve.py`；文档级过滤带 law_num/item_no） | 2026-11-05 |
+| S6 | MCP 工具注册与 selftest | **已验证**（8 个 `@mcp.tool`；`python -m backend.mcp_server.server --selftest` 可列，数量由 `scripts/doc_lint` 与代码对账） | 2026-11-05 |
+| S7 | LangChain 只作模型适配层（不换调用方） | **本轮补**（D7 T-B：`LLM_BACKEND=urllib\|langchain` 开关；编排仍是显式实现，**不宣称用了 LangChain 编排**） | — |
+| S8 | 引文子串校验（quote → 原文定位） | **已验证**（N6 三重校验 + 分段绝对锚点 `scripts/migrate_script_anchors.py`；前端按区间渲染，模糊定位只兜底，失败必须显示"位置未知"） | 2026-11-05 |
+| S9 | Vue3 + Element Plus 表格/表单页骨架 | **已验证**（`npm run build` 通过；四套 CRUD 页 + 商家检查页） | 2026-11-05 |
 | S10 | 可选引擎懒加载 + 能力探测由注册表现算 | **已验证**（全文 `skills/doc-parse-engines.md`） | 2026-11-04 |
+| S11 | 文档漂移机械检查（doc_lint） | **已验证**（`scripts/doc_lint.py`：路径存在性、数量与代码事实、技术栈是否真有 import、每目录文件数；只读，红灯退出码 1） | 2026-11-05 |
 
 ### Hermes 私有技能索引（技能全文在 Hermes 目录，此处只做可审计登记）
 
