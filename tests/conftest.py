@@ -81,6 +81,9 @@ def test_dsn() -> str:
     # 老测试库因此缺 users.client_id，会让所有登录相关用例 500。
     from scripts.migrate_users_tenant import migrate as migrate_tenant
     migrate_tenant(engine, apply=True)
+    # audits 的人工复核字段（L3 人机回环）
+    from scripts.migrate_audit_review import migrate as migrate_review
+    migrate_review(engine, apply=True)
     # 素材溯源：老测试库没有 sources 表、也没有 scripts 的四个溯源列。
     # create_all 不补已存在表的列，缺列时任何写 scripts 的用例都会 1054，
     # 那是"文档说有、库里没有"的假契约，不是逻辑错误。
