@@ -9,7 +9,9 @@ import unicodedata
 from dataclasses import fields
 from decimal import Decimal
 from time import perf_counter
-from backend.agents.base import Rule, DETECTORS, LLMJudgeDetector, merged_judgment, bind_rule_law
+from backend.agents.base import (
+    Rule, DETECTORS, LLMJudgeDetector, merged_judgment, bind_rule_law, mark_hit_context)
+from backend.agents.audit.recheck import recheck_hits
 from backend.core.config import DISCLAIMER_TEXT
 from backend.core.constants import (
     COMMITMENT_WORDS, HEDGE_WORDS,
@@ -65,6 +67,7 @@ def downgrade_descriptive_hits(hits):
             hit['severity'] = 'soft'
             hit['downgraded'] = True
             hit['needs_recheck'] = True
+            hit['severity_before_gate'] = 'hard'   # 复核 confirm 时按这个升回去（降级只是保险）
             hit['downgrade_reason'] = (
                 f"命中片段「{quote}」左侧出现否定（{hit.get('negation_signal')}），"
                 "断言词被否定结构修饰，不按承诺处理；降级为疑似并送整篇复核"
@@ -179,8 +182,10 @@ class ComplianceAuditAgent:
         if result.get('evidence_gap'):
             result['incomplete'] = True
             result['incomplete_reason'] = 'evidence_gap'
-        # N7.5 分级闸：描述性表述降级为软提示（见 downgrade_descriptive_hits）
+        # N7.5 分级闸：描述性表述与否定语境降级为软提示（见 downgrade_descriptive_hits）
         downgrade_descriptive_hits(result['hits'])
+        # N7.6 整篇复核：片段判完再让模型带着上下文看一遍，处置由代码决定（T2）
+        result['hits'] = self._recheck(text, result['hits'], result)
         result['raw_hits'] = result['hits']
         result['hits'] = aggregate_claims(result['raw_hits'])
         result['hit_count'] = len(result['hits'])  # N8
@@ -189,6 +194,26 @@ class ComplianceAuditAgent:
         result['latency_ms'] = int((perf_counter() - started) * 1000)
         logging.getLogger(__name__).warning('audit_timings_ms=%s', result['timings_ms'])
         return result
+
+    def _recheck(self, original, hits, result):
+        """N7.6 整篇复核：把处置逻辑交给 audit.recheck，这里只负责接入链路。
+
+        只复核**语境上有疑问**的命中（否定/假设-引用-科普/被词表降级过）。
+        这不是为了省钱而降低覆盖：干净的结构化承诺（"保证三个月恢复正常肤色"）
+        没有任何语境信号，复核它只会重复一次已有结论，却给单条再加 2~12 秒。
+        有信号才复核，既把"断章取义"挡住，也把时延和费用花在真正模糊的地方。
+
+        顺序固定在 分级闸之后、聚合与算分之前 —— 复核结论优先于词表降级，
+        而算分必须在最终命中集上做，否则分数与命中对不上。
+        """
+        if not hits:
+            return hits
+        ambiguous = [hit for hit in hits if hit.get('needs_recheck')
+                     or hit.get('negated_suspected') or hit.get('context_hedge')]
+        if not ambiguous:
+            result['recheck_skipped'] = 'no_context_signal'
+            return hits
+        return recheck_hits(self.model, original, hits, result)
 
     def _run_semantic(self, text, rules, candidates, result):
         """合并模式一次调用；多路保留独立用量容器，缺轴必须未完成。"""
@@ -334,6 +359,11 @@ class ComplianceAuditAgent:
             hit.update(quote=restored, start=a, end=b, original_quote=restored, normalized_start=start,
                        normalized_end=end, sentence_id=next((i for i, s in enumerate(sentences)
                                                            if s.start() <= start < s.end()), 0))
+            # 语境标记放在候选**汇合点**而不是各检测器内部：这样 llm_judge 的命中也过同一道闸。
+            # 真实样本已经证明只包 keyword/regex 不够——「磨皮术的效果可能不是永久性的」里
+            # regex 的"永久"被整篇复核驳掉了，活下来的是模型判的 efficacy_claim 硬命中，
+            # 它没被标记过，于是整条仍按硬违规结案。
+            mark_hit_context(original, hit)
             exemption = self._exemption(text, rule)
             if exemption:
                 result['traces'].append(dict(hit, status='exempted', exempted_by=exemption))

@@ -160,7 +160,10 @@ def mark_hit_context(text: str, hit: dict) -> dict:
     at = text.find(quote)
     if at < 0:
         return hit
-    left = text[max(0, at - NEGATION_WINDOW):at]
+    left = text[max(0, at - NEGATION_WINDOW):at] + quote
+    # 否定词可能落在引文内部而不只是左侧：模型给的 efficacy_claim 引文常是整短语
+    # 「可能不是永久性的」，只看左侧 6 字（"磨皮术的效果")就完全漏掉否定结构，
+    # 于是这条 LLM 命中从来没被语境闸看过——真实样本已经跑出这个后果。
     negations = [word for word in NEGATION_WORDS if word in left]
     if negations:
         hit["negated_suspected"] = True
