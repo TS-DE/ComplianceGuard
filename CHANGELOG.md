@@ -513,3 +513,19 @@ mysql> 业务库计数 -> users 0 / clients 0 / rules 0（测试未污染业务�
 **风险 / 遗留**：① "无控制台报错、页面渲染正常"只验证到编译与构建层面，**浏览器里的人眼确认仍缺**（A1 验收标准第 1 条要求的就是这一项）；请在重启 vite 后走一遍 8 个页面。② 旧页面各自的 scoped 样式仍写着 EP 变量与少量硬编码色（如 Portal 的 `.stat.danger`），在新主题下颜色语义是否仍自洽，需要肉眼过一遍再决定是逐页清理还是留到 A2/A3 改写时一并处理。③ ECharts 未装（等 A4 趋势图真要用了再登记）。
 
 **规则 / 评测**：无规则、法条、评测集与表结构变更；后端零改动。新增前端依赖一项已在此登记。
+
+## FE-A3 · 检查页双栏 + 原文高亮 + 条款原文 + 采纳改写
+
+**改动**：`views/merchant/Check.vue` 重做为三段工作台（喂素材 → 核对切分 → 看结论），工具条 sticky、步骤条可点回任意一步，长文档不用再滚到底找按钮。左栏 `components/text/SourceText.vue` 显示**整篇原文**并按需高亮：预览阶段画「切分边界」（中性描边，不占风险语义色，避免预览看起来像已经判过），结果阶段画命中区间（朱红=hard、赭黄=软/已降级、石墨=未完成），点高亮联动右栏、点右栏滚到原文。**没有把切分碎片当原文展示**——那正是「找不到位置」的根源。
+右栏 `parts/ResultPane.vue`：每条固定四件事（片段±20字上下文、法条原文、判定理由、风险等级）；法条原文按需调 `/law/article`（只读本地归档，不花钱），**取不到就只显示条号、不编造正文**；「采纳改写」调 `/audit/{id}/rewrite` 后用 `DiffView` 展示词级差异并标二次过审结果。
+新增 `utils/locate.ts`：忽略空白的下标映射 + 顺序游标定位。后端只加一个展示字段 `full_text`（`ingest_tool.preview()`，不动任何既有字段语义），`api_spec.md` 已记账并写明「话术不一定是原文的字面子串，前端必须用忽略空白的定位」。目录规模补齐：`AuditResults.vue` / `SourceDrawer.vue` 移入 `views/merchant/parts/`（原目录 4 个 vue 违反每目录 ≤3），`ScriptList`、`SourceList` 引用同步。`resource.ts` 的 `Hit` 类型补 `original_quote/start/end/detector/status`（后端早就算好了，前端类型缺声明时会静默是 undefined）。主题线索只取解析首行并标注「非模型提炼」，取不到就显示「主题识别未启用」。
+
+**实际验证**：定位算法先用真实解析产物验过（docx 两段：一段含段内换行、一段是另一段的尾巴）——
+朴素 indexOf：长句 -1、短句 3（错）；忽略空白但无游标：长句 [3,14] 对、短句 3（错，落在长句内部）；忽略空白 + 顺序游标：[3,14] 与 [18,23] 全对。
+该不变量已固化成 `tests/parse/test_documents.py::test_pieces_are_locatable_in_full_text_ignoring_whitespace`，**含「不带游标必须指错」的反向断言**，防止以后有人图省事把游标删掉。
+`npm run build`（vue-tsc --noEmit + vite build）→ ✓ built in 6.34s，1769 modules。构建首轮真实报错 6 处全部修净：移动文件后两处 `../../api/resource` 相对路径、`SourceList` 的抽屉路径、`ImportResult` 缺 `full_text` 声明、`marks` 用 filter 类型谓词收窄导致联合类型不匹配（改显式循环）、`<script setup>` 里 `export interface` 不被 Vue 允许（类型挪进 `components/text/marks.ts` 与 `parts/types.ts`）。
+`set PYTHONNOUSERSITE=1&& pytest tests -q` → **333 passed in 18.77s**。
+
+**风险 / 遗留**：① **A3 验收要求的那条真人路径我没跑**：「含 2 处违规的长文案 → 高亮 → 点条 → 看条款原文 → 采纳改写 → 看 diff」需要真模型（API key 与费用）与浏览器，按你的排期放在「我审计 → 你开浏览器验 A3」那一步。② 定位仍可能失败的两种真实情形：同一句在原文跨段重复出现（切分层已去重同条重复，跨段同文仍会撞，此时按游标顺序取第一个，可能与后端当时审查的那一实例不同一）、OCR 把花字识别成近形字使引文与原文有字差。两种都会走「位置未知」并列出引文，不静默。③ 主题线索是首行摘录不是提炼；要真主题需另接一次轻量模型调用，属新增成本，没擅自加。④ `Check.vue` 446 行：页面把三段的编排都揽在自己身上，A2 合并导航时把输入段与预览段拆成 `parts/` 下两个子组件。
+
+**规则 / 评测**：未改规则数据、法条正文与冻结评测集；无表结构变更。接口新增展示字段 `full_text`，已在 `api_spec.md` 记账。

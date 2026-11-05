@@ -14,7 +14,7 @@ import { ElMessage } from 'element-plus'
 import {
   previewSource, sources, axisLabel,
   type PreviewItem, type SourceDetail
-} from '../../api/resource'
+} from '../../../api/resource'
 
 const props = defineProps<{ modelValue: boolean; sourceId: number | null }>()
 const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void }>()

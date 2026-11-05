@@ -18,7 +18,7 @@ import {
 import ScriptDialog from './ScriptDialog.vue'
 import ScriptImport from './ScriptImport.vue'
 import ArticleDrawer from '../law/ArticleDrawer.vue'
-import SourceDrawer from '../merchant/SourceDrawer.vue'
+import SourceDrawer from '../merchant/parts/SourceDrawer.vue'
 
 interface ScriptNode extends ScriptRow {
   rowKey: string

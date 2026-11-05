@@ -17,6 +17,13 @@ export interface Hit {
   /** 被降级：描述性表述、无承诺词（如"皮肤愈合后应更显光滑"），保留命中但降为疑似。 */
   downgraded?: boolean
   downgrade_reason?: string | null
+  /**
+   * 原文定位字段：start/end 是相对**该条话术**的下标（不是文档级），
+   * 所以检查页要用 original_quote 在整篇原文里重新定位（utils/locate）。
+   * 缺这几个字段时前端只能显示"位置未知"，而不是猜。
+   */
+  original_quote?: string; start?: number; end?: number
+  detector?: string | null; status?: string
 }
 
 // 风险轴中文名：界面上直接显示英文变量名（efficacy_claim）商家看不懂，
@@ -182,6 +189,8 @@ export interface ImportResult {
   confidence: number | null; warnings: string[]; meta: Record<string, unknown>
   parse_ms: number; size_bytes: number
   count: number; items: string[]; items_detail: ImportPiece[]
+  /** 整篇解析原文：检查页左栏按原文展示并把命中定位回文档级位置 */
+  full_text?: string
   created: number; script_ids: number[]
   // commit=true 才有：素材档案 id；重复上传同一份内容时指向先前那次
   source_id?: number; duplicate_of?: number

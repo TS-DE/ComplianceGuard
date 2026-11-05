@@ -7,7 +7,7 @@
  */
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { axisLabel, type BatchAuditItem, type Hit } from '../../api/resource'
+import { axisLabel, type BatchAuditItem, type Hit } from '../../../api/resource'
 
 const props = defineProps<{ items: BatchAuditItem[] }>()
 

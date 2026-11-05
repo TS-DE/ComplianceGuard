@@ -65,6 +65,10 @@ class IngestResult:
             "items": [piece.text for piece in self.pieces],
             "items_detail": [{"text": piece.text, "pos": piece.pos, "ref": piece.ref,
                               "confidence": piece.confidence} for piece in self.pieces],
+            # 整篇原文：检查页左栏按原文展示，并把命中定位回文档级位置。
+            # 命中的 start/end 是相对**单条话术**的下标，而话术经过剥序号与压平空白，
+            # 不一定是原文的字面子串——所以必须给整篇，前端才能带上下文指位置。
+            "full_text": self.doc.text,
         }
 
 

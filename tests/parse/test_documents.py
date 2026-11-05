@@ -212,6 +212,62 @@ def test_pdf_with_wrong_extension_is_rejected() -> None:
     assert "不是 PDF" in str(exc.value)
 
 
+def test_pieces_are_locatable_in_full_text_ignoring_whitespace() -> None:
+    """切出的每条话术都必须能在整篇原文里按顺序定位——检查页的高亮全靠这条不变量。
+
+    这条用例是替前端守门的：前端没有测试框架，而它赖以定位的两个前提都在解析层：
+    ① 段内换行被压平成空格，话术不再是原文的字面子串（朴素 indexOf 直接返回 -1）；
+    ② 短句可能完整落在长句里面，不带游标就会指到长句内部——**位置看着指了其实指错**，
+       比指不出更坏。所以这里连游标行为一起断言。
+    """
+    import io
+    import re
+
+    import docx
+
+    document = docx.Document()
+    document.add_paragraph("1. 全城最低价\n术后零风险")   # → "全城最低价 术后零风险"
+    document.add_paragraph("2. 全城最低价")              # → "全城最低价"
+    buffer = io.BytesIO()
+    document.save(buffer)
+
+    doc = parse_file("话术.docx", buffer.getvalue())
+    pieces = [piece.text for piece in split_doc(doc, "blank")]
+    assert pieces == ["全城最低价 术后零风险", "全城最低价"]
+
+    # 前提①：换行被压平后，原文里根本没有这个字面子串
+    assert doc.text.find(pieces[0]) == -1
+
+    def strip_index(text: str) -> tuple[str, list[int]]:
+        chars, mapping = [], []
+        for i, ch in enumerate(text):
+            if not ch.isspace():
+                chars.append(ch)
+                mapping.append(i)
+        return "".join(chars), mapping
+
+    def locate(hay: str, needle: str, from_index: int = 0) -> tuple[int, int] | None:
+        stripped, mapping = strip_index(hay)
+        target = re.sub(r"\s+", "", needle)
+        start = 0
+        while start < len(mapping) and mapping[start] < from_index:
+            start += 1
+        at = stripped.find(target, start)
+        return None if at < 0 else (mapping[at], mapping[at + len(target) - 1] + 1)
+
+    cursor, found = 0, []
+    for piece in pieces:
+        span = locate(doc.text, piece, cursor)
+        assert span is not None, f"话术无法定位：{piece}"
+        cursor = span[1]
+        found.append(doc.text[span[0]:span[1]])
+
+    # 前提②：带游标时短句不会落到长句内部
+    assert found[0] == "全城最低价\n术后零风险"
+    assert found[1] == "全城最低价"
+    assert locate(doc.text, pieces[1]) == (3, 8), "不带游标应当指错——这正是前端必须传游标的理由"
+
+
 def test_legacy_office_formats_are_rejected_with_hint() -> None:
     """.doc/.ppt 走同一条派发路径被拒绝，且注册表里 available=False。"""
     for name in ("a.doc", "a.ppt", "a.odt"):

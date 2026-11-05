@@ -1,60 +1,70 @@
 <script setup lang="ts">
 /**
- * 文案检查：商家端主入口，一条链路走完「喂素材 → 切分预览 → 勾选入库 → 逐条审查」。
+ * 文案检查工作台：喂素材 → 对着原文核对切分 → 逐条判定 → 看证据、采纳改写。
  *
- * 三个刻意的设计：
- * 1) 一次可以喂多份文件。商家手里的从来不只一张海报，逐个传太蠢；
- *    解析按文件顺序跑（OCR 吃 CPU，并发只会互相抢核心，还看不出进度）。
- * 2) 预览与入库分离，且预览**一行都不写**：切分不可能百分百正确，
- *    一键写库等于让脏数据污染之后所有审计统计。
- * 3) 每条话术显示它是从哪来的（第几页 / OCR 第几块 / 语音第几句）与识别置信度。
- *    商家核对时问的就是这句，不给位置等于让人对着黑盒猜。
+ * 这一版冲着三条真实抱怨改：
+ * · 「切分把内容按标点切碎，只能一条条对着找，不知道在原文哪个位置」
+ *   → 左栏永远是整篇原文，右栏每条都能定位回原文并滚动过去。
+ * · 「明细里只有 ID 和切片」→ 命中卡固定四件事：片段±20字上下文、法条原文、判定理由、风险等级。
+ * · 「主按钮离内容太远，长文档要滚到底」→ 工具条 sticky，步骤条本身可点回任意一步。
+ *
+ * 保留的既有设计（都是踩坑换来的，不能随重构丢掉）：
+ * · 一次可喂多份文件，解析按顺序跑（OCR 吃 CPU，并发只会互相抢核心且看不出进度）；
+ * · 预览一行都不写库；勾选只提交人工确认过的条目；
+ * · 每份素材各自 commit、审查按 20 条分批（后端上限）；
+ * · accept 与"未启用能力"提示一律来自后端能力清单。
+ *
+ * 两条不肯让步的边界：定位失败就写"位置未知"并列出引文，绝不猜位置；
+ * 主题只显示"解析首行摘录（非模型提炼）"，没有可靠来源就显示未启用。
  */
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { UploadUserFile } from 'element-plus'
 import {
-  importScripts, auditBatch, parseCapabilities,
-  type BatchAuditItem, type Capabilities, type ImportPiece
+  importScripts, auditBatch, parseCapabilities, axisLabel,
+  type BatchAuditItem, type Capabilities, type Hit, type ImportPiece
 } from '../../api/resource'
 import { useAuth } from '../../stores/auth'
 import { acceptOf, missingEnginesOf, refuseReason } from '../../utils/parseAccept'
-import AuditResults from './AuditResults.vue'
-import SourceDrawer from './SourceDrawer.vue'
+import { contextOf, locate, locateInSource } from '../../utils/locate'
+import type { HitView } from '../../utils/risk'
+import StepProgress from '../../components/layout/StepProgress.vue'
+import SourceText from '../../components/text/SourceText.vue'
+import type { Mark } from '../../components/text/marks'
+import AuditResults from './parts/AuditResults.vue'
+import ResultPane from './parts/ResultPane.vue'
+import SourceDrawer from './parts/SourceDrawer.vue'
+import type { HitRender, ResultRow } from './parts/types'
 
-interface Group {
-  key: string
-  filename: string
-  kind: string
-  engine: string
-  confidence: number | null
-  warnings: string[]
-  pieces: ImportPiece[]
-  file: File | null
-  text: string | null
-  picked: Set<number>
-  scriptIds: number[]
-  sourceId: number | null
-  error: string | null
+interface Chunk {
+  scriptId: number; text: string
+  ref: string | null; confidence: number | string | null
 }
 
-const router = useRouter()
-const auth = useAuth()
+interface Group {
+  key: string; filename: string; kind: string; engine: string
+  confidence: number | null; warnings: string[]; fullText: string
+  pieces: ImportPiece[]; file: File | null; text: string | null
+  picked: Set<number>; sourceId: number | null; error: string | null; chunks: Chunk[]
+}
 
+const auth = useAuth()
 const tab = ref<'paste' | 'file'>('paste')
 const scene = ref('')
 const mode = ref('blank')
 const text = ref('')
 const fileList = ref<UploadUserFile[]>([])
+const caps = ref<Capabilities | null>(null)
 const groups = ref<Group[]>([])
+const activeGroup = ref(0)
+const stage = ref<'input' | 'preview' | 'result'>('input')
 const parsing = ref(false)
 const checking = ref(false)
 const progress = ref('')
-const results = ref<BatchAuditItem[]>([])
-const caps = ref<Capabilities | null>(null)
-// 两个"展开"是不同东西：expanded 展开某条的违规明细；drawer 打开那份素材的原始档案
-const expanded = ref<number | null>(null)
+const rows = ref<ResultRow[]>([])
+const rawResults = ref<BatchAuditItem[]>([])
+const activeKey = ref<string | null>(null)
+const showTable = ref(false)
 const drawerOpen = ref(false)
 const drawerId = ref<number | null>(null)
 
@@ -63,14 +73,52 @@ const MODE_LABELS: Record<string, string> = {
   blank: '按空行（一段一条）', line: '按行（一行一条）', sentence: '按句（语音/连排）'
 }
 const modes = computed(() => caps.value?.modes ?? ['blank', 'line'])
-/** accept 与"未启用能力"提示都取自后端能力清单（utils/parseAccept）：
- *  手写清单一定会和代码不同步，不同步的结果是用户传上来才知道"其实不支持"。 */
 const accept = computed(() => acceptOf(caps.value))
 const missingEngines = computed(() => missingEnginesOf(caps.value))
 const pickedCount = computed(() => groups.value.reduce((sum, g) => sum + g.picked.size, 0))
+const current = computed(() => groups.value[activeGroup.value] ?? null)
+const currentRows = computed(() => rows.value.filter(row => row.groupIndex === activeGroup.value))
+/** 主题线索只取解析结果的首行摘录并写明"非模型提炼"——没有可靠来源就不装。 */
+const topicHint = computed(() => {
+  const line = (current.value?.fullText ?? '').split('\n').find(item => item.trim().length > 3)
+  return line ? line.trim().slice(0, 40) : null
+})
+const steps = [
+  { key: 'input', label: '喂素材' },
+  { key: 'preview', label: '核对切分' },
+  { key: 'result', label: '看结论' }
+]
 
-/** 置信度显示为百分比；null 表示来自文本层，不存在识别误差（不是 0%）。 */
-const conf = (value: number | null) => (value === null ? null : `${Math.round(value * 100)}%`)
+/**
+ * 左栏标记。
+ * 预览阶段画"切分边界"（中性描边，不是风险色，否则预览看起来像已经判过）；
+ * 结果阶段画命中区间，降级的命中一律显示为赭黄而不是朱红。
+ */
+const marks = computed<Mark[]>(() => {
+  const group = current.value
+  if (!group) return []
+  const out: Mark[] = []
+  if (stage.value === 'preview') {
+    let cursor = 0
+    for (const pickIndex of [...group.picked].sort((a, b) => a - b)) {
+      const span = locate(group.fullText, group.pieces[pickIndex].text, cursor)
+      if (span) cursor = span.end
+      // 定位不到的切分段落就不画边界：宁缺毋错，画错位置会让人以为系统在他正文里指错了话
+      if (span) out.push({ key: `p-${pickIndex}`, start: span.start, end: span.end, severity: 'piece' })
+    }
+    return out
+  }
+  for (const row of currentRows.value) {
+    for (const hit of row.hits) {
+      if (!hit.span) continue
+      out.push({
+        key: hit.key, start: hit.span.start, end: hit.span.end,
+        severity: hit.view.downgraded ? 'soft' : hit.view.severity
+      })
+    }
+  }
+  return out
+})
 
 function buildForm(commit: boolean, group: { file: File | null; text: string | null },
                    items: string[]): FormData {
@@ -85,45 +133,43 @@ function buildForm(commit: boolean, group: { file: File | null; text: string | n
   return form
 }
 
-/** 单份素材 → 一个预览分组；失败也留分组，原因原样写上去（不静默丢文件）。 */
+function blankGroup(key: string, file: File | null, pasted: string | null): Group {
+  return {
+    key, filename: file?.name ?? '粘贴内容', kind: '-', engine: '-', confidence: null,
+    warnings: [], fullText: '', pieces: [], file, text: pasted, picked: new Set(),
+    sourceId: null, error: null, chunks: []
+  }
+}
+
+/** 单份素材 → 一个分组；失败也留分组，原因原样写上去（不静默丢文件）。 */
 async function parseOne(file: File | null, pasted: string | null, key: string): Promise<Group> {
+  const base = blankGroup(key, file, pasted)
+  // 拖拽不受 accept 约束（Element Plus 只在选择框上过滤），所以发请求前先本地判一次
   if (file) {
     const reason = refuseReason(caps.value, file.name)
-    if (reason) {
-      return {
-        key, filename: file.name, kind: '-', engine: '-', confidence: null, warnings: [],
-        pieces: [], file, text: null, picked: new Set(), scriptIds: [], sourceId: null, error: reason
-      }
-    }
+    if (reason) return { ...base, error: reason }
   }
-  const form = buildForm(false, { file, text: pasted }, [])
   try {
-    const result = await importScripts(form)
-    const picked = new Set(result.items_detail.map((_, index) => index))
+    const result = await importScripts(buildForm(false, { file, text: pasted }, []))
     return {
-      key, filename: file?.name ?? '粘贴内容', kind: result.kind, engine: result.engine,
-      confidence: result.confidence, warnings: result.warnings ?? [],
-      pieces: result.items_detail, file, text: pasted, picked, scriptIds: [],
-      sourceId: null, error: null
+      ...base, filename: file?.name ?? result.filename ?? '粘贴内容',
+      kind: result.kind, engine: result.engine, confidence: result.confidence,
+      warnings: result.warnings ?? [], fullText: result.full_text ?? '',
+      pieces: result.items_detail, picked: new Set(result.items_detail.map((_, i) => i))
     }
   } catch (error: unknown) {
-    return {
-      key, filename: file?.name ?? '粘贴内容', kind: '-', engine: '-',
-      confidence: null, warnings: [], pieces: [], file, text: pasted,
-      picked: new Set(), scriptIds: [], sourceId: null,
-      error: error instanceof Error ? error.message : '解析失败'
-    }
+    return { ...base, error: error instanceof Error ? error.message : '解析失败' }
   }
 }
 
 async function preview() {
   if (!clientId.value) { ElMessage.error('账号未绑定机构，请重新登录'); return }
-  // el-upload 的 raw 是 File 的超集（多带一个 uid），FormData 只需要 File 那套接口
+  // el-upload 的 raw 是 File 的超集（多带 uid），FormData 只需要 File 那套接口
   const files = fileList.value.flatMap(item => (item.raw ? [item.raw as unknown as File] : []))
   if (tab.value === 'file' && !files.length) { ElMessage.warning('请先选择文件'); return }
   if (tab.value === 'paste' && !text.value.trim()) { ElMessage.warning('请粘贴文案'); return }
   parsing.value = true
-  results.value = []
+  rows.value = []
   groups.value = []
   try {
     const queue: (File | null)[] = tab.value === 'file' ? files : [null]
@@ -132,9 +178,11 @@ async function preview() {
       const item = queue[index] ?? null
       groups.value.push(await parseOne(item, item ? null : text.value, `g-${index}`))
     }
+    activeGroup.value = 0
+    stage.value = 'preview'
     const failed = groups.value.filter(group => group.error).length
     const pieces = groups.value.reduce((sum, group) => sum + group.pieces.length, 0)
-    if (!pieces) ElMessage.warning(failed ? '有文件没解析出话术，原因见下方红色提示' : '没有切出有效话术，换个切分方式试试')
+    if (!pieces) ElMessage.warning(failed ? '有文件没解析出话术，原因见分组提示' : '没有切出有效话术，换个切分方式试试')
     else if (failed) ElMessage.warning(`${failed} 份解析失败，其余 ${groups.value.length - failed} 份可继续`)
   } finally {
     parsing.value = false
@@ -142,41 +190,98 @@ async function preview() {
   }
 }
 
-/** 勾选条目 → 入库（每份素材各一次 commit）→ 分批审查（后端一次最多 20 条）。 */
+/**
+ * 后端命中 → 展示模型。定位在这一步完成，定位不到就标失败，不猜位置。
+ *
+ * `cursors` 按素材顺序推进：话术是依次入库的，下一条只应在上一条之后找。
+ * 不加这个游标，短句会被定位到内容更长的同前缀话术上——位置看着指了，其实指错。
+ */
+const cursors = new Map<number, number>()
+
+function toHit(groupIndex: number, fullText: string, pieceText: string, scriptId: number,
+               index: number, hit: Hit): HitRender {
+  const quote = hit.original_quote ?? hit.quote
+  const located = locateInSource(fullText, pieceText, quote, cursors.get(groupIndex) ?? 0)
+  if (located) cursors.set(groupIndex, located.nextCursor)
+  const view: HitView = {
+    key: `${scriptId}-${index}`, axis: hit.axis, axisLabel: axisLabel(hit.axis),
+    lawArticle: hit.law_article, itemNo: hit.item_no ?? null, quote,
+    reason: hit.reason ?? null, severity: hit.severity ?? 'hard',
+    downgraded: Boolean(hit.downgraded), downgradeReason: hit.downgrade_reason ?? null,
+    detector: hit.detector ?? null
+  }
+  return {
+    key: view.key, view, span: located?.quote,
+    context: located ? contextOf(fullText, located.quote) : null
+  }
+}
+
+/** 勾选条目 → 每份素材各一次入库 → 分批审查（后端一次最多 20 条）→ 组装双栏数据。 */
 async function runCheck() {
   if (!pickedCount.value) { ElMessage.warning('至少勾选一条'); return }
   checking.value = true
-  results.value = []
-  const ids: number[] = []
+  rows.value = []
+  rawResults.value = []
+  const index = new Map<number, { group: Group; chunk: Chunk }>()
   try {
     const ready = groups.value.filter(group => group.picked.size)
-    for (let index = 0; index < ready.length; index += 1) {
-      const group = ready[index]
-      progress.value = `入库 ${index + 1}/${ready.length}：${group.filename}`
-      const items = [...group.picked].sort((a, b) => a - b).map(p => group.pieces[p].text)
+    for (let gi = 0; gi < ready.length; gi += 1) {
+      const group = ready[gi]
+      progress.value = `入库 ${gi + 1}/${ready.length}：${group.filename}`
+      const pickedIndexes = [...group.picked].sort((a, b) => a - b)
+      const items = pickedIndexes.map(pi => group.pieces[pi].text)
       const saved = await importScripts(buildForm(true, group, items))
-      group.scriptIds = saved.script_ids
       group.sourceId = saved.source_id ?? null
-      ids.push(...saved.script_ids)
+      group.chunks = saved.script_ids.map((scriptId, position) => ({
+        scriptId, text: items[position],
+        ref: group.pieces[pickedIndexes[position]].ref,
+        confidence: group.pieces[pickedIndexes[position]].confidence
+      }))
+      group.chunks.forEach(chunk => index.set(chunk.scriptId, { group, chunk }))
     }
+    const ids = [...index.keys()]
+    const results: BatchAuditItem[] = []
     for (let start = 0; start < ids.length; start += 20) {
-      const chunk = ids.slice(start, start + 20)
+      const batchIds = ids.slice(start, start + 20)
       progress.value = `检查中 ${Math.min(start + 20, ids.length)}/${ids.length}，每条约 6 秒…`
-      const batch = await auditBatch(clientId.value, chunk)
-      results.value.push(...batch.results)
+      const batch = await auditBatch(clientId.value, batchIds)
+      results.push(...batch.results)
     }
-    const bad = results.value.filter(item => !item.error && item.score === 0).length
-    ElMessage.success(`已检查 ${results.value.length} 条，其中 ${bad} 条需要修改`)
+    rawResults.value = results
+    cursors.clear()
+    rows.value = results.map(item => {
+      const entry = index.get(item.script_id)
+      const group = entry?.group
+      const chunk = entry?.chunk
+      const groupIndex = group ? groups.value.indexOf(group) : 0
+      const hits = (item.hits ?? []).map((hit, hitIndex) => (group && chunk
+        ? toHit(groupIndex, group.fullText, chunk.text, item.script_id, hitIndex, hit)
+        : { key: `${item.script_id}-${hitIndex}`, view: {} as HitView, context: null }))
+      return {
+        scriptId: item.script_id,
+        groupIndex,
+        auditId: item.audit_id ?? null,
+        text: chunk?.text ?? '', ref: chunk?.ref ?? null,
+        confidence: chunk?.confidence ?? null,
+        score: item.score, incomplete: Boolean(item.incomplete), error: item.error ?? null,
+        latencyMs: item.latency_ms ?? null, cost: item.cost ?? null,
+        hits, unlocated: hits.filter(hit => !hit.span).map(hit => hit.view.quote),
+        sourceLabel: group?.filename ?? '—'
+      } satisfies ResultRow
+    })
+    stage.value = 'result'
+    const bad = results.filter(item => !item.error && item.score === 0).length
+    ElMessage.success(`已检查 ${results.length} 条，其中 ${bad} 条需要修改`)
   } catch {
-    // 失败不伪造结果：已经入库的部分照常保留，去「我的话术」能看到。
+    // 失败不伪造结果：已入库的部分在「我的资产」里仍然能看到
   } finally {
     checking.value = false
     progress.value = ''
   }
 }
 
-function toggle(key: string, index: number) {
-  const group = groups.value.find(item => item.key === key)
+function toggle(index: number) {
+  const group = current.value
   if (!group) return
   const next = new Set(group.picked)
   if (next.has(index)) next.delete(index)
@@ -184,9 +289,24 @@ function toggle(key: string, index: number) {
   group.picked = next
 }
 
-function toggleAll(group: Group) {
-  const all = group.pieces.length === group.picked.size
-  group.picked = all ? new Set() : new Set(group.pieces.map((_, index) => index))
+/** 左栏点击：预览阶段点切分边界 → 改勾选；结果阶段点命中 → 与右栏联动。 */
+function onPick(key: string) {
+  if (stage.value === 'preview' && key.startsWith('p-')) {
+    toggle(Number(key.slice(2)))
+    return
+  }
+  activeKey.value = activeKey.value === key ? null : key
+}
+
+function goStage(key: string) {
+  if (key === 'input') { stage.value = 'input'; return }
+  if (key === 'preview' && groups.value.length) { stage.value = 'preview'; return }
+  if (key === 'result' && rows.value.length) stage.value = 'result'
+}
+
+function selectGroup(value: number) {
+  activeGroup.value = value
+  activeKey.value = null
 }
 
 onMounted(async () => {
@@ -194,27 +314,39 @@ onMounted(async () => {
     caps.value = await parseCapabilities()
     if (!caps.value.modes.includes(mode.value)) mode.value = caps.value.modes[0]
   } catch {
-    // 能力清单拿不到就退回最保守的两种模式，而不是让页面报错打不开
+    // 能力清单拿不到就退回最保守的两种切分方式，不让页面打不开
   }
 })
 </script>
 
 <template>
-  <div>
-    <h1>文案检查</h1>
-    <p class="muted">
-      粘贴文案，或把海报、报价表、PDF、录音直接丢进来 —— 系统会解析成逐条话术、标出每条来自哪里，
-      再由你勾选后审查。违规条目会指出违反哪一条、原文依据与判定理由。
-    </p>
+  <div class="work">
+    <div class="toolbar">
+      <StepProgress :steps="steps" :current="stage"
+                    :done="stage === 'result' ? ['input', 'preview'] : stage === 'preview' ? ['input'] : []"
+                    @go="goStage" />
+      <div class="tools">
+        <el-radio-group v-if="groups.length > 1" :model-value="activeGroup" size="small"
+                        @change="selectGroup($event as number)">
+          <el-radio-button v-for="(group, pos) in groups" :key="group.key" :value="pos">
+            {{ group.filename }}
+          </el-radio-button>
+        </el-radio-group>
+        <el-button v-if="current?.sourceId" size="small"
+                   @click="drawerId = current.sourceId; drawerOpen = true">看原始素材</el-button>
+        <el-button v-if="stage === 'result' && rawResults.length" size="small"
+                   @click="showTable = !showTable">
+          {{ showTable ? '收起汇总表' : '看汇总表' }}
+        </el-button>
+      </div>
+    </div>
 
-    <el-alert v-if="missingEngines.length" type="warning" :closable="false" show-icon class="card"
+    <el-alert v-if="missingEngines.length" type="warning" :closable="false" show-icon
               :title="`以下能力当前未启用：${missingEngines.join('、')}`">
-      <p class="muted">
-        对应格式暂时不能上传，界面不会假装支持。安装命令与说明见项目 RUNBOOK §6。
-      </p>
+      <p class="cg-muted">对应格式传上来会被直接拒绝并说明装什么，界面不假装支持（安装命令见 RUNBOOK §6）。</p>
     </el-alert>
 
-    <el-card shadow="never" class="card">
+    <section v-if="stage === 'input'" class="card">
       <el-form label-width="86px">
         <el-form-item label="场景">
           <el-input v-model="scene" maxlength="50" style="width: 260px" placeholder="可选，如 双眼皮 / 热玛吉" />
@@ -225,100 +357,108 @@ onMounted(async () => {
               {{ MODE_LABELS[item] ?? item }}
             </el-radio-button>
           </el-radio-group>
-          <span class="muted" style="margin-left: 12px">行首序号会自动去掉；录音请用「按句」</span>
+          <span class="cg-muted inline">行首序号会自动去掉；录音请用「按句」</span>
         </el-form-item>
       </el-form>
 
       <el-tabs v-model="tab">
         <el-tab-pane label="粘贴文本" name="paste">
-          <el-input v-model="text" type="textarea" :rows="7" maxlength="20000" show-word-limit
+          <el-input v-model="text" type="textarea" :rows="8" maxlength="20000" show-word-limit
                     placeholder="把整篇文案粘进来" />
         </el-tab-pane>
         <el-tab-pane label="上传文件（可多选）" name="file">
           <el-upload drag multiple :auto-upload="false" v-model:file-list="fileList" :accept="accept">
             <div class="drop">
-              <p>把文件拖进来，或<span class="link">点击选择</span></p>
-              <p class="muted">{{ accept || '后端未提供能力清单' }}</p>
+              <p>把海报、PDF、话术表、录音拖进来，或<span class="link">点击选择</span></p>
+              <p class="cg-muted">{{ accept || '后端未提供能力清单' }}</p>
             </div>
             <template #tip>
-              <div class="muted">支持海报图片、扫描件 PDF、docx/xlsx/pptx、txt/csv 与录音；可一次多选</div>
+              <p class="cg-muted">可一次多选；解析按顺序跑，一份失败不影响其余。</p>
             </template>
           </el-upload>
         </el-tab-pane>
       </el-tabs>
 
-      <el-button :loading="parsing" @click="preview">解析预览</el-button>
-      <span v-if="progress" class="muted" style="margin-left: 12px">{{ progress }}</span>
-    </el-card>
-
-    <el-card v-for="group in groups" :key="group.key" shadow="never" class="card">
-      <h3>{{ group.filename }}
-        <el-tag size="small" effect="plain">{{ group.kind }}</el-tag>
-        <el-tag size="small" type="info" effect="plain">{{ group.engine }}</el-tag>
-        <el-tag v-if="group.confidence !== null" size="small"
-                :type="group.confidence < 0.6 ? 'warning' : 'success'" effect="plain">
-          识别置信度 {{ conf(group.confidence) }}
-        </el-tag>
-      </h3>
-      <el-alert v-if="group.error" type="error" :closable="false" show-icon :title="group.error" />
-      <el-button v-if="group.sourceId" link type="primary" class="material"
-                 @click="drawerId = group.sourceId; drawerOpen = true">
-        查看原始素材
+      <el-button type="primary" :loading="parsing" @click="preview">
+        {{ parsing && progress ? progress : '解析并对到原文' }}
       </el-button>
-      <div v-for="item in group.warnings" :key="item">
-        <el-alert type="warning" :closable="false" show-icon :title="item" class="warn" />
-      </div>
-      <template v-if="group.pieces.length">
-        <el-checkbox :model-value="group.picked.size === group.pieces.length"
-                    :indeterminate="group.picked.size > 0 && group.picked.size < group.pieces.length"
-                    @change="toggleAll(group)">全选 / 全不选</el-checkbox>
-        <p class="muted">切得不准的先取消勾选，不会写进库。</p>
-        <div class="list">
-          <div v-for="(piece, index) in group.pieces" :key="index" class="row"
-               :class="{ on: group.picked.has(index) }">
-            <el-checkbox :model-value="group.picked.has(index)" @change="toggle(group.key, index)" />
-            <span class="idx">{{ index + 1 }}</span>
-            <span class="text">{{ piece.text }}</span>
-            <span class="src">
-              <el-tag v-if="piece.ref" size="small" type="info" effect="plain">{{ piece.ref }}</el-tag>
-              <el-tag v-if="piece.confidence !== null" size="small"
-                      :type="piece.confidence < 0.6 ? 'warning' : 'info'" effect="plain">
-                {{ conf(piece.confidence) }}
-              </el-tag>
-            </span>
+    </section>
+
+    <div v-else class="split">
+      <SourceText :text="current?.fullText ?? ''" :marks="marks" :active-key="activeKey"
+                  :title-hint="topicHint" :unlocated="[]" @pick="onPick" />
+
+      <div class="right">
+        <div v-if="stage === 'preview'" class="card">
+          <p class="cg-muted">左栏是整篇原文：点原文段落或下面的行都能取消勾选，切错的先剔掉再入库。</p>
+          <p v-if="current?.error" class="err">{{ current.error }}</p>
+          <p v-for="warn in current?.warnings ?? []" :key="warn" class="warn">{{ warn }}</p>
+          <div class="list">
+            <div v-for="(piece, index) in current?.pieces ?? []" :key="index" class="row"
+                 :class="{ on: current?.picked.has(index) }">
+              <el-checkbox :model-value="current?.picked.has(index) ?? false" @change="toggle(index)" />
+              <span class="idx">{{ index + 1 }}</span>
+              <span class="body">{{ piece.text }}</span>
+              <span class="src">
+                <el-tag v-if="piece.ref" size="small" type="info" effect="plain">{{ piece.ref }}</el-tag>
+                <el-tag v-if="piece.confidence !== null" size="small" effect="plain"
+                        :type="piece.confidence < 0.6 ? 'warning' : 'info'">
+                  {{ Math.round(piece.confidence * 100) }}%
+                </el-tag>
+              </span>
+            </div>
           </div>
+          <el-button type="primary" :loading="checking" :disabled="!pickedCount" @click="runCheck">
+            {{ checking && progress ? progress : `检查这 ${pickedCount} 条` }}
+          </el-button>
+          <p class="cg-muted">顺序执行，单条约 6 秒；超过 20 条自动分批跑完。</p>
         </div>
-      </template>
-    </el-card>
 
-    <el-card v-if="pickedCount" shadow="never" class="card">
-      <el-button type="primary" size="large" :loading="checking" @click="runCheck">
-        {{ checking && progress ? progress : `检查这 ${pickedCount} 条` }}
-      </el-button>
-      <p class="muted">后端顺序执行，单条约 6 秒；超过 20 条会自动分批跑完。</p>
-    </el-card>
+        <ResultPane v-else class="grow" :rows="currentRows" :active-key="activeKey"
+                    @locate="key => activeKey = key" />
 
-    <AuditResults v-if="results.length" :items="results" />
+        <AuditResults v-if="showTable && rawResults.length" :items="rawResults" />
+      </div>
+    </div>
 
     <SourceDrawer v-model="drawerOpen" :source-id="drawerId" />
   </div>
 </template>
 
 <style scoped>
-.muted { color: var(--el-text-color-secondary); font-size: 13px; }
-h1 { margin: 0 0 6px; font-size: 24px; }
-h3 { margin: 0 0 8px; font-size: 15px; }
-h3 .el-tag { margin-left: 8px; }
-.card { margin-top: 16px; }
-.warn { margin-top: 8px; }
-.drop { padding: 10px 0; text-align: center; }
+.work { display: flex; flex-direction: column; gap: var(--cg-s-3); }
+.toolbar {
+  position: sticky; top: 0; z-index: 5; display: flex; flex-direction: column; gap: var(--cg-s-2);
+  background: var(--cg-paper); padding-bottom: var(--cg-s-2);
+}
+.tools { display: flex; align-items: center; gap: var(--cg-s-2); flex-wrap: wrap; }
+.card { background: var(--cg-sheet); border: var(--cg-line); border-radius: var(--cg-radius);
+  padding: var(--cg-s-3); }
+.inline { margin-left: var(--cg-s-2); }
+.drop { padding: var(--cg-s-3); text-align: center; }
 .drop p { margin: 4px 0; }
-.link { color: var(--el-color-primary); cursor: pointer; text-decoration: underline; }
-.list { max-height: 320px; overflow-y: auto; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; margin-top: 8px; }
-.row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.link { color: var(--cg-accent); text-decoration: underline; cursor: pointer; }
+
+/* 双栏：桌面优先，1280 以下退成上下，不横向挤压 */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--cg-s-3); height: calc(100vh - 216px); min-height: 460px; }
+.right { display: flex; flex-direction: column; gap: var(--cg-s-2); min-height: 0; overflow: auto; }
+.grow { flex: 1; min-height: 0; }
+@media (max-width: 1280px) {
+  .split { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .right { overflow: visible; }
+}
+
+.list { max-height: 300px; overflow-y: auto; border: var(--cg-line);
+  border-radius: var(--cg-radius); margin: var(--cg-s-2) 0 var(--cg-s-3); }
+.row { display: flex; align-items: flex-start; gap: var(--cg-s-2); padding: 8px var(--cg-s-3);
+  border-bottom: var(--cg-line); }
 .row:last-child { border-bottom: none; }
-.row.on { background: var(--el-color-primary-light-9); }
-.idx { min-width: 26px; color: var(--el-text-color-secondary); font-variant-numeric: tabular-nums; }
-.text { line-height: 1.6; word-break: break-word; flex: 1; }
-.src { display: flex; gap: 6px; flex-shrink: 0; }
+.row.on { background: var(--cg-accent-soft); }
+.idx { min-width: 22px; color: var(--cg-ink-mute); font-family: var(--cg-font-num); }
+.body { flex: 1; line-height: 1.7; word-break: break-word; }
+.src { display: flex; gap: 6px; flex: none; }
+.err { font-size: var(--cg-t-aux); color: var(--cg-hard); }
+.warn { font-size: var(--cg-t-aux); color: var(--cg-pending); background: var(--cg-pending-bg);
+  padding: 6px 8px; border-radius: var(--cg-radius); }
 </style>

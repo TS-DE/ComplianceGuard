@@ -10,7 +10,7 @@
  */
 import { onMounted, ref } from 'vue'
 import { sources, type SourceRow } from '../../api/resource'
-import SourceDrawer from '../merchant/SourceDrawer.vue'
+import SourceDrawer from '../merchant/parts/SourceDrawer.vue'
 
 const rows = ref<SourceRow[]>([])
 const page = ref(1)
