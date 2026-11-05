@@ -24,10 +24,11 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* 背景闪一次后回到常态：定位命中时告诉用户"就是这里" */
+/* 背景闪一次后回到常态：定位命中时告诉用户"就是这里"。
+   刻意不写 100% 帧：浏览器会过渡回元素自身的背景色（命中的陶土底/选中卡的金底），
+   写死 transparent 会在动画末尾先闪成透明、移除类名后再跳回原色 */
 @keyframes pulse-once {
-  0%   { background-color: var(--motion-pulse-color); }
-  100% { background-color: transparent; }
+  0% { background-color: var(--motion-pulse-color); }
 }
 
 /* 骨架占位的光带：只在数据未到时出现，数据到位即随占位一起移除 */

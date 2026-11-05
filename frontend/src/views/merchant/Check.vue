@@ -17,7 +17,7 @@
  * 两条不肯让步的边界：定位失败就写"位置未知"并列出引文，绝不猜位置；
  * 主题只显示"解析首行摘录（非模型提炼）"，没有可靠来源就显示未启用。
  */
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { UploadUserFile } from 'element-plus'
 import {
@@ -29,6 +29,7 @@ import { useCheckDraft } from '../../stores/checkDraft'
 import { isCanceled } from '../../api/http'
 import { acceptOf, missingEnginesOf, refuseReason } from '../../utils/parseAccept'
 import { contextOf, locate, locateInSource } from '../../utils/locate'
+import { pulse, smoothCenter } from '../../utils/motion'
 import type { HitView } from '../../utils/risk'
 import StepProgress from '../../components/layout/StepProgress.vue'
 import SourceText from '../../components/text/SourceText.vue'
@@ -382,6 +383,7 @@ function onPick(key: string) {
     toggle(Number(key.slice(2)))
     return
   }
+  locateFrom = 'left'
   activeKey.value = activeKey.value === key ? null : key
 }
 
@@ -443,6 +445,75 @@ watch([stage, scene, mode, groups, rows], () => {
   })
 }, { deep: true })
 
+/* ── 动效：只说明"发生了什么"，不改任何判定数据 ───────────────────── */
+
+/**
+ * 命中定位的方向：点右侧卡片 → 只动左栏；点左栏高亮 → 只动右栏。
+ * 被点的那一侧已经在用户眼前，再滚它只会让画面跳一下。
+ */
+let locateFrom: 'left' | 'right' | null = null
+
+function onLocate(key: string | null) {
+  locateFrom = 'right'
+  activeKey.value = key
+}
+
+watch(activeKey, async key => {
+  const from = locateFrom
+  locateFrom = null
+  if (!key || stage.value !== 'result') return
+  await nextTick()
+  const root = splitEl.value
+  if (!root) return
+  if (from !== 'left') {
+    const mark = root.querySelector(`mark[data-key="${CSS.escape(key)}"]`)
+    smoothCenter(mark)
+    pulse(mark)
+  }
+  if (from !== 'right') {
+    // HitCard 选中后带 .active；右栏是独立滚动容器，scrollIntoView 只滚它自己
+    const card = root.querySelector('.right .card.active')
+    smoothCenter(card)
+    pulse(card)
+  }
+})
+
+const splitEl = ref<HTMLElement | null>(null)
+
+/**
+ * 等待态：骨架闪光循环到数据到位为止（它是等待反馈，不是装饰），
+ * 但 15 秒仍未返回就停掉闪光、改静态占位并明说"加载较慢"，
+ * 不让一条永远在动的光带假装系统还在正常推进。
+ */
+const SLOW_AFTER_S = 15
+const waitSeconds = ref(0)
+let waitTimer: ReturnType<typeof setInterval> | null = null
+const waiting = computed(() => parsing.value || checking.value)
+const waitSlow = computed(() => waitSeconds.value >= SLOW_AFTER_S)
+
+watch(waiting, on => {
+  if (waitTimer) clearInterval(waitTimer)
+  waitTimer = null
+  waitSeconds.value = 0
+  if (on) waitTimer = setInterval(() => { waitSeconds.value += 1 }, 1000)
+})
+onBeforeUnmount(() => { if (waitTimer) clearInterval(waitTimer) })
+
+/**
+ * 审查阶段文字。后端是一次同步批量请求，**没有逐阶段回报**，
+ * 所以这里按单条典型耗时轮换主链路的三步，并在界面上写明"按典型耗时提示"——
+ * 不把估计包装成服务端实时进度。
+ */
+const AUDIT_PHASES = ['正在归一', '检索法条', '语义判定']
+const auditPhase = computed(() => {
+  const second = elapsed.value % 6
+  return AUDIT_PHASES[second < 1 ? 0 : second < 3 ? 1 : 2]
+})
+const waitText = computed(() => {
+  if (parsing.value) return progress.value || '正在解析素材'
+  return `${auditPhase.value} · ${progress.value || '检查中'}`
+})
+
 function clearDraft() {
   draft.clear()
   groups.value = []
@@ -479,7 +550,8 @@ function clearDraft() {
       <p class="cg-muted">对应格式传上来会被直接拒绝并说明装什么，界面不假装支持（安装命令见 RUNBOOK §6）。</p>
     </el-alert>
 
-    <section v-if="stage === 'input'" class="card">
+    <Transition name="stage" mode="out-in">
+    <section v-if="stage === 'input'" key="input" class="card">
       <el-form label-width="86px">
         <el-form-item label="场景">
           <el-input v-model="scene" maxlength="50" style="width: 260px" placeholder="可选，如 双眼皮 / 热玛吉" />
@@ -515,14 +587,21 @@ function clearDraft() {
       <el-button type="primary" :loading="parsing" @click="preview">
         {{ parsing && progress ? progress : '解析并对到原文' }}
       </el-button>
+
+      <div v-if="parsing" class="wait" role="status" aria-live="polite">
+        <p class="wait-text">{{ waitSlow ? '加载较慢，请稍候' : waitText }}
+          <span class="wait-sec">已 {{ waitSeconds }} 秒</span></p>
+        <span v-for="n in 3" :key="n" class="sk" :class="waitSlow ? 'sk-static' : 'motion-skeleton'" />
+      </div>
     </section>
 
-    <div v-else class="split">
+    <div v-else ref="splitEl" key="work" class="split">
       <SourceText :text="current?.fullText ?? ''" :marks="marks" :active-key="activeKey"
                   :title-hint="topicHint" :unlocated="[]" @pick="onPick" />
 
       <div class="right">
-        <div v-if="stage === 'preview'" class="card">
+        <Transition name="stage" mode="out-in">
+        <div v-if="stage === 'preview'" key="preview" class="card">
           <p class="cg-muted">左栏是整篇原文：点原文段落或下面的行都能取消勾选，切错的先剔掉再入库。</p>
           <p v-if="current?.error" class="err">{{ current.error }}</p>
           <p v-for="warn in current?.warnings ?? []" :key="warn" class="warn">{{ warn }}</p>
@@ -550,14 +629,28 @@ function clearDraft() {
           <!-- 草稿要能显式清掉：只有自动恢复、没有出口，用户想"重新开始一次"就只能刷新或换浏览器 -->
           <el-button v-if="draft.savedAt && !checking" text @click="clearDraft">清空本次草稿</el-button>
           <p class="cg-muted">顺序执行，单条约 6 秒；超过 20 条自动分批跑完。</p>
+
+          <!-- 结果区占位：骨架 + 阶段文字一起出现，不允许只有骨架没有字 -->
+          <div v-if="checking" class="wait" role="status" aria-live="polite">
+            <p class="wait-text">{{ waitSlow ? '加载较慢，请稍候' : waitText }}
+              <span class="wait-sec">已 {{ waitSeconds }} 秒</span></p>
+            <p class="cg-muted wait-note">阶段按典型耗时提示，非服务端实时进度</p>
+            <div v-for="n in 3" :key="n" class="sk-row">
+              <span class="sk sk-badge" :class="waitSlow ? 'sk-static' : 'motion-skeleton'" />
+              <span class="sk" :class="waitSlow ? 'sk-static' : 'motion-skeleton'" />
+              <span class="sk sk-short" :class="waitSlow ? 'sk-static' : 'motion-skeleton'" />
+            </div>
+          </div>
         </div>
 
-        <ResultPane v-else class="grow" :rows="currentRows" :active-key="activeKey"
-                    @locate="key => activeKey = key" />
+        <ResultPane v-else key="result" class="grow" :rows="currentRows" :active-key="activeKey"
+                    @locate="onLocate" />
+        </Transition>
 
         <AuditResults v-if="showTable && rawResults.length" :items="rawResults" />
       </div>
     </div>
+    </Transition>
 
     <SourceDrawer v-model="drawerOpen" :source-id="drawerId" />
   </div>
@@ -599,4 +692,27 @@ function clearDraft() {
 .err { font-size: var(--cg-t-aux); color: var(--cg-hard); }
 .warn { font-size: var(--cg-t-aux); color: var(--cg-pending); background: var(--cg-pending-bg);
   padding: 6px 8px; border-radius: var(--cg-radius); }
+
+/* 阶段切换：新内容淡入 + 上移 8px，旧内容只淡出（离场更快，不和进场抢时间） */
+.stage-enter-active { animation: fade-up var(--motion-base) var(--ease-out) both; }
+.stage-leave-active { transition: opacity var(--motion-fast) var(--ease-out); }
+.stage-leave-to { opacity: 0; }
+
+/* 等待占位 */
+.wait { margin-top: var(--cg-s-3); display: flex; flex-direction: column; gap: var(--cg-s-2);
+  animation: fade-up var(--motion-base) var(--ease-out) both; }
+.wait-text { margin: 0; font-size: var(--cg-t-aux); color: var(--cg-ink-soft); }
+.wait-sec { margin-left: var(--cg-s-2); color: var(--cg-ink-mute); font-family: var(--cg-font-num); }
+.wait-note { margin: -4px 0 0; font-size: 11px; }
+.sk { display: block; height: 12px; border-radius: 2px; }
+.sk-static { background: var(--motion-skeleton-base); }
+.sk-row { display: grid; grid-template-columns: 56px 1fr; gap: 6px var(--cg-s-2);
+  padding: var(--cg-s-2) 0; border-top: var(--cg-line); }
+.sk-row .sk:nth-child(2) { grid-column: 2; }
+.sk-row .sk-short { grid-column: 2; width: 60%; }
+.sk-badge { grid-row: span 2; height: 20px; }
+@media (prefers-reduced-motion: reduce) {
+  .stage-enter-active, .wait { animation: none; }
+  .stage-leave-active { transition: none; }
+}
 </style>
