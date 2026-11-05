@@ -303,3 +303,18 @@ A1 在这里调 MCP 工具 `parse_source` 自己取内容 —— 商家递来海
 ```
 `agree_rate = confirmed / (confirmed + dismissed)`；**未裁定记录不计入分母**，
 无已裁定记录时为 `null`（不填 0 冒充"一致率为零"）。商家只统计自己机构。
+
+### POST /api/v1/audit/{audit_id}/feedback
+```json
+{"feedback": "useful | not_useful", "note": "可选，≤500 字"}
+```
+- 商家对本次判定的主观反馈（界面上的 👍/👎），返回 `{id, feedback, feedback_note}`
+- **与 `/review` 的三条区别**（刻意为之，不是历史遗留）：
+  ① 无处置权：不改判定、不改分数、不进 `review-stats` 的任何分母；
+  ② **允许反复修改**（主观感受会变，拦它只会让人不再点），而人工裁定是终态；
+  ③ 不写 `reviewed_by/reviewed_at`——那两个字段专指有处置权的运营裁定。
+- 取值非法由请求体校验返回 **400「参数校验失败」**（§1.1 约定，422 留给业务校验）；
+  越权反馈返回 **404**，与复核同一口径
+- 存储为 `audits.feedback` / `audits.feedback_note`（见 `db_schema.md §1.4`）；
+  这批信号**只落库、本轮不聚合**——"按轴汇总商家踩点 → 规则候选"属于已砍掉的 G 阶段，
+  记在 `CHANGELOG` 遗留里，不要在这里写得像已经存在

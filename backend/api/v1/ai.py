@@ -141,6 +141,13 @@ class ReviewRequest(BaseModel):
     note: str | None = Field(default=None, max_length=500)
 
 
+class FeedbackRequest(BaseModel):
+    """商家反馈入参：这条判得有没有用。note 可空，但给了就限长。"""
+
+    feedback: Literal["useful", "not_useful"]
+    note: str | None = Field(default=None, max_length=500)
+
+
 def _assert_audit_in_scope(db, audit_id, user):
     """商家只能处理自己机构的审查；越权按 404，不暴露存在性。"""
     from backend.core.security import data_scope
@@ -215,6 +222,22 @@ def review_audit(audit_id: Annotated[int, Path(gt=0)], payload: ReviewRequest,
                                      current_user.id, payload.note)
     return ok({"id": row.id, "review_status": row.review_status,
                "reviewed_at": row.reviewed_at.isoformat() if row.reviewed_at else None})
+
+
+@router.post("/audit/{audit_id}/feedback", tags=["audit"])
+def feedback_audit(audit_id: Annotated[int, Path(gt=0)], payload: FeedbackRequest,
+                   db: DbSession, current_user: CurrentUser) -> dict:
+    """商家对本次判定的主观反馈（👍/👎 + 可选一句话）。
+
+    与 `/review` 的区别是**这条线没有处置权**：不改判定、不改分数、不进准确率分母，
+    只作为规则候选的线索（哪一类命中让商家觉得没用）。所以商家可以反复改自己的反馈，
+    而运营裁定必须一次性覆盖——两种动作的严肃程度不同，接口语义也就不该共用一张表列。
+    """
+    from backend.crud.audit import AuditRepository
+
+    _assert_audit_in_scope(db, audit_id, current_user)
+    row = AuditRepository(db).set_feedback(audit_id, payload.feedback, payload.note)
+    return ok({"id": row.id, "feedback": row.feedback, "feedback_note": row.feedback_note})
 
 
 @router.get("/audit/review-stats", tags=["audit"])

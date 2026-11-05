@@ -95,6 +95,9 @@ def test_dsn() -> str:
     # 分段锚点绝对偏移（C 阶段）：同上，create_all 不给已存在的 scripts 补列
     from scripts.migrate_script_anchors import migrate as migrate_anchors
     migrate_anchors(engine, apply=True)
+    # 商家反馈两列（F 阶段）：漏掉这步，写 feedback 的用例会在 INSERT/UPDATE 时报未知列
+    from scripts.migrate_audit_feedback import migrate as migrate_feedback
+    migrate_feedback(engine, apply=True)
     engine.dispose()
     yield dsn
 

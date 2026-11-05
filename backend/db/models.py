@@ -237,6 +237,16 @@ class Audit(Base):
     reviewed_by: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     review_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # ---- 商家反馈（👍/👎）----
+    # 与人工复核刻意分开：review_* 是**运营改判**（有处置权、进审计轨迹），
+    # feedback_* 只是商家的一句"这条判得对不对"，不改变任何结论与分数。
+    # 混成一列的后果是：商家点一下踩，系统判定就被当成被人推翻了。
+    feedback: Mapped[str | None] = mapped_column(
+        Enum("useful", "not_useful", values_callable=lambda e: [m for m in e],
+             name="audit_feedback"),
+        nullable=True,
+    )
+    feedback_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     incomplete: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("0")
     )

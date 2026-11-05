@@ -142,6 +142,10 @@ class AuditOut(BaseModel):
     latency_ms: int
     incomplete: bool
     created_at: datetime
+    # 商家反馈与人工裁定是两回事，两栏都要能在列表里看见：
+    # 混成一列的话，商家点一次"没用"就会被读成"运营推翻了判定"，准确率口径当场失真。
+    feedback: str | None = None
+    feedback_note: str | None = None
     # 审查记录必须能直接看到被审查的原话术：
     # 只给 script_id 的话，商家要跳到话术库再搜一遍，也没法复制原文去对照修改。
     script_content: str | None = None

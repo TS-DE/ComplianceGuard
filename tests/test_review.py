@@ -178,3 +178,73 @@ def test_review_stats_agree_rate_excludes_pending(client: TestClient, db) -> Non
     assert data["confirmed"] == 1 and data["dismissed"] == 1
     assert data["judged"] == 2
     assert data["agree_rate"] == 0.5
+
+
+# ---------------------------------------------------------------- 商家反馈（F 阶段）
+def test_feedback_can_be_changed_and_touches_nothing_else(client: TestClient, db) -> None:
+    """反馈允许改（主观感受会变），但绝不允许碰人工裁定那几个字段。
+
+    如果哪天有人图省事把 feedback 写进 review_status，这条会立刻失败——
+    因为"商家觉得没用"和"运营推翻判定"在准确率报表里是两个完全不同的分母。
+    """
+    shop = _merchant(client, "feedback_change")
+    audit = _make_audit(db, shop["client_id"], None)
+
+    first = client.post(f"{API}/audit/{audit.id}/feedback", headers=shop["headers"],
+                        json={"feedback": "not_useful", "note": "这条我看懂了，但太笼统"})
+    assert first.status_code == 200, first.text
+    assert first.json()["data"]["feedback"] == "not_useful"
+    assert first.json()["data"]["feedback_note"].startswith("这条")
+
+    second = client.post(f"{API}/audit/{audit.id}/feedback", headers=shop["headers"],
+                         json={"feedback": "useful"})
+    assert second.status_code == 200, second.text      # 改一次不该 409
+    assert second.json()["data"]["feedback"] == "useful"
+    assert second.json()["data"]["feedback_note"] is None   # 不给就清空，不留上一次的备注
+
+    db.refresh(audit)
+    assert audit.review_status is None and audit.reviewed_at is None and audit.reviewed_by is None
+
+
+def test_feedback_value_is_validated(client: TestClient, db) -> None:
+    shop = _merchant(client, "feedback_value")
+    audit = _make_audit(db, shop["client_id"], None)
+    resp = client.post(f"{API}/audit/{audit.id}/feedback", headers=shop["headers"],
+                       json={"feedback": "meh"})
+    # 本契约里请求体校验统一是 400「参数校验失败」（见 api_spec.md §1.1），不是 422：
+    # 422 留给业务校验（如 verdict 取值合法但语义不允许）
+    assert resp.status_code == 400, resp.text
+    assert resp.json()["msg"] == "参数校验失败"
+
+
+def test_feedback_is_scope_guarded(client: TestClient, db) -> None:
+    """别家机构的审查：按 404 处理，不暴露"存在但你不配"。"""
+    mine = _merchant(client, "feedback_owner")
+    other = _merchant(client, "feedback_stranger")
+    audit = _make_audit(db, mine["client_id"], None)
+    resp = client.post(f"{API}/audit/{audit.id}/feedback", headers=other["headers"],
+                       json={"feedback": "useful"})
+    assert resp.status_code == 404, resp.text
+
+
+def test_feedback_shows_in_audit_list(client: TestClient, db) -> None:
+    """列表要能看见反馈状态：商家改完回来找不到，就等于没告诉他记下了。"""
+    shop = _merchant(client, "feedback_list")
+    audit = _make_audit(db, shop["client_id"], None)
+    client.post(f"{API}/audit/{audit.id}/feedback", headers=shop["headers"],
+                json={"feedback": "not_useful", "note": "希望给个改法"})
+    rows = client.get(f"{API}/audits?page=1&page_size=20", headers=shop["headers"]).json()
+    hit = [row for row in rows["data"] if row["id"] == audit.id]
+    assert hit and hit[0]["feedback"] == "not_useful"
+    assert hit[0]["feedback_note"] == "希望给个改法"
+
+
+def test_feedback_does_not_enter_accuracy_denominator(client: TestClient, db) -> None:
+    """踩一次"没用"不能把一致率改掉——那是运营裁定的口径，不是商家的意见。"""
+    shop = _merchant(client, "feedback_stats")
+    pending = _make_audit(db, shop["client_id"], "pending")
+    client.post(f"{API}/audit/{pending.id}/feedback", headers=shop["headers"],
+                json={"feedback": "not_useful"})
+    data = client.get(f"{API}/audit/review-stats", headers=shop["headers"]).json()["data"]
+    assert data["pending"] == 1 and data["judged"] == 0
+    assert data["agree_rate"] is None

@@ -73,6 +73,31 @@ class AuditRepository:
             .offset((page - 1) * page_size).limit(page_size)).all()
         return rows, int(total)
 
+    def set_feedback(self, audit_id, feedback, note=None):
+        """写入商家反馈（👍/👎）。与 `review` 刻意不同：**允许改**。
+
+        反馈是主观感受：商家看完第二条判断，回头觉得第一条其实有用，改一下是正常行为。
+        拦它只会让人不再点，而我们要的正是这些点击分布。所以这里没有
+        "不可重复裁定"那条约束，也不写 reviewed_by/reviewed_at——
+        那两个字段属于有处置权的人工裁定。
+        """
+        from backend.core.errors import BusinessValidationError, NotFoundError
+
+        row = self.session.get(Audit, audit_id)
+        if row is None:
+            raise NotFoundError("audit", audit_id)
+        if feedback not in ("useful", "not_useful"):
+            raise BusinessValidationError("feedback 只能是 useful 或 not_useful")
+        row.feedback = feedback
+        row.feedback_note = (note or "").strip()[:500] or None
+        try:
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
+            raise
+        self.session.refresh(row)
+        return row
+
     def review(self, audit_id, verdict, reviewer_id, note=None):
         """写入人工裁定；裁定一旦写下不可被另一次裁定静默覆盖。
 
