@@ -23,6 +23,28 @@ class EmbeddingError(ModelCallError):
     """明确表示向量服务不可用，调用方必须降级并留状态。"""
 
 
+def pin_jieba_cache() -> None:
+    """把 jieba 的词典缓存从 %TEMP%（C 盘）挪进项目 data/，并静音它的进度打印。
+
+    两个动机都来自真实故障，不是洁癖：
+    1. 缓存默认落在 `C:\\Users\\<user>\\AppData\\Local\\Temp\\jieba.cache`，
+       违反"C 盘不装不写"的硬规矩；
+    2. 并发首启时两个进程会读到对方写了一半的缓存，jieba 不报错而是**回退全量建词典**，
+       内存紧张时直接 `MemoryError`。实测两种长相：MCP client 模式下第一条
+       `rag_search_law` 永不返回、第二条 7 秒正常；以及全量 pytest 里
+       "子进程 stdout 必须干净"那条测试偶发失败。
+    缓存按项目走之后第一次建好、后续只读，不再有写读竞争窗口。
+    """
+    import logging
+
+    import jieba
+
+    cache_dir = ROOT / "data" / "jieba_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    jieba.dt.tmp_dir = str(cache_dir)
+    jieba.setLogLevel(logging.ERROR)
+
+
 def llm_config():
     """读取本地配置及环境变量；不打印任何密钥值。"""
     return {**dotenv_values(ROOT / '.env'), **os.environ}

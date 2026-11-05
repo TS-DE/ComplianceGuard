@@ -10,7 +10,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Protocol
 import jieba
-from backend.rag.embedding import DashScopeEmbeddingFunction, EmbeddingError, llm_config
+from backend.rag.embedding import (
+    DashScopeEmbeddingFunction, EmbeddingError, llm_config, pin_jieba_cache)
 
 logger = logging.getLogger(__name__)
 RRF_K = 60
@@ -19,6 +20,10 @@ MIN_SCORE = 0.01
 BM25_K1 = 1.5
 BM25_B = 0.75
 LAW_TERMS = ('绝对化用语', '保证性承诺', '疗效断言', '医疗美容', '广告审查', '贬低同行', '容貌焦虑')
+
+
+# jieba 的缓存必须先钉到项目盘再碰词典，否则第一个 add_word 就会按默认路径建缓存
+pin_jieba_cache()
 for term in LAW_TERMS:
     jieba.add_word(term)
 

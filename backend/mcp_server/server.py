@@ -127,12 +127,18 @@ def warm_libraries() -> None:
     import logging
 
     try:
+        from backend.rag.embedding import pin_jieba_cache
+
+        # 先把缓存目录钉到项目盘：默认路径在 %TEMP%，两个进程并发首启会读到
+        # 半成品缓存并回退全量建词典，内存紧时直接 MemoryError
+        pin_jieba_cache()
         import jieba
 
-        jieba.setLogLevel(logging.ERROR)     # 之后不再往控制台打字
         jieba.initialize()                   # 把"第一次调用才加载"挪到握手之前
     except ImportError:                       # 检索链没装 jieba 时照常跑
         pass
+    except Exception as exc:  # noqa: BLE001 - 预热失败不该让 server 起不来
+        logging.getLogger(__name__).warning('jieba warmup failed: %s', type(exc).__name__)
 
 
 if __name__ == "__main__":

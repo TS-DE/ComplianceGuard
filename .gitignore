@@ -46,3 +46,6 @@ agent_docs/
 .hermes/
 # Qwen Code 鏈湴浼氳瘽涓庡伐鍏锋巿鏉冮厤缃紙鍚満鍣ㄧ浉鍏崇殑鏉冮檺鐧藉悕鍗曪紝涓嶅睘浜庨」鐩骇鐗╋級
 .qwen/
+  
+# jieba 词典缓存挪出 C 盘后落在项目盘（可重建，不进版本库）  
+data/jieba_cache/  

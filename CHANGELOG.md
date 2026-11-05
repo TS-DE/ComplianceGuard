@@ -1008,3 +1008,27 @@ dev/build/preview），本轮不擅自引入 vitest 扩范围；恢复流程需�
 如果以后要在恢复态上继续"采纳改写"，得先按 `script_id` 把 audit 记录取回来；
 ③ 无 FE 测试设施这条与 F 阶段一起暴露：商家端重设计做完后，
 高亮/滚动/取消这类交互全靠手工回归，成本会越来越高，建议 D8 前补 vitest。
+
+## 环境卫生 · jieba 词典缓存挪出 C 盘（并证伪了我自己的一条因果推测）
+
+**发现**：`jieba` 默认把词典缓存写到 `C:\Users\<user>\AppData\Local\Temp\jieba.cache`。
+两个后果：① 违反"C 盘不装不写"的硬规矩；② 并发首启时进程会读到对方写了一半的缓存，
+jieba **不报错而是回退到全量建词典**，内存紧张时直接 `MemoryError`。
+
+**证据**：全量 pytest 里"子进程 stdout 必须干净"那条测试偶发失败，单跑必过；
+抓到的失败正文就是 `gen_pfdict → lfreq[word] = freq → MemoryError`。
+全量套件时父进程正占着 chromadb/onnxruntime，子进程再全量建词典就撑不住。
+
+**修法**：`backend/rag/embedding.py` 新增 `pin_jieba_cache()`，把 `jieba.dt.tmp_dir`
+指向 `data/jieba_cache/`（进 `.gitignore`，可重建、不入库），并静音进度打印；
+`retrieve.py` 在 `add_word` 之前调用（否则第一个 `add_word` 就按默认路径建缓存），
+MCP server 的 `warm_libraries()` 也调用，预热失败只警告、不拦 server 启动。
+
+**必须写下的证伪**：我原本推测这也是"MCP client 模式第一条 `rag_search_law` 永不返回"的根因，
+**修完重测协议探针，第一条仍然 90 秒超时、第二条 7.3 秒正常**——推测不成立。
+此前已排除的还有 stdout 污染（jieba 实测走 stderr）与 chromadb 匿名遥测（已关仍复现）。
+这条挂起继续留在 T-C 的未解清单里，我不再猜第四个原因。
+
+**验证**：`set PYTHONNOUSERSITE=1&& python -m pytest tests -q` → **419 passed**（含之前偶发失败
+那条，连跑两次均绿）；协议探针 `db_query_rules` 经协议 0.4s OK、
+`rag_search_law` 首条 FAIL / 次条 7.3s OK，原样记录不粉饰。
