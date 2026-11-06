@@ -12,10 +12,20 @@
  * 与 `MainLayout.vue`（运营端案纸风）是两套并存的 shell，不在一个组件里按角色换样式。
  */
 import { computed } from 'vue'
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useAuth } from '../stores/auth'
 
 const auth = useAuth()
+const router = useRouter()
+// 退出必须走 auth.logout()（清 localStorage token + 复位 user），再跳 /login。
+// 不自己 removeItem：auth-expired 监听器与 restore 逻辑都依赖这一个出口。
+function logout() {
+  auth.logout()
+  void router.replace('/login')
+}
+function onUserCommand(command: string) {
+  if (command === 'logout') logout()
+}
 const zones = [
   { to: '/m/check', label: '文案审核', hint: '粘贴或上传素材，逐条看判定与改法' },
   { to: '/m/archive', label: '我的档案', hint: '递过的材料、查过的话术、结论的历史' }
@@ -46,14 +56,21 @@ const clientLabel = computed(() =>
       </nav>
 
       <div class="side">
-        <RouterLink v-if="!auth.user" to="/login" class="ghost">登录</RouterLink>
-        <div v-else class="who">
-          <span class="avatar" aria-hidden="true">{{ userLabel.slice(0, 1).toUpperCase() }}</span>
-          <span class="who-text">
-            <strong>{{ userLabel }}</strong>
-            <em class="m-muted">{{ clientLabel }}</em>
-          </span>
-        </div>
+        <RouterLink v-if="!auth.user" to="/login" class="ghost">登录 / 注册</RouterLink>
+        <el-dropdown v-else trigger="click" @command="onUserCommand">
+          <div class="who">
+            <span class="avatar" aria-hidden="true">{{ userLabel.slice(0, 1).toUpperCase() }}</span>
+            <span class="who-text">
+              <strong>{{ userLabel }}</strong>
+              <em class="m-muted">{{ clientLabel }}</em>
+            </span>
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </header>
 

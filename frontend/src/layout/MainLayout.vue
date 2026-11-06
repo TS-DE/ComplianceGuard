@@ -63,6 +63,9 @@ function logout() {
   auth.logout()
   void router.replace('/login')
 }
+function onUserCommand(command: string) {
+  if (command === 'logout') logout()
+}
 </script>
 
 <template>
@@ -89,12 +92,18 @@ function logout() {
         <h1>{{ route.meta.title || roleText }}</h1>
         <div class="user">
           <template v-if="auth.user">
-            <span class="who">
-              <span class="avatar">{{ initial }}</span>
-              <span class="name">{{ auth.user.username }}</span>
-              <span class="role">{{ roleText }}</span>
-            </span>
-            <el-button text @click="logout">退出</el-button>
+            <el-dropdown trigger="click" @command="onUserCommand">
+              <span class="who">
+                <span class="avatar">{{ initial }}</span>
+                <span class="name">{{ auth.user.username }}</span>
+                <span class="role">{{ roleText }}</span>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </template>
           <el-button v-else type="primary" plain @click="toAuth">登录 / 注册</el-button>
         </div>
