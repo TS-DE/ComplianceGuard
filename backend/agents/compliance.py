@@ -344,7 +344,18 @@ class ComplianceAuditAgent:
                 # 因此先按同一规则归一再定位，命中后再由后面回填原文片段。
                 quote = normalize_text(quote)[0]
                 hit['quote'] = quote
-            start = text.find(quote) if isinstance(quote, str) and quote else -1
+            # 定位优先级：regex 命中带 detect_start（finditer 的真实位置）→ 用它。
+            # text.find(quote) 永远返回第一处：同一词出现多次时（audit=257 三个「永久」）
+            # 所有命中共享同一锚点，复核窗口与前端高亮一起错位。
+            ds = hit.get('detect_start')
+            qtext = quote if isinstance(quote, str) else ''
+            if isinstance(ds, int) and qtext and text[ds:ds + len(qtext)] == qtext:
+                start = ds
+            elif isinstance(ds, int) and qtext:
+                # 归一再定位后坐标可能漂移（零宽字符被删）：就近向后找一次
+                start = text.find(qtext, max(ds - 4, 0))
+            else:
+                start = text.find(qtext) if qtext else -1
             if start < 0:
                 result['traces'].append(dict(hit, status='invalid_quote'))
                 continue

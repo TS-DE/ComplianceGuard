@@ -72,7 +72,12 @@ class RegexDetector(Detector):
                 raise KeyError(rule.expression)
         else:
             recognizer = _AXIS_REGEX[rule.axis]
-        return [_hit(rule, match.group(), "regex") for match in recognizer.finditer(text)
+        # finditer 的位置必须带下去：`text.find(quote)` 永远返回第一个匹配，
+        # 同一个词出现多次（audit=257 的三个「永久」）会让所有命中共享同一个锚点，
+        # 复核窗口和前端高亮全部错位。detect_start/detect_end 是归一文本坐标。
+        return [dict(_hit(rule, match.group(), "regex"),
+                     detect_start=match.start(), detect_end=match.end())
+                for match in recognizer.finditer(text)
                 if match.group()]
 
 
@@ -153,7 +158,9 @@ def _sentence_span(text: str, at: int) -> tuple[int, int]:
 def mark_hit_context(text: str, hit: dict) -> dict:
     """给命中打语境标记（否定 / 假设-引用-科普），只标记不丢弃。
 
-    命中片段本身是从原文逐字截出来的（N6 还会再校验一次），所以直接 find 定位；
+    定位优先级：hit 自带 start（N6 校验后写回的真实原文偏移）→ 用它。
+    find(quote) 永远回第一处：同一词重复出现时（audit=257 的三个「永久」）
+    所有命中都按第一处的语境打标记，否定信号配错人。
     定位不到就不标记——宁缺毋错，让复核阶段去判断。
     """
     from backend.core.constants import (
@@ -162,7 +169,10 @@ def mark_hit_context(text: str, hit: dict) -> dict:
     quote = hit.get("quote") or ""
     if not quote:
         return hit
-    at = text.find(quote)
+    at = hit.get("start")
+    if not (isinstance(at, int) and 0 <= at <= len(text)
+           and text[at:at + len(quote)] == quote):
+        at = text.find(quote)
     if at < 0:
         return hit
     left = text[max(0, at - NEGATION_WINDOW):at] + quote

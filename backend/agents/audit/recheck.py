@@ -44,11 +44,18 @@ SYSTEM_PROMPT = (
 def hit_context(original: str, hit: dict, window: int = RECHECK_CONTEXT_CHARS) -> str:
     """取命中所在的上下文（前后各 window 字）；定位不到就回退整篇开头。
 
-    定位用 `original_quote`：N6 已把它还原成原文逐字片段，
-    而归一化文本里的下标不能直接切原串（全半角与零宽字符会差一两个字符）。
+    定位优先级：hit 自带 start（N6 还原原文后的真实偏移）→ 用它。
+    find(original_quote) 永远回第一处：同词重复出现（audit=257 三个「永久」）
+    时三条命中拿到同一个窗口，复核就分不清谁是谁——这正是"标签与上下文错位"的源头。
+    校验 start 处切片必须等于 original_quote 才敢用，对不上仍退回 find。
     """
     quote = hit.get('original_quote') or hit.get('quote') or ''
-    at = original.find(quote)
+    if not quote:
+        return original[:2 * window]
+    at = hit.get('start')
+    if not (isinstance(at, int) and 0 <= at <= len(original)
+            and original[at:at + len(quote)] == quote):
+        at = original.find(quote)
     if at < 0:
         return original[:2 * window]
     return original[max(0, at - window):at + len(quote) + window]

@@ -247,8 +247,19 @@ function toHit(groupIndex: number, fullText: string, piece: ImportPiece, scriptI
   const quote = hit.original_quote ?? hit.quote
   const anchorStart = typeof piece.source_start === 'number' ? piece.source_start : null
   const regions = pieceRegions(fullText, piece, cursors.get(groupIndex) ?? 0)
-  // 引文只在**这句话术自己的区间**里找：整篇搜会让右侧第 5 条点亮、左栏滚到第 1 条
+  // 服务端锚点优先：hit.start/end 是该话术内的绝对偏移（后端 N6 定位），
+  // 加话术区间起点就是文档级位置。**禁止用 quote 再 find 一次**：
+  // find 永远返回话术内第一处，同一词重复出现（audit=257 的三个「永久」）时
+  // 三条命中卡片全部显示第一处的上下文——标签与上下文错位。
+  // 校验：锚点切出的片段必须与 quote 内容一致（忽略空白），对不上才退回 locate。
+  const sameText = (a: string, b: string) =>
+    a.replace(/\s+/g, '') === b.replace(/\s+/g, '')
   const inside = regions.map((region) => {
+    if (typeof hit.start === 'number' && typeof hit.end === 'number'
+        && region.start === anchorStart
+        && sameText(fullText.slice(region.start + hit.start, region.start + hit.end), quote)) {
+      return { start: region.start + hit.start, end: region.start + hit.end, own: true }
+    }
     const found = locate(fullText.slice(region.start, region.end), quote)
     return found
       ? { start: region.start + found.start, end: region.start + found.end, own: region.start === anchorStart }

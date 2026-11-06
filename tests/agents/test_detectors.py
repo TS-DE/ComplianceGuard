@@ -63,8 +63,10 @@ def test_custom_regex_is_prepared_before_detection(monkeypatch):
     detector = RegexDetector(expressions={"custom": r"白\d+度"})
     rule = Rule(axis="custom", expression=r"白\d+度", detector="regex", level="soft")
     monkeypatch.setattr(re, "compile", lambda *args, **kwargs: pytest.fail("compile during detect"))
+    # regex 命中必须携带 finditer 的位置（audit=257 错位根因：下游 find 永远回第一处）
     assert detector.detect("能白3度", rule) == [dict(pattern="", quote="白3度", severity="soft",
-                                                law_article="", detector="regex")]
+                                                law_article="", detector="regex",
+                                                detect_start=1, detect_end=4)]
     with pytest.raises(KeyError):
         detector.detect("anything", Rule(axis="unprepared", expression="new"))
 

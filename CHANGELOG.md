@@ -5,6 +5,16 @@
 > 每条四段式：做了什么 / 验证证据（命令 + 实际输出）/ 遗留问题 / 规则或评测集变动。
 > **验证证据只写真实跑出来的输出，不写"已完成"。**
 
+## D5 · 重复词锚点错位修复（audit=257）+ 检测架构事实入 CLAUDE.md + 两端退出登录（2026-11-06）
+
+**改动**：验证先行——audit=257 库内真实值：三个「永久」在 129（预防变色）/149（不是永久性）/171（永久见效）；active 命中 start=129——判定与展示**都错了**，不止错位。根因：RegexDetector.finditer 找到多处，但下游 _validate/mark_hit_context/hit_context/前端 toHit 全部 `find(quote)` 重新定位，永远回第一处，三条命中共享 129 的锚点与复核窗口。修法：regex 命中携带 detect_start/detect_end；_validate 优先用它算真实区间；mark_hit_context 与复核 hit_context 优先用命中自带 start（切片校验不过才退回 find）；前端 toHit 用 hit.start/end+话术锚点渲染，禁止再 find，无锚点老数据才退模糊定位。另：CLAUDE.md 新增 §5.1 检测架构事实（pattern 仅 llm_judge、正则=召回器非裁决者、不得删正则、禁 find 重定位）；两套 shell 用户区改 el-dropdown 含「退出登录」→auth.logout()+跳 /login，未登录显示登录/注册。
+
+**验证**：修后真实模型重跑 script 242：active absolute_terms 命中 start=149/171 各自独立，149 上下文=「效果可能不是永久性的」、171=「一次做完永久见效」，「预防…永久变色」（129）已 dismiss。新增 tests/agents/test_hit_anchor.py 3 条钉锚点不共享；test_detectors 旧断言按新契约补 detect_start/end。浏览器真实验收（Windows headless Chrome CDP + vite preview 4173 + uvicorn 8000）：管理端与商家端各 7 项全 PASS（登录→token 写入→下拉出现「退出登录」→点击→URL 回 /login→localStorage token 清除→登录页给出登录/注册入口），RESULT: ALL PASS。pytest `431 passed in 39.57s`；doc_lint `扫描文档 22 份。红灯 0 条`；前端 `✓ built in 6.54s`（Windows Node 工具链）。
+
+**遗留**：①历史 audits 的 hits_json 仍带错位锚点（只影响旧记录展示，新审查起正确；如需可批量重算，未做）；②验收用一次性账号 e2e_admin_t1/e2e_merchant_t2；本地 .env 的 CORS_ORIGINS 补了 4173 preview 端口（.env 不入库）。
+
+**规则/评测**：未改规则数据、评测集、表结构。
+
 ## D5 · 法源绑定统一走规则表：越轴引证记 law_out_of_axis，不再产生 evidence_gap 翻转（2026-11-06）
 
 **改动**：作者裁决——s33 型 -1 的根因不是检索抖动，是**模型越轴引证**（efficacy_claim 声明「广告法第16条(一)、医美指南第五条(四)」，模型引了不属本轴的「执法指南第2条」，旧代码把它记 evidence_gap→判定未完成）。llm_judge 分支改为与 regex 同构：轴在规则表声明 law_article → 引用先验轴，越轴记 status=law_out_of_axis 丢弃该命中且**不记 evidence_gap**；引用落在声明集合内 → 能解析到检索 chunk 保留条级 provenance，否则 bind_rule_law 规则表绑定并记 law_from_rule_table。轴未声明法源才走旧"模型引用+候选"路径（候选缺失仍 evidence_gap，铁律3 fail-closed 保留；11 条种子规则全部已声明，此为兜底）。推翻 3 条钉旧契约的用例（test_unretrieved_law_*、test_llm_unretrieved_law_still_rejected、missing_document_warns_only），改写为新契约并新增越轴/规则表绑定用例。

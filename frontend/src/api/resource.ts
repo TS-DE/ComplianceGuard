@@ -19,8 +19,9 @@ export interface Hit {
   downgrade_reason?: string | null
   /**
    * 原文定位字段：start/end 是相对**该条话术**的下标（不是文档级），
-   * 所以检查页要用 original_quote 在整篇原文里重新定位（utils/locate）。
-   * 缺这几个字段时前端只能显示"位置未知"，而不是猜。
+   * 检查页把它们加到话术锚点（source_start）上直接渲染，
+   * **禁止再用 quote 在原文里 find 一次**——同词重复时 find 永远回第一处，
+   * 卡片上下文会配错（audit=257 实证）。缺这几个字段时才退 utils/locate 模糊定位。
    */
   original_quote?: string; start?: number; end?: number
   detector?: string | null; status?: string
