@@ -82,14 +82,15 @@ def test_run_persists_metadata_and_recheck_does_not_write(db):
     assert saved.hit_count == 1
     assert saved.hits_json[0]["status"] == "active"
     assert saved.law_refs_json
-    # T2 只复核"语境上有疑问"的命中。本句是无否定的常规绝对化用语，
-    # 复核必须被跳过：多花一次调用不改变任何结论，却给单条加 2~12 秒。
-    # 所以这里钉的是"跳没跳"这个设计，而不是钉一个调用次数——次数会随链路步骤变。
-    assert "recheck" not in result["timings_ms"], "无语境信号不应发起整篇复核"
-    assert result["recheck_skipped"] == "no_context_signal"
-    assert saved.prompt_tokens == result["prompt_tokens"] == 10
-    assert saved.completion_tokens == result["completion_tokens"] == 2
-    assert saved.cost == result["cost"] == Decimal("0.0001")
+    # regex 命中本身没有上下文能力，必须送整篇复核（断章取义修复）：
+    # 这里钉的是"复核跑了"——跳过它正是 audit=229 以"永久"硬违规结案的根因。
+    # 复核返回不可解析时保持原判（仍 score=0），绝不因复核没结论而放行。
+    assert "recheck" in result["timings_ms"], "regex 命中必须发起整篇复核"
+    assert "recheck_skipped" not in result
+    # 复核这一次调用的用量必须并入本条总账：首 call 10 + 复核 10
+    assert saved.prompt_tokens == result["prompt_tokens"] == 20
+    assert saved.completion_tokens == result["completion_tokens"] == 4
+    assert saved.cost == result["cost"] == Decimal("0.0002")
     assert saved.model is not None
     assert saved.latency_ms >= 0
     assert "不构成法律意见" in result["disclaimer"]

@@ -149,7 +149,9 @@ def test_agent_only_rechecks_ambiguous_hits() -> None:
     def agent(model):
         return ComplianceAuditAgent(lambda: [], lambda q: [], model, detectors={})
 
-    clean = [{"quote": "最高级", "severity": "hard", "axis": "absolute_terms"}]
+    # 无信号的 llm_judge 命中（regex/keyword 命中一律带 needs_recheck，见 test_coded_hit_recheck）
+    clean = [{"quote": "最高级", "severity": "hard", "axis": "absolute_terms",
+              "detector": "llm_judge"}]
     result = _result(clean)
     outcome = agent(FakeModel(verdicts([])))._recheck("本院提供最高级服务", clean, result)
     assert outcome == clean and result["recheck_skipped"] == "no_context_signal"

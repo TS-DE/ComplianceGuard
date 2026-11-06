@@ -231,8 +231,17 @@ class ComplianceAuditAgent:
         if not hits:
             return hits
         if context:
-            result['recheck_skipped'] = 'context_in_first_call'
-            return hits
+            # 只有"全部命中都来自 llm_judge"才能说上下文已在首 call 用过；
+            # regex/keyword 命中从没见过上下文，存在任何一条就必须复核。
+            coded = [i for i, hit in enumerate(hits) if hit.get('detector') in ('regex', 'keyword')]
+            if not coded:
+                result['recheck_skipped'] = 'context_in_first_call'
+                return hits
+            # llm_judge 命中首 call 已看过整篇，不再重复送审（不额外放大复核的改判面）
+            chosen = [hits[i] for i in coded]
+            kept = {id(hit) for hit in recheck_hits(self.model, original, chosen, result,
+                                                     full_text=context)}
+            return [hit for i, hit in enumerate(hits) if i not in coded or id(hit) in kept]
         ambiguous = [hit for hit in hits if hit.get('needs_recheck')
                      or hit.get('negated_suspected') or hit.get('context_hedge')]
         if not ambiguous:
@@ -340,6 +349,10 @@ class ComplianceAuditAgent:
                 result['traces'].append(dict(hit, status='invalid_quote'))
                 continue
             if rule.detector in ('regex','keyword'):
+                # 词表/正则只做 finditer，本身没有任何上下文能力：首 call 带全文也救不了它
+                # （「以预防皮肤长久或永久变色」里的"永久"就是这样被判成硬违规的）。
+                # 所以确定性命中一律送整篇复核，由复核按规则的语境限定裁决。
+                hit['needs_recheck'] = True
                 if not bind_rule_law(hit,rule,result['law_refs']):
                     result['traces'].append(dict(hit,status='invalid_law_ref'))
                     continue

@@ -29,6 +29,7 @@ SYSTEM_PROMPT = (
     '②是向具体顾客打包票，还是陈述一般规律或常规告知；'
     '③是否同时给了风险告知或个体差异声明；'
     '④上下文是否把它和价格、期限、退款等绑成招揽卖点（如"三个月见效，无效退款"）。'
+    'pattern 里若写有"语境"限定，以该限定作为本轴成立的边界。'
     '判断标准：dismiss 只用于"这句话本身并没有作出该断言"；'
     '仍是断言但语气缓和用 downgrade；确认原判断用 confirm。'
     '上下文不清或证据不足时用 confirm，不要为了少报而 dismiss。'
@@ -67,7 +68,8 @@ def _payload(rows, hits):
         yield position, verdict, row.get('reason'), valid
 
 
-def recheck_hits(model, original: str, hits: list, result: dict) -> list:
+def recheck_hits(model, original: str, hits: list, result: dict,
+                 full_text: str | None = None) -> list:
     """复核并返回处置后的命中列表；同时在 result 里写 traces / timings。
 
     三条边界都由代码守住：
@@ -75,6 +77,9 @@ def recheck_hits(model, original: str, hits: list, result: dict) -> list:
     · `dismiss` → 从 active 命中移除，但一定在 traces 留 `dismissed_by_context` + 理由；
     · 调用失败 / JSON 不可解析 → 不改原判，记 `recheck_failed` / `recheck_unparseable`，
       这条仍算"看过但没结论"，绝不能因为复核挂了就把命中当成没问题。
+
+    `full_text` 是所属素材的整篇（路线A 的上下文）；不给就用本条话术。
+    命中窗口仍从 `original` 切：同一个词在整篇别处也可能出现，按整篇找会切错位置。
     """
     if not hits:
         return hits
@@ -89,7 +94,7 @@ def recheck_hits(model, original: str, hits: list, result: dict) -> list:
     try:
         response = model.complete([
             dict(role='system', content=SYSTEM_PROMPT),
-            dict(role='user', content=json.dumps(dict(full_text=original[:2000], items=items),
+            dict(role='user', content=json.dumps(dict(full_text=(full_text or original)[:2000], items=items),
                                                  ensure_ascii=False))])
     except Exception as exc:
         result['traces'].append(dict(status='recheck_failed', error=type(exc).__name__))
@@ -106,7 +111,7 @@ def recheck_hits(model, original: str, hits: list, result: dict) -> list:
         result['timings_ms']['recheck'] = (perf_counter() - started) * 1000
         return hits
 
-    kept, dismissed_positions = [], set()
+    kept, dismissed_positions, decided = [], set(), []
     for position, verdict, reason, valid in _payload(rows, hits):
         if not valid:
             if isinstance(position, int) and 0 <= position < len(hits):
@@ -114,6 +119,11 @@ def recheck_hits(model, original: str, hits: list, result: dict) -> list:
                                              verdict=verdict))
             continue
         hit = hits[position]
+        # 每条采纳的裁决都写回命中并汇总进 trace：confirm 也要留痕，
+        # 否则"复核过且维持原判"与"根本没复核"在审计记录里长得一样
+        hit['recheck_verdict'], hit['recheck_reason'] = verdict, reason
+        decided.append(dict(quote=hit.get('quote'), axis=hit.get('axis'),
+                            detector=hit.get('detector'), verdict=verdict, reason=reason))
         if verdict == 'dismiss':
             hit['dismiss_reason'] = reason
             dismissed_positions.add(position)
@@ -130,6 +140,8 @@ def recheck_hits(model, original: str, hits: list, result: dict) -> list:
             hit['downgraded'] = False
             hit['context_restored'] = True
             hit['restore_reason'] = reason
+    if decided:
+        result['traces'].append(dict(status='recheck_verdicts', items=decided))
     if dismissed_positions:
         result['context_dismissed'] = True
         result['traces'].append(dict(status='dismissed_by_context',
