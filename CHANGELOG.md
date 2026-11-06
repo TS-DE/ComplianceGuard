@@ -1,10 +1,19 @@
 # CHANGELOG
 
-> 状态：生效 ｜ 最后更新：2026-11-01 ｜ 维护：Claude
+> 状态：生效 ｜ 最后更新：2026-11-06 ｜ 维护：Claude
 >
 > 每条四段式：做了什么 / 验证证据（命令 + 实际输出）/ 遗留问题 / 规则或评测集变动。
 > **验证证据只写真实跑出来的输出，不写"已完成"。**
 
+## D5 · 确定性命中复核覆盖 + absolute_terms 语境限定 + reason 分级表述禁令（2026-11-06）
+
+**改动**：三笔提交。b9e4425 路线A 带上下文时 regex/keyword 命中不再被 `context_in_first_call` 跳过复核，复核结论（含 confirm）全量写回命中并汇总 `recheck_verdicts` trace；efe490b rules.json absolute_terms 语境限定 v2；3b7100b 判定（llm_judge/merged）与复核三处 system prompt 增加 reason 禁令——只写事实依据，禁止「应视为/可视为/疑似/建议/实际上」等判断性表述，分级由系统决定（修 audit=251 标签与理由矛盾），新增 tests/agents/test_reason_wording.py 钉禁令与旧模板句移除。链路未动：reason 原样留痕，severity 不读 reason。
+
+**验证**：真实模型回归 22 条含确定性命中的话术（只读不写库）：5 条否定语境放行（s103/131/135/139/143「磨皮术的效果可能不是永久性的」，作者裁决认可）、6 条 0→1（「预防永久变色」dismiss+降级）、真违规全部维持 confirm。s33 归因：非复核挂——是 efficacy_claim 命中引用的「广告绝对化用语执法指南第2条」偶发不在当轮检索候选，`invalid_law_ref` 置 `evidence_gap` 按 fail-closed 记 -1；现场连跑 3 次复现 1 次（run1 score=-1 statuses 含 invalid_law_ref，run2/3 score=2）。第2件事验收「玻尿酸面膜能够起到补水保湿的作用」真实输出：severity=hard，reason=「…句中未出现"保证"、"一定"、"彻底"等绝对化承诺词，也未出现"可能"、因人而异"等模糊限定词，属于对功效的直接描述。」禁词命中=无，标签与理由一致；同一句 3 次中 2 次模型直接不命中（score=2，llm_judge 判定抖动，遗留）。pytest `428 passed in 54.86s`（419 基线 + 5 复核覆盖 + 4 提示词契约，另 2 条旧断言按新契约改写）；doc_lint `扫描文档 21 份。红灯 0 条：文档与代码一致。`
+
+**遗留**：①evidence_gap 对"模型引了指南条号、regex 轴已绑定规则法条"的情形是否应算缺口（是 s33 型翻转的根，待裁决）；②llm_judge 对无风险描述的命中不稳定（同一句 3 次 2 放行 1 命中）；③前端动效按作者指令止损：已实现保留、不调幅度、不做 Step 3，卡片标签全部由 score/severity 字段驱动、reason 仅展示文本，无需前端改动。
+
+**规则/评测**：absolute_terms v2（id=24，enabled）语境限定上库，v1（id=4）停用保留；未改冻结罚单评测集与表结构。
 ## D3 · 阶段F计价与收尾接线
 
 **改动**：audits.cost 唯一授权迁移至可空，默认预览、--apply执行并可重复跳过；Decimal六位计价，配置优先作者填入MODEL_PRICES，缺价返回None并原样持久化NULL。组合根只读Chroma实际文档名；统一字符起点映射；总耗时在save后计量并回填数据库。
