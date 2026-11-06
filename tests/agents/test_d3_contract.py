@@ -45,15 +45,18 @@ def test_article_level_membership_passes():
 
 
 def test_missing_document_warns_only():
+    # 裁决后新契约：声明文档缺位时，若模型引用不属声明集合，按越轴丢弃
+    # （不再是"警告但保留"——保留的命中法源根本不在本轴声明内）。
     result = check_axis('安全', '缺失法规第7条', '广告法第16条', {'广告法'})
-    assert result['hits']
-    assert any(t['status'] == 'law_ref_missing' for t in result['traces'])
+    assert not result['hits']
+    assert result['traces'][0]['status'] == 'law_out_of_axis'
 
 
 def test_other_axis_law_rejected():
     result = check_axis('安全', '广告法第16条', '广告法第9条', {'广告法'})
     assert not result['hits']
-    assert result['traces'][0]['status'] == 'cross_axis_rejected'
+    # 越轴引证的显式名（旧契约叫 cross_axis_rejected；新契约绑定先验轴）
+    assert result['traces'][0]['status'] == 'law_out_of_axis'
 
 
 

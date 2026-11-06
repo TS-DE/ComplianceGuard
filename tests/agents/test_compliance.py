@@ -53,25 +53,30 @@ def test_fabricated_quote_discarded():
     assert r['traces'][0]['status'] == 'invalid_quote'
 
 
-def test_unretrieved_law_discarded():
+def test_out_of_axis_citation_discarded_not_gap():
+    """作者裁决（2026-11-06）：轴声明法源后，模型引用只验轴。
+    引用不在本轴声明集合（第999条 vs 声明的第9条）= 越轴引证：
+    丢弃该命中记 law_out_of_axis，**不记 evidence_gap**——模型乱引
+    不能把整条判成"未完成"。旧契约（invalid_law_ref+证据缺口）被推翻。"""
     r = audit('最佳', [dict(quote='最佳', law_article='广告法第999条', reason='x')])
     assert r['hits'] == []
-    assert r['traces'][0]['status'] == 'invalid_law_ref'
+    assert r['traces'][0]['status'] == 'law_out_of_axis'
+    assert r['incomplete'] is False
 
 
-def test_unretrieved_law_marks_incomplete_not_compliant():
-    """模型判出违规、但它引用的法条这一轮没检索到 —— 必须判"未完成"，绝不放行。
-
-    实测背景：同一句医美文案重复审查 6 次，有 3 次因向量检索抖动导致关键法条
-    （广告法第16条/医美指南第5条）不在候选里，命中被证据闸丢弃后，
-    结论就从"违规"翻转成"合规"——等于商家反复提交就能等到放行。
-    证据不足不等于没问题，因此这种情形必须按未完成处理。
-    """
-    r = audit('热玛吉可以除去皱纹', [dict(quote='热玛吉可以除去皱纹', law_article='广告法第16条', reason='x')])
-    assert r['hits'] == []
-    assert r['incomplete'] is True
-    assert r['incomplete_reason'] == 'evidence_gap'
-    assert r['score'] == -1, "证据缺口不得算成合规分"
+def test_declared_axis_law_binds_from_rule_table_without_retrieval():
+    """轴声明法源 → 绑定走规则表，检索候选缺位不再翻转结论（s33 根因）。
+    命中引用与声明匹配（第9条），检索只有别的法条：命中保留、无 evidence_gap。"""
+    from backend.agents.compliance import ComplianceAuditAgent
+    model = ResponseModel({'hits': [dict(quote='热玛吉可以除去皱纹',
+                                        law_article='广告法第9条', reason='x')]})
+    rules = [dict(axis='absolute_terms', pattern='绝对化', law_article='广告法第9条',
+                  detector='llm_judge')]
+    r = ComplianceAuditAgent(lambda: rules, lambda q: [dict(code='广告法第16条')],
+                             model).review('热玛吉可以除去皱纹')
+    assert r['incomplete'] is False
+    assert r['score'] == 0, "规则表绑定成功：不得因检索抖动记 -1 或放行"
+    assert any(t['status'] == 'law_from_rule_table' for t in r['traces'])
 
 
 def test_search_law_is_cached_for_same_text(monkeypatch):

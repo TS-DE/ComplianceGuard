@@ -15,12 +15,15 @@ def test_regex_survives_missing_retrieved_law():
     assert result['hits'][0]['ref']=='广告法.9.3'
 
 
-def test_llm_unretrieved_law_still_rejected():
+def test_llm_declared_law_survives_missing_retrieved_law():
+    """裁决（2026-11-06）：轴声明法源 → llm_judge 与 regex 一样走规则表绑定，
+    检索候选缺位不再否决命中（旧契约"LLM仍严格"被推翻，钉的是新契约）。"""
     class Fake(Detector):
         def detect(self,text,rule): return [dict(quote='最好',law_article='广告法第9条')]
     result=review([dict(code='广告法第16条')],detector='llm_judge',registry={'llm_judge':Fake()})
-    assert result['hits']==[]
-    assert result['traces'][0]['status']=='invalid_law_ref'
+    assert len(result['hits'])==1
+    assert result['hits'][0]['law_from_rule_table']==1
+    assert result['incomplete'] is False
 
 
 def test_regex_binds_matching_item_chunk():

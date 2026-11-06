@@ -5,6 +5,16 @@
 > 每条四段式：做了什么 / 验证证据（命令 + 实际输出）/ 遗留问题 / 规则或评测集变动。
 > **验证证据只写真实跑出来的输出，不写"已完成"。**
 
+## D5 · 法源绑定统一走规则表：越轴引证记 law_out_of_axis，不再产生 evidence_gap 翻转（2026-11-06）
+
+**改动**：作者裁决——s33 型 -1 的根因不是检索抖动，是**模型越轴引证**（efficacy_claim 声明「广告法第16条(一)、医美指南第五条(四)」，模型引了不属本轴的「执法指南第2条」，旧代码把它记 evidence_gap→判定未完成）。llm_judge 分支改为与 regex 同构：轴在规则表声明 law_article → 引用先验轴，越轴记 status=law_out_of_axis 丢弃该命中且**不记 evidence_gap**；引用落在声明集合内 → 能解析到检索 chunk 保留条级 provenance，否则 bind_rule_law 规则表绑定并记 law_from_rule_table。轴未声明法源才走旧"模型引用+候选"路径（候选缺失仍 evidence_gap，铁律3 fail-closed 保留；11 条种子规则全部已声明，此为兜底）。推翻 3 条钉旧契约的用例（test_unretrieved_law_*、test_llm_unretrieved_law_still_rejected、missing_document_warns_only），改写为新契约并新增越轴/规则表绑定用例。
+
+**验证**：s33 真实模型连跑 3 次全部 score=2、evidence_gap=False、trace 含 law_out_of_axis（无一翻转）；真违规「保证三个月恢复正常肤色」「一次做完，永久有效」「一定见效，无效退款」仍 score=0 全 hard。pytest `428 passed in 41.51s`；doc_lint `扫描文档 21 份。红灯 0 条`。
+
+**遗留**：无（上一条目遗留①"evidence_gap 是否应算缺口"已由本裁决关闭；检索候选仍用于 provenance 与展示，不再是命中生死闸）。
+
+**规则/评测**：未改规则数据与冻结评测集；无表结构变更。
+
 ## D5 · 确定性命中复核覆盖 + absolute_terms 语境限定 + reason 分级表述禁令（2026-11-06）
 
 **改动**：三笔提交。b9e4425 路线A 带上下文时 regex/keyword 命中不再被 `context_in_first_call` 跳过复核，复核结论（含 confirm）全量写回命中并汇总 `recheck_verdicts` trace；efe490b rules.json absolute_terms 语境限定 v2；3b7100b 判定（llm_judge/merged）与复核三处 system prompt 增加 reason 禁令——只写事实依据，禁止「应视为/可视为/疑似/建议/实际上」等判断性表述，分级由系统决定（修 audit=251 标签与理由矛盾），新增 tests/agents/test_reason_wording.py 钉禁令与旧模板句移除。链路未动：reason 原样留痕，severity 不读 reason。

@@ -15,7 +15,7 @@ from backend.agents.audit.recheck import recheck_hits
 from backend.core.config import DISCLAIMER_TEXT
 from backend.core.constants import (
     COMMITMENT_WORDS, effective_hedges,
-    to_refs, missing_docs, add_cost, match_refs, bind_chunk)
+    to_refs, missing_docs, add_cost, match_refs, bind_chunk, chunk_refs)
 
 _SENTENCES = re.compile(r'[^。！？!?；;\n]+[。！？!?；;\n]?')
 _ZERO_WIDTH = frozenset('\u200b\u200c\u200d\ufeff\u2060')
@@ -359,24 +359,51 @@ class ComplianceAuditAgent:
                 if hit.get('law_from_rule_table'):
                     result['traces'].append(dict(hit,status='law_from_rule_table'))
             else:
-                cited_chunk = next((r for r in result['law_refs'] if r.get('chunk_id') == hit.get('law_article')), None)
-                if cited_chunk:
-                    hit['chunk_id'] = cited_chunk['chunk_id']
-                    hit['law_article'] = cited_chunk['code']
-                codes = {r['code'] for r in result['law_refs']}
-                if hit.get('law_article') not in codes:
-                    # 关键：模型判出了违规，但它引用的法条这一轮没被检索到。
-                    # 直接丢弃会让结论翻转成"合规"——实测同一句文案 6 次里 3 次出现这种情况
-                    # （检索抖动导致关键法条不在候选里）。证据不足 ≠ 没问题，
-                    # 因此标记证据缺口，最终按"判定未完成"处理，绝不放行。
-                    result['evidence_gap'] = True
-                    result['traces'].append(dict(hit, status='invalid_law_ref'))
-                    continue
-                chunk = bind_chunk(hit, result['law_refs'])
-                if chunk is None:
-                    result['evidence_gap'] = True
-                    result['traces'].append(dict(hit, status='invalid_law_ref'))
-                    continue
+                declared_law = to_refs(rule.law_article) if rule.law_article else set()
+                if declared_law:
+                    # 作者裁决（2026-11-06）：轴在规则表声明了法源 → 绑定不依赖检索候选，
+                    # 与 regex 路径同构（law_from_rule_table）。模型引用只用来**验轴**：
+                    # 引用不在本轴声明集合内 = 越轴引证（s33 型 -1 的真实根因：
+                    # efficacy_claim 引了「执法指南第2条」，该条根本不属本轴声明集合）。
+                    # 越轴 → 丢弃该命中并记 law_out_of_axis，但**不记 evidence_gap**——
+                    # 模型乱引不能把整条判成"未完成"。
+                    cited = hit.get('law_article')
+                    cited_chunk = next((r for r in result['law_refs']
+                                         if r.get('chunk_id') == cited or r['code'] == cited), None)
+                    cited_refs = chunk_refs(cited_chunk) if cited_chunk else to_refs(cited or '')
+                    if match_refs(declared_law, cited_refs) == 'cross_axis_rejected':
+                        result['traces'].append(dict(hit, status='law_out_of_axis'))
+                        continue
+                    if cited_chunk is not None and bind_chunk(hit, [cited_chunk]) is not None:
+                        pass  # 引用能落到具体 chunk：保留条级 provenance，与下游 item 校验一致
+                    elif not bind_rule_law(hit, rule, result['law_refs']):
+                        result['traces'].append(dict(hit, status='invalid_law_ref'))
+                        continue
+                    elif hit.get('law_from_rule_table'):
+                        # 与 regex 路径同构：只有真正用到规则表兜底才记这条 trace
+                        result['traces'].append(dict(hit, status='law_from_rule_table'))
+                else:
+                    # 轴没声明法源（11 条种子规则均声明，此为兜底路径）：
+                    # 才走"模型引用 + 检索候选"；候选缺失仍记 evidence_gap——
+                    # 铁律 3 的 fail-closed 原样保留，防的是模型凭记忆编条号。
+                    cited_chunk = next((r for r in result['law_refs'] if r.get('chunk_id') == hit.get('law_article')), None)
+                    if cited_chunk:
+                        hit['chunk_id'] = cited_chunk['chunk_id']
+                        hit['law_article'] = cited_chunk['code']
+                    codes = {r['code'] for r in result['law_refs']}
+                    if hit.get('law_article') not in codes:
+                        # 关键：模型判出了违规，但它引用的法条这一轮没被检索到。
+                        # 直接丢弃会让结论翻转成"合规"——实测同一句文案 6 次里 3 次出现这种情况
+                        # （检索抖动导致关键法条不在候选里）。证据不足 ≠ 没问题，
+                        # 因此标记证据缺口，最终按"判定未完成"处理，绝不放行。
+                        result['evidence_gap'] = True
+                        result['traces'].append(dict(hit, status='invalid_law_ref'))
+                        continue
+                    chunk = bind_chunk(hit, result['law_refs'])
+                    if chunk is None:
+                        result['evidence_gap'] = True
+                        result['traces'].append(dict(hit, status='invalid_law_ref'))
+                        continue
             declared = to_refs(rule.law_article) if rule.law_article else set()
             absent = missing_docs(declared, self.known_docs) if self.known_docs is not None else set()
             status = match_refs(declared, {hit['ref']}) if declared else 'matched'
